@@ -19,7 +19,14 @@ WORKSPACE := $(realpath $(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 
 SCRIPTS   := $(wildcard src/*)
 
-include ${DEV_MAKE}/colours.mk
+# MakeLib ist optional: ohne DEV_MAKE gelten die Ersatzfarben darunter.
+-include ${DEV_MAKE}/colours.mk
+
+YELLOW ?= $(shell printf "\033[38;5;11m")
+GREEN  ?= $(shell printf "\033[38;5;10m")
+BLUE   ?= $(shell printf "\033[38;5;33m")
+RESET  ?= $(shell printf "\033[0m")
+NC     ?= $(shell printf "\033[0m")
 
 # Include wird nur ausgeführt wenn das
 # File auch vorhanden ist

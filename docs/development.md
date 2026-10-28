@@ -7,9 +7,9 @@ steht im [README](../README.md).
 
 - Bash ab 4.3 und `BASH_LIBS` auf das `src` dieses Checkouts, wie im
   [README](../README.md#installation) beschrieben.
-- [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE` auf deren
-  Checkout: Das Makefile bindet `${DEV_MAKE}/colours.mk` ein und bricht ohne
-  die Variable ab.
+- Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
+  auf deren Checkout: Das Makefile nimmt dann deren Farben und Themes, sonst
+  einfache Ersatzfarben.
 
 ## Testen
 
