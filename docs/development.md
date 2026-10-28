@@ -8,7 +8,7 @@ steht im [README](../README.md).
 - Bash ab 4.3 und `BASH_LIBS` auf das `src` dieses Checkouts, wie im
   [README](../README.md#installation) beschrieben.
 - Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
-  auf deren Checkout: Das Makefile nimmt dann deren Farben und Themes, sonst
+  auf deren `src`: Das Makefile nimmt dann deren Farben und Themes, sonst
   erscheint die Ausgabe ohne Farben.
 
 ## Testen
