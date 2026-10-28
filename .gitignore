@@ -1,3 +1,8 @@
 lib.iml
 .config.mk
 
+
+# pip-Paket (pyproject.toml)
+*.egg-info/
+build/
+__pycache__/

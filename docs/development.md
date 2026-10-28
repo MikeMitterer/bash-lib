@@ -22,6 +22,24 @@ ausgewählte Funktionen auf; ohne `BASH_LIBS` brechen sie mit „Var
 'BASH_LIBS' nicht gesetzt!“ ab. Änderungen an Skripten zusätzlich mit
 `bash -n` und ShellCheck prüfen.
 
+Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
+
+```bash
+make test-package
+```
+
+Es installiert BashLib einmal normal und einmal mit `pip install -e` in je
+eine temporäre venv und bindet daraus eine Bibliothek ein. Dafür braucht es
+Python ab 3.11 (`PYTHON=…`, sonst `python3`) und Zugriff auf den
+Paketindex für setuptools.
+
+## Version und Release
+
+Die Version steht nur in `pyproject.toml` (`version = "X.Y.Z"`); das
+Makefile liest sie von dort. Ein Release ist ein Tag `vX.Y.Z` auf `master`,
+passend zu dieser Version. Projekte wie ProjectTools hängen über diesen Tag
+an BashLib.
+
 ## Neue Bibliothek
 
 Eine neue Datei `src/<name>.lib.sh` folgt dem Muster der vorhandenen:

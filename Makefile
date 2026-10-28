@@ -5,11 +5,12 @@
 # You can set these variables from the command line.
 # BUILDDIR      = _build
 
-.PHONY: help test share
+.PHONY: help test test-package share
 
 .DEFAULT_GOAL := help
 
-VERSION   := 0.1
+# Einzige Quelle der Version: pyproject.toml (pip-Paket und Tag vX.Y.Z)
+VERSION   := $(shell sed -n 's/^version = "\(.*\)"$$/\1/p' pyproject.toml)
 
 # Mountpoint im Jenkins-Slave (VM)
 SHARES	   := /mnt/shares/scripts
@@ -38,10 +39,12 @@ help:
 	@echo "    ${YELLOW}help       ${GREEN}This help message${NC}"
 	@echo
 	@echo "    ${YELLOW}test       ${GREEN}Runs the commandline-tests from${NC} ./test/testAll.sh"
+	@echo "    ${YELLOW}test-package ${GREEN}Installs BashLib as pip package into temporary venvs${NC} ./test/package.test.sh"
 	@echo "    ${YELLOW}share      ${GREEN}Shares scripts/libs on:${NC} ${SHARED_LIB}"
 	@echo
 	@echo "${BLUE}Info:${NC}"
 	@echo "     GH URL:         ${BLUE}${GITHUB_URL}${NC}"
+	@echo "     Version:        ${BLUE}${VERSION}${NC}"
 	@echo
 #	@echo "${BLUE}Hints:${NC}"
 #	@echo "    Forces make to run the target unconditionally"
@@ -50,6 +53,9 @@ help:
 
 test:
 	./test/testAll.sh
+
+test-package:
+	./test/package.test.sh
 
 
 _share_exist:

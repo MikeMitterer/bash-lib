@@ -1,0 +1,32 @@
+# BashLib als pip-Paket: liefert die Bibliotheken aus src/ und den Befehl
+# bashlib-path, der ihr Verzeichnis ausgibt (fuer BASH_LIBS).
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mmit-bashlib"
+version = "0.1.0"
+description = "Bash-Bibliotheken für eigene Skripte: Ausgabe, Farben, Werkzeuge, Versionen, Docker"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/MikeMitterer/bash-lib"
+
+[project.scripts]
+bashlib-path = "bashlib:main"
+
+# Welche Bibliotheken ins Paket kommen: alle src/*.lib.sh, im Paket unter
+# bashlib/lib. Eine editierbare Installation liest sie direkt aus src/.
+[tool.setuptools]
+packages = ["bashlib", "bashlib.lib"]
+include-package-data = false
+
+[tool.setuptools.package-dir]
+"" = "python"
+"bashlib.lib" = "src"
+
+[tool.setuptools.package-data]
+"bashlib.lib" = ["*.lib.sh"]

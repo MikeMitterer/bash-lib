@@ -59,6 +59,26 @@ einer eigenen Shell und sehen sonst nichts davon. Der Ort des Klons ist frei;
 wichtig ist nur, dass `BASH_LIBS` auf dessen `src` zeigt. Aktualisieren mit
 `git -C ~/.local/share/bash-lib pull`.
 
+### Als pip-Paket
+
+Werkzeuge, die BashLib mitbringen sollen, hängen sie als Python-Paket an,
+etwa in ihrer `pyproject.toml`:
+
+```toml
+dependencies = ["mmit-bashlib @ git+https://github.com/MikeMitterer/bash-lib.git@v0.1.0"]
+```
+
+Direkt installiert geht es auch:
+
+```bash
+pipx install 'git+https://github.com/MikeMitterer/bash-lib.git@v0.1.0'
+export BASH_LIBS="$(bashlib-path)"
+```
+
+`bashlib-path` gibt das Verzeichnis der installierten Bibliotheken aus. Mit
+`pip install -e <Klon>` zeigt es auf `src` des Klons, Änderungen wirken dann
+ohne Neuinstallation.
+
 [↑ Übersicht](#übersicht)
 
 ## Einbinden
