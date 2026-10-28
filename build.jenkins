@@ -1,0 +1,40 @@
+pipeline {
+    agent { label 'linux' }
+
+    stages {
+        stage('Prepare') {
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    ansiColor('xterm') {
+                        // Platzhalter
+                    }
+                }
+            }
+        }
+        stage('CLI-Test') {
+            
+            steps {
+                ansiColor('xterm') {
+                    sh 'make test'
+                }
+            }
+        }
+
+        stage('Share') {
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    ansiColor('xterm') {
+                        sh 'make share'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            ansiColor('xterm') {
+                // Platzhalter
+            }
+        }
+    }
+}
