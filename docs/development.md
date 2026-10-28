@@ -9,7 +9,7 @@ steht im [README](../README.md).
   [README](../README.md#installation) beschrieben.
 - Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
   auf deren Checkout: Das Makefile nimmt dann deren Farben und Themes, sonst
-  einfache Ersatzfarben.
+  erscheint die Ausgabe ohne Farben.
 
 ## Testen
 
