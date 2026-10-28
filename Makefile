@@ -9,8 +9,9 @@
 
 .DEFAULT_GOAL := help
 
-# Einzige Quelle der Version: pyproject.toml (pip-Paket und Tag vX.Y.Z)
-VERSION   := $(shell sed -n 's/^version = "\(.*\)"$$/\1/p' pyproject.toml)
+# Einzige Quelle der Version: pyproject.toml (pip-Paket und Tag vX.Y.Z),
+# gelesen mit readProjectVersion aus dieser Bibliothek
+VERSION   := $(shell bash -c 'source src/version.lib.sh && readProjectVersion' 2>/dev/null)
 
 # Mountpoint im Jenkins-Slave (VM)
 SHARES	   := /mnt/shares/scripts
