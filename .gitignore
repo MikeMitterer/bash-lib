@@ -6,3 +6,5 @@ lib.iml
 *.egg-info/
 build/
 __pycache__/
+/_tickets/
+/.worktrees/
