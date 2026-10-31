@@ -22,6 +22,13 @@ ausgewählte Funktionen auf; ohne `BASH_LIBS` brechen sie mit „Var
 'BASH_LIBS' nicht gesetzt!“ ab. Änderungen an Skripten zusätzlich mit
 `bash -n` und ShellCheck prüfen.
 
+`test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
+`calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
+einem temporären Ordner: mit einem lokalen Remote, das den Push annimmt,
+einem, das ihn abweist, und ohne Remote. Es bindet `src/version.lib.sh` der
+eigenen Arbeitskopie ein, nicht die unter `BASH_LIBS`, und blendet die
+globale Git-Konfiguration aus.
+
 Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
 
 ```bash
