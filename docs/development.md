@@ -5,22 +5,36 @@ steht im [README](../README.md).
 
 ## Voraussetzungen
 
-- Bash ab 4.3 und `BASH_LIBS` auf das `src` dieses Checkouts, wie im
-  [README](../README.md#installation) beschrieben.
+- Bash ab 4.3 und Git.
+- [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
+  für `make docs-check`, `make test`, `make status` und `make changelog`. Den
+  verlangten Release-Tag nennt `.dev-tools.conf.sh`, den Installationsbefehl
+  `make hints`. Fehlt ProjectTools oder ist es zu alt, brechen diese Targets
+  mit dem Befehl ab.
 - Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
   auf deren `src`: Das Makefile nimmt dann deren Farben und Themes, sonst
   erscheint die Ausgabe ohne Farben.
 
-## Testen
+## Einrichten und Testen
 
 ```bash
-make test
+make setup
+make check
 ```
 
-Das startet `test/testAll.sh`. Die Tests laden jede Bibliothek und rufen
-ausgewählte Funktionen auf; ohne `BASH_LIBS` brechen sie mit „Var
-'BASH_LIBS' nicht gesetzt!“ ab. Änderungen an Skripten zusätzlich mit
-`bash -n` und ShellCheck prüfen.
+`make setup` aktiviert die Git-Hooks aus `.githooks`: pre-commit prüft die
+Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
+lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
+`make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
+`make setup` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
+`make hints` die Befehle für den ersten Start.
+
+`make test` prüft die Doku und startet `test/testAll.sh`. Die Tests laden
+jede Bibliothek und rufen ausgewählte Funktionen auf. Das Makefile setzt
+`BASH_LIBS` dabei auf `src` des eigenen Checkouts; wer `test/testAll.sh`
+direkt startet, setzt es selbst, sonst bricht es mit „Var 'BASH_LIBS' nicht
+gesetzt!“ ab. Änderungen an Skripten zusätzlich mit `bash -n` und ShellCheck
+prüfen.
 
 `test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
 `calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
@@ -43,9 +57,18 @@ Paketindex für setuptools.
 ## Version und Release
 
 Die Version steht nur in `pyproject.toml` (`version = "X.Y.Z"`); das
-Makefile liest sie von dort. Ein Release ist ein Tag `vX.Y.Z` auf `master`,
-passend zu dieser Version. Projekte wie ProjectTools hängen über diesen Tag
-an BashLib.
+Makefile liest sie mit `readProjectVersion` (`make version`). Ein Release
+entsteht auf `master` mit
+
+```bash
+make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
+```
+
+Das erhöht die Version mit `semVerBump`, committet, setzt den Tag
+`vX.Y.Z+YYMMDD.HHMM.hash`, pusht und schreibt danach `CHANGELOG.md` mit
+`changelog --publish`. Scheitert der Push, bricht das Target vor dem
+Changelog ab. `make changelog` zeigt vorher eine Vorschau. Projekte wie
+ProjectTools hängen über diesen Tag an BashLib.
 
 ## Neue Bibliothek
 
