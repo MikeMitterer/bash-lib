@@ -40,8 +40,9 @@ THEME_WIDTH_TARGET  ?= 22
 THEME_COLUMN_GAP    ?= 1
 THEME_GROUP_SPACING ?= 1
 
-# Kennzeichnet in der Hilfe Targets, die nur Maintainer brauchen. In der
-# Target-Beschreibung steht dafür am Ende „— Maintainer“.
+# Kennzeichnet in der Hilfe die Maintainer-Targets nach makefile-conventions
+# (status, version, tag-*). In der Target-Beschreibung steht dafür am Ende
+# „— Maintainer“.
 MAINTAINER_MARK = $(THEME_COLOR_DANGER)[Maintainer]$(THEME_COLOR_DESC)
 
 # ProjectTools (docs-check, repo-status, changelog) per pipx, Tag aus .dev-tools.conf.sh
@@ -174,7 +175,7 @@ require-setup:
 ##@ Status
 
 .PHONY: status
-status: require-tools ## Git-Status des Repos und offene Blocker-Issues
+status: require-tools ## Git-Status des Repos und offene Blocker-Issues — Maintainer
 	@repo-status --show
 
 # ─── Tests ───────────────────────────────────────────────────────────────────
@@ -208,7 +209,7 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 ##@ Versionierung
 
 .PHONY: version
-version: precheck ## Aktuelle Version anzeigen (pyproject.toml + git tag)
+version: precheck ## Aktuelle Version anzeigen (pyproject.toml + git tag) — Maintainer
 	@echo
 	@VER=$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null); \
 	 [[ -z "$$VER" ]] && VER='nicht gesetzt'; \
@@ -237,13 +238,13 @@ changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem gepushten Tag.
 .PHONY: tag-major
-tag-major: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Major (X.y.z → X+1.0.0)  [MSG="..."]
+tag-major: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Major (X.y.z → X+1.0.0)  [MSG="..."] — Maintainer
 	$(call release,major)
 
 .PHONY: tag-minor
-tag-minor: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Minor (x.Y.z → x.Y+1.0)  [MSG="..."]
+tag-minor: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Minor (x.Y.z → x.Y+1.0)  [MSG="..."] — Maintainer
 	$(call release,minor)
 
 .PHONY: tag-patch
-tag-patch: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Patch (x.y.Z → x.y.Z+1)  [MSG="..."]
+tag-patch: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Patch (x.y.Z → x.y.Z+1)  [MSG="..."] — Maintainer
 	$(call release,patch)
