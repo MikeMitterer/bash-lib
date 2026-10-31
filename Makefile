@@ -81,6 +81,7 @@ info: ## Umgebungsvariablen anzeigen
 	@echo "    $(YELLOW)WORKSPACE$(RESET)     = $(BLUE)$${WORKSPACE}$(RESET)"
 	@echo "    $(YELLOW)BASH_LIBS$(RESET)     = $(BLUE)$${BASH_LIBS}$(RESET)"
 	@echo "    $(YELLOW)DEV_MAKE$(RESET)      = $(BLUE)$${DEV_MAKE:-nicht gesetzt}$(RESET)"
+	@echo "    $(YELLOW)PACKAGE$(RESET)       = $(BLUE)$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(RESET)"
 	@echo "    $(YELLOW)VERSION$(RESET)       = $(BLUE)$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null || echo 'nicht gesetzt')$(RESET)"
 	@echo "    $(YELLOW)ProjectTools$(RESET)  = $(BLUE)$(or $(PROJECTTOOLS_FOUND),fehlt)$(RESET) (verlangt ab $(PROJECTTOOLS_MIN))"
 	@echo
@@ -92,6 +93,11 @@ info: ## Umgebungsvariablen anzeigen
 REPO_URL    := $(shell git remote get-url origin 2>/dev/null | sed -E 's|^git@([^:]+):|https://\1/|; s|\.git$$||' | grep -xE '[A-Za-z0-9._:/@+~-]+')
 RELEASE_TAG := $(or $(shell git describe --tags --abbrev=0 2>/dev/null | grep -xE '[A-Za-z0-9._+-]+'),vX.Y.Z)
 NO_REMOTE   := kein Remote origin (git remote add origin …)
+# Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
+# [project.scripts]); nur erlaubte Zeichen, sonst leer wie bei REPO_URL.
+PACKAGE_NAME := $(shell awk -F'"' '/^\[/ { s = $$0 } s == "[project]" && /^name *=/ { print $$2; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+PACKAGE_CMD  := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
 COMMA       := ,
 
 # Eine Zeile für hints: Beschriftung, auf THEME_WIDTH_TARGET Zeichen aufgefüllt,
@@ -118,6 +124,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@$(call hint_row,2. Prüfen,make check)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)BashLib in anderen Projekten$(RESET)"
+	@$(call hint_row,Paket,$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD))))
 	@$(call hint_row,Installieren,$(if $(REPO_URL),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(NO_REMOTE)))
 	@$(call hint_row,Arbeitskopie,pipx install -e $${WORKSPACE_SQ})
 	@$(call hint_row,Umgebung,export BASH_LIBS=\$$(bashlib-path))
