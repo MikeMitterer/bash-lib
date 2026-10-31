@@ -6,7 +6,7 @@ pipeline {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
                     ansiColor('xterm') {
-                        // Platzhalter
+                        sh 'make setup'
                     }
                 }
             }
@@ -16,16 +16,6 @@ pipeline {
             steps {
                 ansiColor('xterm') {
                     sh 'make test'
-                }
-            }
-        }
-
-        stage('Share') {
-            steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    ansiColor('xterm') {
-                        sh 'make share'
-                    }
                 }
             }
         }

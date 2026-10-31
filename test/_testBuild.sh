@@ -17,16 +17,16 @@ if [[ -z ${BASH_LIBS+x} ]]; then echo "Var 'BASH_LIBS' nicht gesetzt!"; exit 1; 
 # -x print each command before executing it
 set -eou pipefail
 
-APPNAME="`basename $0`"
+APPNAME="$(basename "$0")"
 APPGROUP="bashtest"
 
-SCRIPT=`realpath $0`
-SCRIPTPATH=`dirname ${SCRIPT}`
+SCRIPT=$(realpath "$0")
+SCRIPTPATH=$(dirname "${SCRIPT}")
 
 #------------------------------------------------------------------------------
 # Set WORKSPACE
 #
-cd ${SCRIPTPATH}
+cd "${SCRIPTPATH}"
 
 #------------------------------------------------------------------------------
 # Precondition

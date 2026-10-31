@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#------------------------------------------------------------------------------
+# post-commit — lokalen post-commit-Hook aus .git/hooks weiter aufrufen
+#
+# Aktiv über `git config core.hooksPath .githooks` (macht `make setup`). Damit
+# liest git .git/hooks nicht mehr. Ein dort eingerichteter, nicht versionierter
+# Hook (etwa der Jenkins-Trigger mit Zugangsdaten) läuft über diesen Aufruf
+# weiter. Fehlt er, passiert nichts.
+#------------------------------------------------------------------------------
+
+set -euo pipefail
+
+LOCAL_HOOK="$(git rev-parse --git-common-dir)/hooks/post-commit"
+readonly LOCAL_HOOK
+
+if [[ -x "${LOCAL_HOOK}" ]]; then
+    exec "${LOCAL_HOOK}" "$@"
+fi
