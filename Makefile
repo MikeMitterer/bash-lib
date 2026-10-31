@@ -238,13 +238,13 @@ changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem gepushten Tag.
 .PHONY: tag-major
-tag-major: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Major (X.y.z → X+1.0.0)  [MSG="..."] — Maintainer
+tag-major: require-tools precheck ## Major (X.y.z → X+1.0.0)  [MSG="..."] — Maintainer
 	$(call release,major)
 
 .PHONY: tag-minor
-tag-minor: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Minor (x.Y.z → x.Y+1.0)  [MSG="..."] — Maintainer
+tag-minor: require-tools precheck ## Minor (x.Y.z → x.Y+1.0)  [MSG="..."] — Maintainer
 	$(call release,minor)
 
 .PHONY: tag-patch
-tag-patch: require-tools precheck ## Version committen, taggen UND pushen, dann Changelog — Patch (x.y.Z → x.y.Z+1)  [MSG="..."] — Maintainer
+tag-patch: require-tools precheck ## Patch (x.y.Z → x.y.Z+1)  [MSG="..."] — Maintainer
 	$(call release,patch)
