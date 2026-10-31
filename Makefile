@@ -199,24 +199,6 @@ docs-check: require-tools ## Nutzerdoku gegen das Projekt prüfen (Links, Befehl
 test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prüfen
 	@./test/package.test.sh
 
-# ─── Verteilung ──────────────────────────────────────────────────────────────
-
-##@ Verteilung
-
-# Kopiert die Bibliotheken auf die Freigabe des Jenkins-Slaves (build.jenkins,
-# Stage „Share“). Ob das bleibt, ist offen (T-3, q-1).
-.PHONY: share
-share: ## Bibliotheken nach DEV_SHARED/scripts/libs/bash kopieren (Jenkins) — Maintainer
-	@[[ -n "$${DEV_SHARED:-}" ]] || { echo -e "  $(RED)✗$(RESET) DEV_SHARED nicht gesetzt" >&2; exit 1; }
-	@mkdir -p "$${DEV_SHARED}/scripts/libs/bash"
-	@for file in src/*; do \
-		echo "    share $(BLUE)$${file}$(RESET) ->  $(YELLOW)$${DEV_SHARED}/scripts/libs/bash$(RESET)"; \
-		\cp "$${file}" "$${DEV_SHARED}/scripts/libs/bash"; \
-	done
-
-.PHONY: all
-all: test share ## Tests und danach share — Maintainer
-
 # ─── Versionierung ───────────────────────────────────────────────────────────
 
 # Nach versioning-conventions (templates/versioning.mk): Die Version steht in
