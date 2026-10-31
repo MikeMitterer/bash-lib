@@ -615,6 +615,30 @@ _gitCalcNextVersion() {
 }
 
 #------------------------------------------------------------------------------
+# _gitPushFollowTags <tag>
+#
+# Pusht den aktuellen Branch samt annotierter Tags (git push --follow-tags).
+# Scheitert der Push, meldet die Funktion auf stderr, dass <tag> und sein
+# Commit nur lokal liegen und wie man nachpusht, und gibt den Exit-Code von
+# git push zurück.
+#
+_gitPushFollowTags() {
+  local _tag="${1:?_gitPushFollowTags: tag fehlt}"
+  local _rc=0
+  git push --follow-tags || _rc=$?
+  if ((_rc != 0)); then
+      local _remote _branch
+      _remote="$(git remote | head -n1)"
+      _branch="$(git symbolic-ref --short -q HEAD || echo "<branch>")"
+      printf 'Fehler: git push fehlgeschlagen (Exit %s) – Tag %s und sein Commit liegen nur lokal!
+' "$_rc" "$_tag" >&2
+      printf 'Nachpushen: git push --follow-tags (ohne Upstream: git push -u %s %s --follow-tags)
+' "$_remote" "$_branch" >&2
+  fi
+  return "$_rc"
+}
+
+#------------------------------------------------------------------------------
 # _gitSetVersionTag <base_version>
 #
 # Erstellt Git-Tag aus Basis-Version + Datum/Uhrzeit + kurzem Commit-Hash.
@@ -622,6 +646,8 @@ _gitCalcNextVersion() {
 #
 # Input:   "v26.3.0" oder "v26.3.0-rc1"
 # Returns: vollständiger Tag z.B. "v26.3.0+260327.1445.abc12"
+# Exit:    ≠ 0, wenn der Push scheitert (Tag bleibt lokal, Hinweis auf stderr);
+#          ohne Remote 0 mit Hinweis "Tag nur lokal erstellt"
 #
 # Der Hash macht den Tag selbsterklärend — in CI-Logs, Docker-Registries
 # und Deployment-Protokollen ist der Commit direkt ablesbar ohne git.
@@ -650,7 +676,7 @@ _gitSetVersionTag() {
   # --- Tag schreiben + pushen -----------------------------------------------
   git tag -a "$_tag" -m "${_msg}"
   if git remote >/dev/null 2>&1 && [[ -n "$(git remote)" ]]; then
-      git push --follow-tags
+      _gitPushFollowTags "$_tag" || return $?
   else
       printf 'Hinweis: Kein Remote konfiguriert – Tag nur lokal erstellt! (%s)\n' "$_tag" >&2
   fi
@@ -683,7 +709,8 @@ _gitSetVersionTag() {
 #       bump=patch  -> <PATCH> + 1 (nur, wenn im Jahr bereits MINOR>0 existiert,
 #                                   sonst startet das Jahr mit 1.0)
 # - Tag-Kollisionen (z. B. zweites Tag in derselben Minute) werden mit a,b,c… gelöst
-# - Push erfolgt nur, wenn ein Remote existiert
+# - Push erfolgt nur, wenn ein Remote existiert; scheitert er, endet die
+#   Funktion mit Exit ≠ 0 und Hinweis auf stderr (auch beim Reuse)
 #
 # Beispiele
 # ---------
@@ -704,7 +731,7 @@ _gitUpdateVersionTag() {
   _existing_tag="$(git tag --points-at HEAD --list "v${_yy}.*" | sort -V | tail -n1 || true)"
   if [[ -n "$_existing_tag" ]]; then
       if git remote >/dev/null 2>&1 && [[ -n "$(git remote)" ]]; then
-          git push --follow-tags >/dev/null 2>&1 || true
+          _gitPushFollowTags "$_existing_tag" || return $?
       fi
       printf '%s\n' "$_existing_tag"
       return 0
