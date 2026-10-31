@@ -630,10 +630,8 @@ _gitPushFollowTags() {
       local _remote _branch
       _remote="$(git remote | head -n1)"
       _branch="$(git symbolic-ref --short -q HEAD || echo "<branch>")"
-      printf 'Fehler: git push fehlgeschlagen (Exit %s) – Tag %s und sein Commit liegen nur lokal!
-' "$_rc" "$_tag" >&2
-      printf 'Nachpushen: git push --follow-tags (ohne Upstream: git push -u %s %s --follow-tags)
-' "$_remote" "$_branch" >&2
+      printf 'Fehler: git push fehlgeschlagen (Exit %s) – Tag %s und sein Commit liegen nur lokal!\n' "$_rc" "$_tag" >&2
+      printf 'Nachpushen: git push --follow-tags (ohne Upstream: git push -u %s %s --follow-tags)\n' "$_remote" "$_branch" >&2
   fi
   return "$_rc"
 }
