@@ -62,14 +62,13 @@ entsteht auf `master` mit
 
 ```bash
 make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
-make push         # Branch und Tag veröffentlichen, dann CHANGELOG.md
+git push --follow-tags
 ```
 
-`make tag-*` erhöht die Version mit `semVerBump`, committet und setzt den
-Tag `vX.Y.Z+YYMMDD.HHMM.hash`, alles nur lokal. Erst `make push`
-veröffentlicht Branch und Tag mit `git push --follow-tags` und schreibt
-danach `CHANGELOG.md` mit `changelog --publish`. Scheitert der Push, bricht
-das Target vor dem Changelog ab. `make changelog` zeigt vorher eine Vorschau.
+`make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
+`vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
+(`changelog --generate`), alles nur lokal. Veröffentlicht wird erst mit
+`git push --follow-tags`. `make changelog` zeigt vorher eine Vorschau.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
 
 Mit `git config push.followTags true` nimmt schon ein einfaches `git push`
