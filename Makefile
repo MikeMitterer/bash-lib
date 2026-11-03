@@ -232,10 +232,10 @@ tags: ## Letzte 10 Tags mit Message anzeigen
 	  awk '{printf "    $(BLUE)%-28s$(RESET) $(GREEN)%s$(RESET)\n", $$1, substr($$0, index($$0,$$2))}'
 	@echo
 
-# $(call release,major|minor|patch): bumpen, taggen, pushen, dann CHANGELOG.md
+# $(call release,major|minor|patch): bumpen und taggen, nur lokal. Gepusht wird
+# erst mit make push.
 define release
 	source "$${BASH_LIBS}/version.lib.sh" && semVerBump $(1) auto "" "$${MSG:-}"
-	@changelog --publish
 endef
 
 .PHONY: changelog
@@ -243,7 +243,7 @@ changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 	@changelog --dry-run
 
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
-# nicht erst nach dem gepushten Tag.
+# nicht erst bei make push.
 .PHONY: tag-major
 tag-major: require-tools precheck ## Major (X.y.z → X+1.0.0)  [MSG="..."] — Maintainer
 	$(call release,major)
@@ -255,3 +255,10 @@ tag-minor: require-tools precheck ## Minor (x.Y.z → x.Y+1.0)  [MSG="..."] — 
 .PHONY: tag-patch
 tag-patch: require-tools precheck ## Patch (x.y.Z → x.y.Z+1)  [MSG="..."] — Maintainer
 	$(call release,patch)
+
+# Veröffentlicht Branch und Tag erst hier; changelog --publish committet und
+# pusht CHANGELOG.md. Scheitert git push, entsteht kein Changelog-Commit.
+.PHONY: push
+push: require-tools ## Branch und Release-Tag veröffentlichen, dann CHANGELOG.md — Maintainer
+	git push --follow-tags
+	@changelog --publish
