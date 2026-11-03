@@ -132,7 +132,7 @@ assertEquals "0" "${rc}" "semVerBump: Exit 0"
 assertEquals "${out}" "$(localTag sem-ok)" "semVerBump: Tag lokal angelegt"
 assertNothingPushed sem-ok "semVerBump"
 assertContains "${out}" "$(grep 'nur lokal' <<< "${err}")" "semVerBump: stderr meldet den Tag als nur lokal"
-assertContains "git push --follow-tags" "$(grep 'Veröffentlichen' <<< "${err}")" "semVerBump: stderr nennt den Befehl zum Veröffentlichen"
+assertEquals "" "$(grep 'git push' <<< "${err}")" "semVerBump: stderr nennt keinen Push-Befehl"
 
 makeRepo bump-ok ok
 runIn bump-ok bumpVer patch VERSION
@@ -157,7 +157,8 @@ runIn reuse-ok gitUpdateVersionTag
 assertEquals "0" "${rc}" "gitUpdateVersionTag (Reuse): Exit 0"
 assertEquals "${reuseTag}" "${out}" "gitUpdateVersionTag (Reuse): gibt den vorhandenen Tag zurück"
 assertNothingPushed reuse-ok "gitUpdateVersionTag (Reuse)"
-assertContains "git push --follow-tags" "$(grep 'Veröffentlichen' <<< "${err}")" "gitUpdateVersionTag (Reuse): stderr nennt den Befehl zum Veröffentlichen"
+assertContains "${reuseTag}" "$(grep 'nichts gepusht' <<< "${err}")" "gitUpdateVersionTag (Reuse): stderr meldet, dass nichts gepusht wurde"
+assertEquals "" "$(grep 'git push' <<< "${err}")" "gitUpdateVersionTag (Reuse): stderr nennt keinen Push-Befehl"
 
 makeRepo sem-none none
 runIn sem-none semVerBump patch VERSION
@@ -169,7 +170,7 @@ echo
 echo "Veröffentlichen mit git push"
 echo
 
-# Der Befehl aus dem Hinweis bringt Tag und Bump-Commit ins Remote
+# git push --follow-tags bringt Tag und Bump-Commit ins Remote
 makeRepo push-ok ok
 runIn push-ok semVerBump patch VERSION
 pushTag="${out}"

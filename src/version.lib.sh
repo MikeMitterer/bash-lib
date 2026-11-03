@@ -620,22 +620,21 @@ _gitCalcNextVersion() {
 #------------------------------------------------------------------------------
 # _gitLocalTagHint <message>
 #
-# Meldet auf stderr <message> und den Befehl, mit dem man Branch und Tag
-# veröffentlicht. Ohne Remote meldet sie nichts und gibt 1 zurück.
+# Meldet <message> als Hinweis auf stderr, wenn ein Remote existiert.
+# Ohne Remote meldet sie nichts und gibt 1 zurück.
 #
 _gitLocalTagHint() {
   local _msg="${1:?_gitLocalTagHint: message fehlt}"
   [[ -n "$(git remote 2>/dev/null)" ]] || return 1
   printf 'Hinweis: %s\n' "$_msg" >&2
-  printf 'Veröffentlichen: git push --follow-tags\n' >&2
 }
 
 #------------------------------------------------------------------------------
 # _gitSetVersionTag <base_version>
 #
 # Erstellt Git-Tag aus Basis-Version + Datum/Uhrzeit + kurzem Commit-Hash.
-# Der Tag bleibt lokal; auf stderr steht, wie man ihn veröffentlicht
-# (git push --follow-tags).
+# Der Tag bleibt lokal (Hinweis auf stderr); veröffentlicht wird mit
+# git push --follow-tags.
 #
 # Input:   "v26.3.0" oder "v26.3.0-rc1"
 # Returns: vollständiger Tag z.B. "v26.3.0+260327.1445.abc12"
@@ -697,8 +696,8 @@ _gitSetVersionTag() {
 #       bump=patch  -> <PATCH> + 1 (nur, wenn im Jahr bereits MINOR>0 existiert,
 #                                   sonst startet das Jahr mit 1.0)
 # - Tag-Kollisionen (z. B. zweites Tag in derselben Minute) werden mit a,b,c… gelöst
-# - Gepusht wird nie, auch nicht beim Reuse; mit Remote steht auf stderr der
-#   Befehl zum Veröffentlichen (git push --follow-tags)
+# - Gepusht wird nie, auch nicht beim Reuse; veröffentlicht wird mit
+#   git push --follow-tags
 #
 # Beispiele
 # ---------
