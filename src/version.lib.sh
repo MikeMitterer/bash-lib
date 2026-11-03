@@ -37,8 +37,11 @@ showDevVersion() {
 # Version kann so gesetzt werden: `git tag -a v1.1 -m "SSH-Server implementiert"`
 # Mit `git tag -n v1.1` kann die Message angezeigt werden
 #
-# Die Tags sollten immer "mitgepusht" werden:
-#     git config --global push.followTags true
+# Die Bump-Funktionen taggen nur lokal. Veröffentlicht wird mit
+#     git push --follow-tags
+# Mit `git config --global push.followTags true` nimmt jedes `git push` lokale
+# annotierte Tags mit, auch einen Tag, der noch nicht veröffentlicht werden
+# soll. Wer Tags nur bewusst veröffentlichen will, lässt die Einstellung weg.
 #
 # Usage:
 #      echo "Version: $(gitVersion)"
@@ -615,37 +618,26 @@ _gitCalcNextVersion() {
 }
 
 #------------------------------------------------------------------------------
-# _gitPushFollowTags <tag>
+# _gitLocalTagHint <message>
 #
-# Pusht den aktuellen Branch samt annotierter Tags (git push --follow-tags).
-# Scheitert der Push, meldet die Funktion auf stderr, dass <tag> und sein
-# Commit nur lokal liegen und wie man nachpusht, und gibt den Exit-Code von
-# git push zurück.
+# Meldet <message> als Hinweis auf stderr, wenn ein Remote existiert.
+# Ohne Remote meldet sie nichts und gibt 1 zurück.
 #
-_gitPushFollowTags() {
-  local _tag="${1:?_gitPushFollowTags: tag fehlt}"
-  local _rc=0
-  git push --follow-tags || _rc=$?
-  if ((_rc != 0)); then
-      local _remote _branch
-      _remote="$(git remote | head -n1)"
-      _branch="$(git symbolic-ref --short -q HEAD || echo "<branch>")"
-      printf 'Fehler: git push fehlgeschlagen (Exit %s) – Tag %s und sein Commit liegen nur lokal!\n' "$_rc" "$_tag" >&2
-      printf 'Nachpushen: git push --follow-tags (ohne Upstream: git push -u %s %s --follow-tags)\n' "$_remote" "$_branch" >&2
-  fi
-  return "$_rc"
+_gitLocalTagHint() {
+  local _msg="${1:?_gitLocalTagHint: message fehlt}"
+  [[ -n "$(git remote 2>/dev/null)" ]] || return 1
+  printf 'Hinweis: %s\n' "$_msg" >&2
 }
 
 #------------------------------------------------------------------------------
 # _gitSetVersionTag <base_version>
 #
 # Erstellt Git-Tag aus Basis-Version + Datum/Uhrzeit + kurzem Commit-Hash.
-# Pushed Tag zum Remote (falls vorhanden).
+# Der Tag bleibt lokal (Hinweis auf stderr); veröffentlicht wird mit
+# git push --follow-tags.
 #
 # Input:   "v26.3.0" oder "v26.3.0-rc1"
 # Returns: vollständiger Tag z.B. "v26.3.0+260327.1445.abc12"
-# Exit:    ≠ 0, wenn der Push scheitert (Tag bleibt lokal, Hinweis auf stderr);
-#          ohne Remote 0 mit Hinweis "Tag nur lokal erstellt"
 #
 # Der Hash macht den Tag selbsterklärend — in CI-Logs, Docker-Registries
 # und Deployment-Protokollen ist der Commit direkt ablesbar ohne git.
@@ -671,20 +663,17 @@ _gitSetVersionTag() {
       _tag="${_tag}${_suffix}"
   fi
 
-  # --- Tag schreiben + pushen -----------------------------------------------
+  # --- Tag schreiben (nur lokal) -------------------------------------------
   git tag -a "$_tag" -m "${_msg}"
-  if git remote >/dev/null 2>&1 && [[ -n "$(git remote)" ]]; then
-      _gitPushFollowTags "$_tag" || return $?
-  else
-      printf 'Hinweis: Kein Remote konfiguriert – Tag nur lokal erstellt! (%s)\n' "$_tag" >&2
-  fi
+  _gitLocalTagHint "Tag ${_tag} liegt nur lokal – nichts gepusht." \
+      || printf 'Hinweis: Kein Remote konfiguriert – Tag nur lokal erstellt! (%s)\n' "$_tag" >&2
 
   printf '%s\n' "$_tag"
 }
 
 # gitUpdateVersionTag [bump=minor|patch] [prerelease] [year=current|last-tag|YY|YYYY]
 #
-# Berechnet nächste Version, setzt Git-Tag und pushed.
+# Berechnet nächste Version und setzt den Git-Tag lokal (kein Push).
 # Falls HEAD bereits getaggt ist → existierenden Tag zurückgeben (Reuse).
 #
 # Zweck
@@ -707,8 +696,8 @@ _gitSetVersionTag() {
 #       bump=patch  -> <PATCH> + 1 (nur, wenn im Jahr bereits MINOR>0 existiert,
 #                                   sonst startet das Jahr mit 1.0)
 # - Tag-Kollisionen (z. B. zweites Tag in derselben Minute) werden mit a,b,c… gelöst
-# - Push erfolgt nur, wenn ein Remote existiert; scheitert er, endet die
-#   Funktion mit Exit ≠ 0 und Hinweis auf stderr (auch beim Reuse)
+# - Gepusht wird nie, auch nicht beim Reuse; veröffentlicht wird mit
+#   git push --follow-tags
 #
 # Beispiele
 # ---------
@@ -728,9 +717,7 @@ _gitUpdateVersionTag() {
   local _existing_tag=""
   _existing_tag="$(git tag --points-at HEAD --list "v${_yy}.*" | sort -V | tail -n1 || true)"
   if [[ -n "$_existing_tag" ]]; then
-      if git remote >/dev/null 2>&1 && [[ -n "$(git remote)" ]]; then
-          _gitPushFollowTags "$_existing_tag" || return $?
-      fi
+      _gitLocalTagHint "HEAD trägt schon Tag ${_existing_tag} – nichts gepusht." || true
       printf '%s\n' "$_existing_tag"
       return 0
   fi

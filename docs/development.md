@@ -38,10 +38,10 @@ prüfen.
 
 `test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
 `calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
-einem temporären Ordner: mit einem lokalen Remote, das den Push annimmt,
-einem, das ihn abweist, und ohne Remote. Es bindet `src/version.lib.sh` der
-eigenen Arbeitskopie ein, nicht die unter `BASH_LIBS`, und blendet die
-globale Git-Konfiguration aus.
+einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
+und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Es bindet
+`src/version.lib.sh` der eigenen Arbeitskopie ein, nicht die unter
+`BASH_LIBS`, und blendet die globale Git-Konfiguration aus.
 
 Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
 
@@ -62,13 +62,19 @@ entsteht auf `master` mit
 
 ```bash
 make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
+git push --follow-tags
 ```
 
-Das erhöht die Version mit `semVerBump`, committet, setzt den Tag
-`vX.Y.Z+YYMMDD.HHMM.hash`, pusht und schreibt danach `CHANGELOG.md` mit
-`changelog --publish`. Scheitert der Push, bricht das Target vor dem
-Changelog ab. `make changelog` zeigt vorher eine Vorschau. Projekte wie
-ProjectTools hängen über diesen Tag an BashLib.
+`make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
+`vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
+(`changelog --generate`), alles nur lokal. Veröffentlicht wird erst mit
+`git push --follow-tags`. `make changelog` zeigt vorher eine Vorschau.
+Projekte wie ProjectTools hängen über diesen Tag an BashLib.
+
+Mit `git config push.followTags true` nimmt schon ein einfaches `git push`
+alle lokalen annotierten Tags mit. Wer einen Tag erst nach einer Prüfung
+veröffentlichen will, lässt die Einstellung weg oder pusht mit
+`git push --no-follow-tags`.
 
 ## Neue Bibliothek
 

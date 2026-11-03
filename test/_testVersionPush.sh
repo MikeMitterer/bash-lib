@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
-# _testVersionPush.sh — Versions-Bump bei erfolgreichem, gescheitertem und
-# fehlendem Push
+# _testVersionPush.sh — Versions-Bumps taggen nur lokal, git push
+# veröffentlicht
 #
 # Legt je Fall ein Wegwerf-Repo mit VERSION-Datei an, dazu ein lokales
-# Bare-Remote, das den Push annimmt oder per pre-receive-Hook abweist, oder
-# gar kein Remote. Bindet src/version.lib.sh dieser Arbeitskopie ein, nicht
+# Bare-Remote oder gar kein Remote. Bindet src/version.lib.sh dieser Arbeitskopie ein, nicht
 # die unter BASH_LIBS.
 #
 #   ./test/_testVersionPush.sh
@@ -53,11 +52,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Legt ein Repo mit VERSION 0.1.0 und einem Commit an.
+# Legt ein Repo mit VERSION 0.1.0 und einem Commit an. Bei einem Remote
+# liegt main dort schon; base hält den Commit, den das Remote kennt.
 #
 # Params:
 #   $1 - Name unter ${work}
-#   $2 - ok (Remote nimmt an), reject (Remote weist ab) oder none (kein Remote)
+#   $2 - ok (mit lokalem Bare-Remote) oder none (kein Remote)
 makeRepo() {
     local name="$1" kind="$2"
     local repo="${work}/${name}" remote="${work}/${name}.git"
@@ -67,15 +67,12 @@ makeRepo() {
     printf '0.1.0\n' > "${repo}/VERSION"
     git -C "${repo}" add VERSION
     git -C "${repo}" commit -q -m "init"
+    base="$(git -C "${repo}" rev-parse HEAD)"
     [[ "${kind}" == "none" ]] && return 0
 
     git init -q --bare "${remote}"
     git -C "${repo}" remote add origin "${remote}"
     git -C "${repo}" push -q -u origin main
-    if [[ "${kind}" == "reject" ]]; then
-        printf '#!/bin/sh\necho "push abgewiesen (Test)" >&2\nexit 1\n' > "${remote}/hooks/pre-receive"
-        chmod +x "${remote}/hooks/pre-receive"
-    fi
 }
 
 # Führt eine Funktion der version.lib.sh im Repo aus.
@@ -99,24 +96,64 @@ localTag() {
     git -C "${work}/$1" tag --sort=-creatordate | head -n1
 }
 
+# Tags und Stand von main im Remote eines Repos
+remoteTags() {
+    git -C "${work}/$1.git" tag
+}
+remoteMain() {
+    git -C "${work}/$1.git" rev-parse main
+}
+
+# Prüft, dass ein Bump nichts gepusht hat: kein Tag, main auf ${base}.
+#
+# Params:
+#   $1 - Name unter ${work}
+#   $2 - Beschriftung der Prüfung
+assertNothingPushed() {
+    assertEquals "" "$(remoteTags "$1")" "$2: kein Tag im Remote"
+    assertEquals "${base}" "$(remoteMain "$1")" "$2: kein neuer Commit im Remote"
+}
+
 work="$(mktemp -d "${TMPDIR:-/tmp}/bashlib-versionpush.XXXXXX")"
 work="$(cd "${work}" && pwd -P)"
 
 echo
-echo "Versions-Bump und git push"
+echo "Versions-Bumps taggen nur lokal"
 echo
 
 makeRepo sem-ok ok
 runIn sem-ok semVerBump patch VERSION
-assertEquals "0" "${rc}" "semVerBump, Remote nimmt an: Exit 0"
-assertEquals "${out}" "$(git -C "${work}/sem-ok.git" tag)" "semVerBump, Remote nimmt an: Tag liegt auf dem Remote"
+assertEquals "0" "${rc}" "semVerBump: Exit 0"
+assertEquals "${out}" "$(localTag sem-ok)" "semVerBump: Tag lokal angelegt"
+assertNothingPushed sem-ok "semVerBump"
+assertContains "${out}" "$(grep 'nur lokal' <<< "${err}")" "semVerBump: stderr meldet den Tag als nur lokal"
+assertEquals "" "$(grep 'git push' <<< "${err}")" "semVerBump: stderr nennt keinen Push-Befehl"
 
-makeRepo sem-reject reject
-runIn sem-reject semVerBump patch VERSION
-assertEquals "yes" "$([[ ${rc} -ne 0 ]] && echo yes)" "semVerBump, Remote weist ab: Exit ≠ 0 (war ${rc})"
-assertContains "$(localTag sem-reject)" "$(grep 'nur lokal' <<< "${err}")" "semVerBump, Remote weist ab: stderr meldet den Tag als nur lokal"
-assertContains "git push --follow-tags" "$(grep 'Nachpushen' <<< "${err}")" "semVerBump, Remote weist ab: stderr nennt den Befehl zum Nachpushen"
-assertEquals "" "$(git -C "${work}/sem-reject.git" tag)" "semVerBump, Remote weist ab: Tag nicht auf dem Remote"
+makeRepo bump-ok ok
+runIn bump-ok bumpVer patch VERSION
+assertEquals "0" "${rc}" "bumpVer: Exit 0"
+assertNothingPushed bump-ok "bumpVer"
+
+makeRepo cal-ok ok
+runIn cal-ok calVerBump VERSION
+assertEquals "0" "${rc}" "calVerBump: Exit 0"
+assertNothingPushed cal-ok "calVerBump"
+
+makeRepo uvt-ok ok
+runIn uvt-ok gitUpdateVersionTag
+assertEquals "0" "${rc}" "gitUpdateVersionTag: Exit 0"
+assertNothingPushed uvt-ok "gitUpdateVersionTag"
+
+# Reuse-Zweig: HEAD trägt schon einen Tag des Jahres
+makeRepo reuse-ok ok
+reuseTag="v$(date -u +%y).1.0+000000.0000.test"
+git -C "${work}/reuse-ok" tag -a "${reuseTag}" -m "reuse"
+runIn reuse-ok gitUpdateVersionTag
+assertEquals "0" "${rc}" "gitUpdateVersionTag (Reuse): Exit 0"
+assertEquals "${reuseTag}" "${out}" "gitUpdateVersionTag (Reuse): gibt den vorhandenen Tag zurück"
+assertNothingPushed reuse-ok "gitUpdateVersionTag (Reuse)"
+assertContains "${reuseTag}" "$(grep 'nichts gepusht' <<< "${err}")" "gitUpdateVersionTag (Reuse): stderr meldet, dass nichts gepusht wurde"
+assertEquals "" "$(grep 'git push' <<< "${err}")" "gitUpdateVersionTag (Reuse): stderr nennt keinen Push-Befehl"
 
 makeRepo sem-none none
 runIn sem-none semVerBump patch VERSION
@@ -124,20 +161,19 @@ assertEquals "0" "${rc}" "semVerBump ohne Remote: Exit 0"
 assertContains "Kein Remote" "${err}" "semVerBump ohne Remote: Hinweis auf stderr"
 assertEquals "${out}" "$(localTag sem-none)" "semVerBump ohne Remote: Tag lokal angelegt"
 
-makeRepo cal-reject reject
-runIn cal-reject calVerBump VERSION
-assertEquals "yes" "$([[ ${rc} -ne 0 ]] && echo yes)" "calVerBump, Remote weist ab: Exit ≠ 0 (war ${rc})"
+echo
+echo "Veröffentlichen mit git push"
+echo
 
-makeRepo bump-reject reject
-runIn bump-reject bumpVer patch VERSION
-assertEquals "yes" "$([[ ${rc} -ne 0 ]] && echo yes)" "bumpVer, Remote weist ab: Exit ≠ 0 (war ${rc})"
-
-# Reuse-Zweig: HEAD trägt schon einen Tag des Jahres, der Push des Tags scheitert
-makeRepo reuse-reject reject
-git -C "${work}/reuse-reject" tag -a "v$(date -u +%y).1.0+000000.0000.test" -m "reuse"
-runIn reuse-reject gitUpdateVersionTag
-assertEquals "yes" "$([[ ${rc} -ne 0 ]] && echo yes)" "gitUpdateVersionTag (Reuse), Remote weist ab: Exit ≠ 0 (war ${rc})"
-assertContains "$(localTag reuse-reject)" "$(grep 'nur lokal' <<< "${err}")" "gitUpdateVersionTag (Reuse), Remote weist ab: stderr meldet den Tag als nur lokal"
+# git push --follow-tags bringt Tag und Bump-Commit ins Remote
+makeRepo push-ok ok
+runIn push-ok semVerBump patch VERSION
+pushTag="${out}"
+pushRc=0
+git -C "${work}/push-ok" push -q --follow-tags 2> /dev/null || pushRc=$?
+assertEquals "0" "${pushRc}" "git push --follow-tags: Exit 0"
+assertEquals "${pushTag}" "$(remoteTags push-ok)" "git push --follow-tags: Tag liegt im Remote"
+assertEquals "$(git -C "${work}/push-ok" rev-parse HEAD)" "$(remoteMain push-ok)" "git push --follow-tags: Bump-Commit liegt im Remote"
 
 echo
 if [[ ${tests_failed} -eq 0 ]]; then
