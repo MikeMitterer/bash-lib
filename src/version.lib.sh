@@ -39,6 +39,9 @@ showDevVersion() {
 #
 # Die Bump-Funktionen taggen nur lokal. Veröffentlicht wird mit
 #     git push --follow-tags
+# Sie committen leise (git commit -q); auf stdout steht nur der Tag, Hinweise,
+# Hook-Meldungen und Fehler gehen nach stderr. Scheitert der Commit, etwa an
+# einem Hook, geben sie dessen Exit-Code zurück und setzen keinen Tag.
 # Mit `git config --global push.followTags true` nimmt jedes `git push` lokale
 # annotierte Tags mit, auch einen Tag, der noch nicht veröffentlicht werden
 # soll. Wer Tags nur bewusst veröffentlichen will, lässt die Einstellung weg.
@@ -771,11 +774,11 @@ bumpVer() {
   # 3. Version in Datei schreiben
   case "$_source" in
       package.json)
-          npm version --no-git-tag-version --allow-same-version "$_version"
+          npm version --no-git-tag-version --allow-same-version "$_version" >/dev/null
           ;;
       pyproject.toml)
           if command -v poetry >/dev/null 2>&1; then
-              poetry version "$_version"
+              poetry version "$_version" >/dev/null
           else
               sed -i "s/^version = .*/version = \"${_version}\"/" pyproject.toml
           fi
@@ -792,7 +795,7 @@ bumpVer() {
   # 4. Commit
   git add "$_source"
   [[ "$_source" == "package.json" ]] && git add package-lock.json 2>/dev/null || true
-  git commit -m "chore: bump version to ${_version}"
+  git commit -q -m "chore: bump version to ${_version}" || return $?
 
   # 5. Tag auf den chore-Commit setzen
   _gitSetVersionTag "$_base" "${_msg}"
@@ -888,11 +891,11 @@ semVerBump() {
   # --- Version in Datei schreiben ----------------------------------------------
   case "$_source" in
       package.json)
-          npm version --no-git-tag-version --allow-same-version "$_next"
+          npm version --no-git-tag-version --allow-same-version "$_next" >/dev/null
           ;;
       pyproject.toml)
           if command -v poetry >/dev/null 2>&1; then
-              poetry version "$_next"
+              poetry version "$_next" >/dev/null
           else
               sed -i.bak "s/^version = .*/version = \"${_next}\"/" pyproject.toml
               rm -f pyproject.toml.bak
@@ -906,7 +909,7 @@ semVerBump() {
   # --- Commit ------------------------------------------------------------------
   git add "$_source"
   [[ "$_source" == "package.json" ]] && git add package-lock.json 2>/dev/null || true
-  git commit -m "chore: bump version to ${_next}"
+  git commit -q -m "chore: bump version to ${_next}" || return $?
 
   # --- Tag setzen (v0.2.0+YYMMDD.HHMM.hash) -----------------------------------
   _gitSetVersionTag "$_base" "${_msg}"
@@ -1039,11 +1042,11 @@ calVerBump() {
   # 3. Version in Datei schreiben
   case "$_source" in
       package.json)
-          npm version --no-git-tag-version --allow-same-version "$_version"
+          npm version --no-git-tag-version --allow-same-version "$_version" >/dev/null
           ;;
       pyproject.toml)
           if command -v poetry >/dev/null 2>&1; then
-              poetry version "$_version"
+              poetry version "$_version" >/dev/null
           else
               sed -i "s/^version = .*/version = \"${_version}\"/" pyproject.toml
           fi
@@ -1060,7 +1063,7 @@ calVerBump() {
   # 4. Commit
   git add "$_source"
   [[ "$_source" == "package.json" ]] && git add package-lock.json 2>/dev/null || true
-  git commit -m "chore: bump version to ${_version}"
+  git commit -q -m "chore: bump version to ${_version}" || return $?
 
   # 5. Tag auf den chore-Commit setzen
   _gitSetVersionTag "$_base" "${_msg}"

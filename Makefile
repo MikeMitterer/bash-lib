@@ -232,15 +232,33 @@ tags: ## Letzte 10 Tags mit Message anzeigen
 	  awk '{printf "    $(BLUE)%-28s$(RESET) $(GREEN)%s$(RESET)\n", $$1, substr($$0, index($$0,$$2))}'
 	@echo
 
+# Eine Statuszeile für tag-*: Häkchen, Beschriftung, Wert.
+# Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
+release_row = printf '  $(GREEN)✓$(RESET) %-10s $(BLUE)%s$(RESET)\n' "$(1)" "$(2)"
+
 # $(call release,major|minor|patch): bumpen, taggen und CHANGELOG.md committen,
 # alles nur lokal; veröffentlicht wird mit git push --follow-tags.
+# Ausgabe: je Schritt eine Statuszeile. semVerBump gibt auf stdout nur den Tag
+# aus; seine stderr-Ausgabe erscheint bei einem Fehler vollständig, bei Erfolg
+# ohne die Zeilen „Hinweis: …“, die hier die Tag-Zeile ersetzt.
 # changelog --publish pusht selbst, darum --generate und ein eigener Commit mit
 # derselben Message, bis changelog ohne Push committen kann (ProjectTools T-20).
 define release
-	source "$${BASH_LIBS}/version.lib.sh" && semVerBump $(1) auto "" "$${MSG:-}"
-	@changelog --generate
+	@source "$${BASH_LIBS}/version.lib.sh"; \
+	 err=$$(mktemp); trap 'command rm -f -- "$$err"' EXIT; \
+	 old=$$(readProjectVersion); \
+	 tag=$$(semVerBump $(1) auto "" "$${MSG:-}" 2>"$$err") || { rc=$$?; cat "$$err" >&2; exit $$rc; }; \
+	 grep -v '^Hinweis: ' "$$err" >&2 || true; \
+	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
+	 $(call release_row,Tag,$${tag##*$$'\n'} (nur lokal))
+	@changelog --generate >/dev/null
 	@git add -- CHANGELOG.md
-	@git diff --cached --quiet -- CHANGELOG.md || git commit -q -m "docs(changelog): update release history" -- CHANGELOG.md
+	@if git diff --cached --quiet -- CHANGELOG.md; then \
+		$(call release_row,Changelog,CHANGELOG.md unverändert); \
+	 else \
+		git commit -q -m "docs(changelog): update release history" -- CHANGELOG.md; \
+		$(call release_row,Changelog,CHANGELOG.md committet); \
+	 fi
 endef
 
 .PHONY: changelog

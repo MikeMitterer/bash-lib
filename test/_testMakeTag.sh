@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------------------
+# _testMakeTag.sh — make tag-* gibt nur kurze Statuszeilen aus
+#
+# Kopiert den Arbeitsstand dieser Arbeitskopie (versionierte und neue, nicht
+# ignorierte Dateien) in ein Wegwerf-Repo mit aktiven .githooks und ruft dort
+# make tag-patch auf. Prüft die Ausgabe bei Erfolg und bei einem Fehler sowie
+# die Ausgabe der Git-Hooks bei einem Commit.
+#
+# Braucht ProjectTools (docs-check, changelog) wie make check.
+#
+#   ./test/_testMakeTag.sh
+# ------------------------------------------------------------------------------
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Eigene Git-Konfiguration der Nutzer (Signieren, Hooks, Aliase) bleibt draußen
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_NOSYSTEM=1
+# Ein umgebendes make (make check) gibt sonst seine Flags weiter
+unset MAKEFLAGS MAKELEVEL MFLAGS
+
+tests_run=0
+tests_failed=0
+work=""
+
+assertEquals() {
+    local expected="$1" actual="$2" message="$3"
+    tests_run=$((tests_run + 1))
+    if [[ "${expected}" == "${actual}" ]]; then
+        echo "  ✓ ${message}"
+    else
+        tests_failed=$((tests_failed + 1))
+        echo "  ✗ ${message} (erwartet '${expected}', war '${actual}')"
+    fi
+}
+
+assertContains() {
+    local needle="$1" haystack="$2" message="$3"
+    tests_run=$((tests_run + 1))
+    if [[ -n "${needle}" && "${haystack}" == *"${needle}"* ]]; then
+        echo "  ✓ ${message}"
+    else
+        tests_failed=$((tests_failed + 1))
+        echo "  ✗ ${message} ('${needle}' fehlt in: ${haystack})"
+    fi
+}
+
+assertNotContains() {
+    local needle="$1" haystack="$2" message="$3"
+    tests_run=$((tests_run + 1))
+    if [[ "${haystack}" != *"${needle}"* ]]; then
+        echo "  ✓ ${message}"
+    else
+        tests_failed=$((tests_failed + 1))
+        echo "  ✗ ${message} ('${needle}' steht in: ${haystack})"
+    fi
+}
+
+# shellcheck disable=SC2329  # per trap aufgerufen
+cleanup() {
+    if [[ -n "${work}" && -d "${work}" ]]; then
+        command rm -rf -- "${work}"
+    fi
+}
+trap cleanup EXIT
+
+# Legt unter ${work}/<name> ein Repo mit dem Arbeitsstand dieser Arbeitskopie
+# und einem Commit an; die Hooks aus .githooks sind aktiv.
+#
+# Params:
+#   $1 - Name unter ${work}
+makeRepo() {
+    local repo="${work}/$1"
+    mkdir -p "${repo}"
+    ( cd "${ROOT}" && git ls-files -z --cached --others --exclude-standard \
+        | while IFS= read -r -d '' file; do [[ -e "${file}" ]] && printf '%s\0' "${file}"; done \
+        | tar --null -T - -cf - ) | tar -xf - -C "${repo}"
+    git init -q -b master "${repo}"
+    git -C "${repo}" config user.name "Test"
+    git -C "${repo}" config user.email "test@example.invalid"
+    git -C "${repo}" config core.hooksPath .githooks
+    git -C "${repo}" add -A
+    git -C "${repo}" commit -q --no-verify -m "init"
+}
+
+# Führt make im Repo aus. Setzt rc und out (stdout und stderr ohne Farbcodes).
+#
+# Params:
+#   $1    - Name unter ${work}
+#   $2... - Targets und Variablen für make
+runMake() {
+    local repo="${work}/$1"
+    shift
+    rc=0
+    ( cd "${repo}" && make "$@" ) > "${work}/out" 2>&1 || rc=$?
+    out="$(sed $'s/\033\\[[0-9;]*m//g' "${work}/out")"
+}
+
+work="$(mktemp -d "${TMPDIR:-/tmp}/bashlib-maketag.XXXXXX")"
+work="$(cd "${work}" && pwd -P)"
+
+echo
+echo "make tag-patch: Statuszeilen bei Erfolg"
+echo
+
+makeRepo ok
+old="$(cd "${work}/ok" && . src/version.lib.sh && readProjectVersion)"
+IFS=. read -r major minor patch <<< "${old}"
+new="${major}.${minor}.$((patch + 1))"
+runMake ok tag-patch
+tag="$(git -C "${work}/ok" tag --sort=-creatordate | head -n1)"
+assertEquals "0" "${rc}" "Exit 0"
+assertContains "Version" "$(grep "${old} → ${new}" <<< "${out}")" "Statuszeile Version alt → neu"
+assertContains "nur lokal" "$(grep -F "${tag}" <<< "${out}")" "Statuszeile Tag mit Hinweis nur lokal"
+assertContains "Changelog" "$(grep 'CHANGELOG.md' <<< "${out}")" "Statuszeile Changelog"
+assertEquals "3" "$(grep -c . <<< "${out}")" "genau drei Zeilen"
+assertNotContains "semVerBump" "${out}" "keine Rezeptzeile"
+assertNotContains "file changed" "${out}" "keine rohe git-commit-Ausgabe"
+assertNotContains "[master" "${out}" "keine rohe git-commit-Kopfzeile"
+assertNotContains "Ergebnis" "${out}" "keine docs-check-Ergebniszeile"
+assertNotContains "Hinweis:" "${out}" "kein Roh-Hinweis der Bibliothek"
+assertNotContains "${work}" "${out}" "kein absoluter Pfad"
+assertEquals "" "$(git -C "${work}/ok" status --porcelain)" "Working Tree danach sauber"
+
+echo
+echo "make tag-patch: Fehler bleiben sichtbar"
+echo
+
+makeRepo dirty
+printf '\n' >> "${work}/dirty/README.md"
+runMake dirty tag-patch
+assertEquals "1" "$(( rc != 0 ))" "Exit ungleich 0 bei dirty Working Tree"
+assertContains "dirty" "${out}" "Fehlermeldung nennt den dirty Working Tree"
+assertEquals "" "$(git -C "${work}/dirty" tag)" "kein Tag angelegt"
+
+echo
+echo "Git-Hooks: still ohne Probleme, Fehler sichtbar"
+echo
+
+# Lokaler post-commit-Hook wie der Jenkins-Auslöser über at
+makeRepo hooks
+hook="${work}/hooks/.git/hooks/post-commit"
+printf '#!/usr/bin/env bash\necho "job 7 at Tue Nov  3 12:00:00 2026" >&2\n' > "${hook}"
+chmod +x "${hook}"
+printf '\n' >> "${work}/hooks/README.md"
+commitOut="$(git -C "${work}/hooks" commit -q -am "docs: Zeile" 2>&1)"
+commitRc=$?
+assertEquals "0" "${commitRc}" "Commit ohne Probleme: Exit 0"
+assertEquals "" "${commitOut}" "Commit ohne Probleme: keine Hook-Ausgabe"
+
+printf '#!/usr/bin/env bash\necho "Jenkins nicht erreichbar" >&2\nexit 2\n' > "${hook}"
+printf '\n' >> "${work}/hooks/README.md"
+commitOut="$(git -C "${work}/hooks" commit -q -am "docs: noch eine Zeile" 2>&1)"
+assertContains "Jenkins nicht erreichbar" "${commitOut}" "fehlgeschlagener post-commit-Hook: Ausgabe sichtbar"
+
+# pre-commit bricht bei Problemen ab und zeigt sie
+printf '\n[kaputt](gibt-es-nicht.md)\n' >> "${work}/hooks/README.md"
+commitRc=0
+commitOut="$(git -C "${work}/hooks" commit -q -am "docs: kaputter Link" 2>&1)" || commitRc=$?
+assertEquals "1" "$(( commitRc != 0 ))" "pre-commit mit Problemen: Commit abgebrochen"
+assertContains "Commit abgebrochen" "${commitOut}" "pre-commit mit Problemen: Meldung sichtbar"
+
+echo
+if [[ ${tests_failed} -eq 0 ]]; then
+    echo "  ${tests_run} Tests, alle gruen"
+    exit 0
+fi
+echo "  ${tests_failed} von ${tests_run} Tests fehlgeschlagen"
+exit 1
