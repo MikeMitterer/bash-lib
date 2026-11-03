@@ -4,7 +4,8 @@
 #
 # Kopiert den Arbeitsstand dieser Arbeitskopie (versionierte und neue, nicht
 # ignorierte Dateien) in ein Wegwerf-Repo mit aktiven .githooks und ruft dort
-# make tag-patch auf. Prüft die Ausgabe bei Erfolg und bei einem Fehler sowie
+# make tag-patch auf. Prüft die Ausgabe bei Erfolg und bei einem Fehler, dass
+# Version-Commit, Tag und Changelog-Commit nur lokal liegen (Bare-Remote), und
 # die Ausgabe der Git-Hooks bei einem Commit.
 #
 # Braucht ProjectTools (docs-check, changelog) wie make check.
@@ -106,6 +107,11 @@ echo "make tag-patch: Statuszeilen bei Erfolg"
 echo
 
 makeRepo ok
+# Bare-Remote mit dem Ausgangsstand: tag-* darf dort nichts ablegen
+git init -q --bare "${work}/ok.git"
+git -C "${work}/ok" remote add origin "${work}/ok.git"
+git -C "${work}/ok" push -q -u origin master
+base="$(git -C "${work}/ok" rev-parse HEAD)"
 old="$(cd "${work}/ok" && . src/version.lib.sh && readProjectVersion)"
 IFS=. read -r major minor patch <<< "${old}"
 new="${major}.${minor}.$((patch + 1))"
@@ -123,6 +129,16 @@ assertNotContains "Ergebnis" "${out}" "keine docs-check-Ergebniszeile"
 assertNotContains "Hinweis:" "${out}" "kein Roh-Hinweis der Bibliothek"
 assertNotContains "${work}" "${out}" "kein absoluter Pfad"
 assertEquals "" "$(git -C "${work}/ok" status --porcelain)" "Working Tree danach sauber"
+assertEquals "docs(changelog): update release history" "$(git -C "${work}/ok" log -1 --format=%s)" "Changelog-Commit liegt lokal"
+assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --format=%s "${tag}")" "Tag zeigt auf den Version-Commit"
+assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
+assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"
+
+# Das Rezept lässt changelog selbst committen (ohne Push), kein eigener Umweg
+recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
+assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
+assertNotContains "--generate" "${recipe}" "Rezept ohne changelog --generate"
+assertNotContains "git commit" "${recipe}" "Rezept ohne eigenen Changelog-Commit"
 
 echo
 echo "make tag-patch: Fehler bleiben sichtbar"
