@@ -6,4 +6,4 @@
 
 # ProjectTools (docs-check, repo-status, changelog). pipx braucht den vollen
 # Release-Tag; die Mindestversion ist dessen SemVer-Teil (make info, make hints).
-PROJECTTOOLS_TAG=v0.3.2+261029.1600.c7bbd
+PROJECTTOOLS_TAG=v0.4.0+261103.1343.9d0a8

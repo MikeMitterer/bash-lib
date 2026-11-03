@@ -241,8 +241,9 @@ release_row = printf '  $(GREEN)✓$(RESET) %-10s $(BLUE)%s$(RESET)\n' "$(1)" "$
 # Ausgabe: je Schritt eine Statuszeile. semVerBump gibt auf stdout nur den Tag
 # aus; seine stderr-Ausgabe erscheint bei einem Fehler vollständig, bei Erfolg
 # ohne die Zeilen „Hinweis: …“, die hier die Tag-Zeile ersetzt.
-# changelog --publish pusht selbst, darum --generate und ein eigener Commit mit
-# derselben Message, bis changelog ohne Push committen kann (ProjectTools T-20).
+# changelog --commit schreibt und committet CHANGELOG.md nur lokal; seine
+# Erfolgszeile (mit absolutem Pfad) ersetzt die Changelog-Zeile, Fehler gehen
+# nach stderr. Ob committet wurde, zeigt ein neuer HEAD.
 define release
 	@source "$${BASH_LIBS}/version.lib.sh"; \
 	 err=$$(mktemp); trap 'command rm -f -- "$$err"' EXIT; \
@@ -251,12 +252,11 @@ define release
 	 grep -v '^Hinweis: ' "$$err" >&2 || true; \
 	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
 	 $(call release_row,Tag,$${tag##*$$'\n'} (nur lokal))
-	@changelog --generate >/dev/null
-	@git add -- CHANGELOG.md
-	@if git diff --cached --quiet -- CHANGELOG.md; then \
+	@head=$$(git rev-parse HEAD); \
+	 changelog --commit >/dev/null || exit $$?; \
+	 if [[ "$$(git rev-parse HEAD)" == "$$head" ]]; then \
 		$(call release_row,Changelog,CHANGELOG.md unverändert); \
 	 else \
-		git commit -q -m "docs(changelog): update release history" -- CHANGELOG.md; \
 		$(call release_row,Changelog,CHANGELOG.md committet); \
 	 fi
 endef

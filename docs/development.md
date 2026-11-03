@@ -75,7 +75,7 @@ git push --follow-tags
 
 `make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
 `vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
-(`changelog --generate`), alles nur lokal. Es meldet je Schritt eine
+(`changelog --commit`), alles nur lokal. Es meldet je Schritt eine
 Statuszeile: Version alt → neu, Tag (nur lokal) und Changelog. Veröffentlicht
 wird erst mit `git push --follow-tags`. `make changelog` zeigt vorher eine
 Vorschau.
