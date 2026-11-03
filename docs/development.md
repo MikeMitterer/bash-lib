@@ -25,6 +25,8 @@ make check
 `make setup` aktiviert die Git-Hooks aus `.githooks`: pre-commit prüft die
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
+Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
+Hooks erscheinen vollständig.
 `make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
 `make setup` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
 `make hints` die Befehle für den ersten Start.
@@ -42,6 +44,12 @@ einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
 und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Es bindet
 `src/version.lib.sh` der eigenen Arbeitskopie ein, nicht die unter
 `BASH_LIBS`, und blendet die globale Git-Konfiguration aus.
+
+`test/_testMakeTag.sh` kopiert den Arbeitsstand in ein Wegwerf-Repo mit
+aktiven Hooks und ruft dort `make tag-patch` auf: Bei Erfolg erscheinen nur
+die drei Statuszeilen, bei einem Fehler die Meldung mit Exit ungleich 0. Es
+prüft außerdem, dass die Hooks ohne Probleme still bleiben und Fehler zeigen.
+Es braucht ProjectTools wie `make check`.
 
 Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
 
@@ -67,8 +75,10 @@ git push --follow-tags
 
 `make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
 `vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
-(`changelog --generate`), alles nur lokal. Veröffentlicht wird erst mit
-`git push --follow-tags`. `make changelog` zeigt vorher eine Vorschau.
+(`changelog --generate`), alles nur lokal. Es meldet je Schritt eine
+Statuszeile: Version alt → neu, Tag (nur lokal) und Changelog. Veröffentlicht
+wird erst mit `git push --follow-tags`. `make changelog` zeigt vorher eine
+Vorschau.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
 
 Mit `git config push.followTags true` nimmt schon ein einfaches `git push`
