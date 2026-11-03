@@ -4,8 +4,7 @@
 # veröffentlicht
 #
 # Legt je Fall ein Wegwerf-Repo mit VERSION-Datei an, dazu ein lokales
-# Bare-Remote, das den Push annimmt oder per pre-receive-Hook abweist, oder
-# gar kein Remote. Bindet src/version.lib.sh dieser Arbeitskopie ein, nicht
+# Bare-Remote oder gar kein Remote. Bindet src/version.lib.sh dieser Arbeitskopie ein, nicht
 # die unter BASH_LIBS.
 #
 #   ./test/_testVersionPush.sh
@@ -58,7 +57,7 @@ trap cleanup EXIT
 #
 # Params:
 #   $1 - Name unter ${work}
-#   $2 - ok (Remote nimmt an), reject (Remote weist ab) oder none (kein Remote)
+#   $2 - ok (mit lokalem Bare-Remote) oder none (kein Remote)
 makeRepo() {
     local name="$1" kind="$2"
     local repo="${work}/${name}" remote="${work}/${name}.git"
@@ -74,10 +73,6 @@ makeRepo() {
     git init -q --bare "${remote}"
     git -C "${repo}" remote add origin "${remote}"
     git -C "${repo}" push -q -u origin main
-    if [[ "${kind}" == "reject" ]]; then
-        printf '#!/bin/sh\necho "push abgewiesen (Test)" >&2\nexit 1\n' > "${remote}/hooks/pre-receive"
-        chmod +x "${remote}/hooks/pre-receive"
-    fi
 }
 
 # Führt eine Funktion der version.lib.sh im Repo aus.
