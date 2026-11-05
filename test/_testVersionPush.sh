@@ -12,8 +12,8 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# assertEquals, assertContains, … und finishTests
-. "${ROOT}/test/assert.sh"
+# assertEquals, assertContains, … und finishTests aus dieser Arbeitskopie
+. "${ROOT}/src/assert.lib.sh"
 LIB="${ROOT}/src/version.lib.sh"
 
 # Eigene Git-Konfiguration der Nutzer (Signieren, Hooks, Aliase) bleibt draußen

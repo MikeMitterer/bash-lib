@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
-# ------------------------------------------------------------------------------
-# assert.sh — gemeinsame Asserts der Bash-Tests unter test/
+readonly __ASSERT_LIB__="assert.lib.sh";
+
+#------------------------------------------------------------------------------
+# Asserts für Bash-Tests: vergleichen, zählen, Summenzeile und Exit-Code
 #
-# Kein Test: testAll.sh führt nur _test*.sh aus. Einbinden mit
+# Ohne Abhängigkeiten zu anderen Bibliotheken. Ausgabe je Prüfung
+# „  ✓ Beschreibung“ oder „  ✗ Beschreibung (Grund)“; finishTests gibt am Ende
+# die Summenzeile aus und beendet das Skript mit Exit 0 (alle grün) oder 1.
 #
-#     . "$(dirname "$0")/assert.sh"
+# Einbinden:
+#     if [[ "${__ASSERT_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/assert.lib.sh"; fi
 #
-# Jeder Assert zählt tests_run, ein Fehlschlag zusätzlich tests_failed.
-# finishTests gibt am Ende die Summenzeile aus und beendet den Test mit Exit 0
-# (alle grün) oder 1.
-# ------------------------------------------------------------------------------
+# Usage:
+#     assertEquals "0" "${rc}" "Exit 0"
+#     assertContains "fertig" "${out}" "Meldung nennt fertig"
+#     finishTests
+#
+#------------------------------------------------------------------------------
 
 tests_run=0
 tests_failed=0

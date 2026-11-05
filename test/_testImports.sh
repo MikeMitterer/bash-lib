@@ -81,6 +81,7 @@ testImports() {
         "version.lib.sh"
         "fs.lib.sh"
         "webapp.lib.sh"
+        "assert.lib.sh"
 
     )
 

@@ -132,6 +132,7 @@ statt abzubrechen.
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
 | `styles.lib.sh` | Global definierte Ausgabestile | colors |
 | `test.lib.sh` | Funktionen für Skripttests | – |
+| `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`) | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
 | `webapp.lib.sh` | Node- und TypeScript-Apps veröffentlichen | colors, fs |
 

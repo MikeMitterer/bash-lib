@@ -11,8 +11,8 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# assertEquals, assertContains, … und finishTests
-. "${ROOT}/test/assert.sh"
+# assertEquals, assertContains, … und finishTests aus dieser Arbeitskopie
+. "${ROOT}/src/assert.lib.sh"
 # Ein umgebendes make (make check) gibt sonst seine Flags weiter
 unset MAKEFLAGS MAKELEVEL MFLAGS
 
