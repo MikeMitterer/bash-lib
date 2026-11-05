@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import pty
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -52,8 +53,15 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     (base / 'site' / 'demo.py').write_text('def run():\n    """Nur im Test vorhanden.\n\n    Zweite Zeile zählt nicht."""\n')
     (base / 'cli-theme').mkdir()
     (base / 'cli-theme' / 'probe.theme').write_text(theme)
+    # bashlib aus einer Spiegelung des Checkouts laden: nur das Paket, src/ und pyproject.toml,
+    # ohne Build-Reste wie python/*.egg-info, die sonst als Metadaten gelten.
+    mirror = base / 'repo'
+    shutil.copytree(root / 'python' / 'bashlib', mirror / 'python' / 'bashlib',
+                    ignore=shutil.ignore_patterns('__pycache__'))
+    (mirror / 'src').symlink_to(root / 'src', target_is_directory=True)
+    shutil.copy(root / 'pyproject.toml', mirror / 'pyproject.toml')
     env = {'PATH': os.environ['PATH'], 'HOME': str(base), 'XDG_CONFIG_HOME': str(base),
-           'PYTHONPATH': f"{base / 'site'}:{root / 'python'}", 'TERM': 'xterm-256color'}
+           'PYTHONPATH': f"{base / 'site'}:{mirror / 'python'}", 'TERM': 'xterm-256color'}
     command = [sys.executable, '-S', '-c', 'import sys; from bashlib import cli; sys.exit(cli())']
 
     def run(*args, terminal=False, extra=None, code=0):
