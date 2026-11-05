@@ -77,7 +77,10 @@ export BASH_LIBS="$(bashlib-path)"
 
 `bashlib-path` gibt das Verzeichnis der installierten Bibliotheken aus. Mit
 `pip install -e <Klon>` zeigt es auf `src` des Klons, Änderungen wirken dann
-ohne Neuinstallation.
+ohne Neuinstallation. `bashlib` zeigt die installierte Version und je Befehl
+des Pakets eine Zeile mit kurzer Beschreibung, im gewählten CLI-Theme
+([Farben und Themes](#farben-und-themes)); `bashlib --version` gibt nur die
+Version aus.
 
 [↑ Übersicht](#übersicht)
 

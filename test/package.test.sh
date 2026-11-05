@@ -3,8 +3,8 @@
 # package.test.sh — BashLib als pip-Paket installieren und benutzen
 #
 # Baut das Paket einmal normal und einmal editierbar in je eine eigene venv
-# und prueft, dass `bashlib-path` auf die *.lib.sh zeigt und sie sich einbinden
-# lassen. Braucht Python ab 3.11 (PYTHON, sonst python3) und pip-Zugriff auf
+# und prueft, dass `bashlib-path` auf die *.lib.sh zeigt, sie sich einbinden
+# lassen und `bashlib` Version und Befehle zeigt. Braucht Python ab 3.11 (PYTHON, sonst python3) und pip-Zugriff auf
 # setuptools. Laeuft nicht in testAll.sh, weil es Pakete installiert:
 #
 #   make test-package
@@ -69,8 +69,15 @@ checkInstall() {
     rc=0
     BASH_LIBS="${dir}" bash -c '. "${BASH_LIBS}/tools.lib.sh" && [[ -n "${__TOOLS_LIB__:-}" ]]' || rc=$?
     assertEquals "0" "${rc}" "${name}: tools.lib.sh laesst sich einbinden"
+    local overview
+    rc=0
+    overview="$(NO_COLOR=1 "${work}/${name}/bin/bashlib")" || rc=$?
+    assertEquals "0" "${rc}" "${name}: bashlib laeuft"
+    assertEquals "yes" "$([[ ${overview} == *"BashLib ${expected_version}"*"bashlib-path "* ]] && echo yes)" \
+        "${name}: bashlib zeigt Version und bashlib-path"
 }
 
+expected_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "${ROOT}/pyproject.toml" 2>/dev/null)"
 work="$(mktemp -d "${TMPDIR:-/tmp}/bashlib-package.XXXXXX")"
 work="$(cd "${work}" && pwd -P)"
 
@@ -89,8 +96,7 @@ assertEquals "0" "${rc}" "pip install -e"
 [[ ${rc} -eq 0 ]] && checkInstall editable "$(cd "${ROOT}/src" && pwd -P)"
 
 version="$("${work}/wheel/bin/python" -c 'from importlib.metadata import version; print(version("mmit-bashlib"))' 2>/dev/null)"
-expected="$(sed -n 's/^version = "\(.*\)"$/\1/p' "${ROOT}/pyproject.toml" 2>/dev/null)"
-assertEquals "${expected:-?}" "${version:-fehlt}" "Version aus pyproject.toml"
+assertEquals "${expected_version:-?}" "${version:-fehlt}" "Version aus pyproject.toml"
 
 echo
 if [[ ${tests_failed} -eq 0 ]]; then
