@@ -65,6 +65,26 @@ assertContains "✗ pipx fehlt" "${output}" "pipx fehlt: Meldung"
 assertContains "https://pipx.pypa.io" "${output}" "pipx fehlt: Installationsweg"
 assertEquals "" "$(cat "${work}/log")" "pipx fehlt: kein Aufruf"
 
+# Ohne pipx: require-tools, info und hints nennen den Installationsweg statt roher Fehler.
+runTarget() {
+    output="$(env -i HOME="${work}" PATH="${BASE_PATH}" make --no-print-directory -C "${ROOT}" "$1" 2>&1)"
+    status=$?
+    output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
+}
+runTarget require-tools
+assertEquals "1" "$(( status != 0 ))" "require-tools ohne pipx: Exit ungleich 0"
+assertContains "✗ pipx fehlt" "${output}" "require-tools ohne pipx: Meldung"
+assertContains "https://pipx.pypa.io" "${output}" "require-tools ohne pipx: Installationsweg"
+assertNotContains "command not found" "${output}" "require-tools ohne pipx: keine rohe Shell-Meldung"
+runTarget info
+assertContains "Werkzeugstand nicht abrufbar: pipx fehlt" "${output}" "info ohne pipx: Hinweis statt fehlender Zeilen"
+output="$(env -i HOME="${work}" PATH="${work}/bin:${BASE_PATH}" FAKE_LOG="${work}/log" FAKE_FAIL=1 \
+    make --no-print-directory -C "${ROOT}" info 2>&1)"
+assertContains "Werkzeugstand nicht abrufbar: pipx run devtools gescheitert" "${output}" "info, pipx run scheitert: Hinweis"
+runTarget hints
+assertContains "nicht abrufbar: pipx fehlt" "${output}" "hints ohne pipx: Grund statt Verweis auf make info"
+assertNotContains "nicht abrufbar: make info" "${output}" "hints ohne pipx: kein Verweis im Kreis"
+
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 assertContains "install" "$(grep -E '^ +install ' <<< "${help}")" "make help nennt install"
 # Sichtbare Zeichen, nicht Bytes (Umlaute)

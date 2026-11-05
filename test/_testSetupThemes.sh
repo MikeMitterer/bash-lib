@@ -92,5 +92,7 @@ assertEquals "" "$(cat "${work}/log")" "fehlt: kein install"
 runSetup "${BASE_PATH}"
 assertEquals "0" "${status}" "ohne pipx und cli-theme: Exit 0"
 assertEquals "" "$(cat "${work}/log")" "ohne pipx und cli-theme: kein install"
+assertContains "✗ pipx fehlt" "${output}" "ohne pipx: Meldung mit Installationsweg"
+assertNotContains "command not found" "${output}" "ohne pipx: keine rohe Shell-Meldung"
 
 finishTests

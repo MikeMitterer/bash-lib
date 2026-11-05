@@ -51,6 +51,10 @@ MAINTAINER_MARK = $(THEME_COLOR_DANGER)[Maintainer]$(THEME_COLOR_DESC)
 export DEVTOOLS_SPEC := git+https://github.com/MikeMitterer/python-devtools.git@$(DEVTOOLS_TAG)
 # --no-path-check: ohne Warnung, wenn devtools zusätzlich im PATH installiert ist
 DEV_TOOLS = pipx run --no-path-check --spec "$$DEVTOOLS_SPEC" devtools
+# devtools braucht pipx: eine Meldung, wenn es fehlt, und der Grund, wenn devtools nichts liefert.
+PIPX_URL := https://pipx.pypa.io
+pipx_missing = printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)$(PIPX_URL)$(RESET)\n' >&2
+devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools gescheitert' || echo 'pipx fehlt ($(PIPX_URL))')
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
@@ -86,7 +90,7 @@ info: ## Umgebungsvariablen anzeigen
 	@echo "    $(YELLOW)PACKAGE$(RESET)       = $(BLUE)$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(RESET)"
 	@echo "    $(YELLOW)VERSION$(RESET)       = $(BLUE)$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null || echo 'nicht gesetzt')$(RESET)"
 	@# devtools rückt um zwei Zeichen ein; zwei mehr stellen die Zeilen unter die Variablen.
-	@$(DEV_TOOLS) status 2>/dev/null | sed 's/^/  /' || echo "    Werkzeugstand nicht abrufbar (pipx run devtools)"
+	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/  /' || echo "    Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
 # Repo-Adresse aus git remote origin (SSH oder HTTPS) als https-URL; leer ohne Remote.
@@ -129,10 +133,10 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@$(call hint_row,Umgebung,export BASH_LIBS=\$$(bashlib-path))
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)ProjectTools (docs-check$(COMMA) status$(COMMA) changelog)$(RESET)"
-	@cmd=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || cmd="nicht abrufbar: make info"; $(call hint_row,Installieren,$$cmd)
+	@cmd=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)CLITheme (Farben und Abstände der Ausgabe)$(RESET)"
-	@cmd=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || cmd="nicht abrufbar: make info"; $(call hint_row,Installieren,$$cmd)
+	@cmd=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
 	@$(call hint_row,Themes anlegen,cli-theme install (macht make setup))
 	@$(call hint_row,Auswahl,export CLI_THEME=ocean)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
@@ -155,6 +159,7 @@ precheck:
 # Ohne `##`: verlangt ProjectTools in Mindestversion und nennt sonst den Installationsbefehl.
 .PHONY: require-tools
 require-tools:
+	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
 	@$(DEV_TOOLS) check projecttools
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
@@ -176,7 +181,7 @@ setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 # cli-theme bleibt die Ausgabe der Skripte farblos.
 .PHONY: setup-themes
 setup-themes:
-	@$(DEV_TOOLS) check clitheme >&2 || true; \
+	@if command -v pipx >/dev/null; then $(DEV_TOOLS) check clitheme >&2 || true; else $(pipx_missing); fi; \
 	command -v cli-theme >/dev/null || exit 0; \
 	if output=$$(cli-theme install 2>&1); then \
 		printf '  $(GREEN)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(cli-theme path)")"; \
@@ -190,8 +195,7 @@ setup-themes:
 # pipx nur beim Installieren an; nach einem Update deshalb erneut aufrufen.
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
-	@command -v pipx >/dev/null || { \
-		printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)https://pipx.pypa.io$(RESET)\n' >&2; exit 1; }
+	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
 	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
 		names='$(PACKAGE_CMDS)'; printf '  $(GREEN)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
 	else \
