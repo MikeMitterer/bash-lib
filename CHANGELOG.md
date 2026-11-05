@@ -2,6 +2,28 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.5.0+261105.2226.e848e — 2026-11-05
+
+semVerNext, gitListReleaseTags, showProjectVersion und showReleaseTags, make help mit Versionsvorschau, Release nur auf master, Werkzeugprüfung über devtools
+
+### Dokumentation
+
+- vorhandenes egg-info bleibt bestehen, pip aktualisiert es (`3767b6f`)
+- Ablauf-Erklärung aus der Entwicklerdoku, Begründung bleibt im Makefile (`008baa9`)
+
+### Fehlerkorrekturen
+
+- tag-\* nur auf master, develop danach vorgespult (`a3860f8`)
+- ohne pipx klare Meldung statt roher Fehler oder leerer Zeilen (`74546dd`)
+
+### Weitere Änderungen
+
+- Werkzeugprüfung über devtools statt eigener Versionslogik (`eae663f`)
+
+### Neue Funktionen
+
+- semVerNext, gitListReleaseTags und Anzeige für make version/tags (`c6a0177`)
+
 ## v0.4.0+261105.1713.51c76 — 2026-11-05
 
 CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bashlib, make install, gitReleaseTag
@@ -18,6 +40,7 @@ CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bash
 - ShellCheck-Meldungen in tools.lib.sh behoben (`5465ce5`)
 - scriptToDoc und repeat beenden Skripte unter set -e nicht (`4b9cf17`)
 - themeAccent/themeMark setzen vor der Rückkehrfarbe zurück (`2390bbf`)
+- Changelog-Sprache unabhängig von der Locale der Shell (`96e3a99`)
 
 ### Weitere Änderungen
 
