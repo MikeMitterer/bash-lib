@@ -82,6 +82,8 @@ base="$(git -C "${work}/ok" rev-parse HEAD)"
 old="$(cd "${work}/ok" && . src/version.lib.sh && readProjectVersion)"
 IFS=. read -r major minor patch <<< "${old}"
 new="${major}.${minor}.$((patch + 1))"
+# develop wie beim Board, auf dem Stand von master
+git -C "${work}/ok" branch develop
 # Mit C-Locale wie in Agenten-Shells: der Changelog bleibt trotzdem deutsch
 LANG=C.UTF-8 LC_ALL= LANGUAGE= runMake ok tag-patch
 tag="$(git -C "${work}/ok" tag --sort=-creatordate | head -n1)"
@@ -89,7 +91,8 @@ assertEquals "0" "${rc}" "Exit 0"
 assertContains "Version" "$(grep "${old} → ${new}" <<< "${out}")" "Statuszeile Version alt → neu"
 assertContains "nur lokal" "$(grep -F "${tag}" <<< "${out}")" "Statuszeile Tag mit Hinweis nur lokal"
 assertContains "Changelog" "$(grep 'CHANGELOG.md' <<< "${out}")" "Statuszeile Changelog"
-assertEquals "3" "$(grep -c . <<< "${out}")" "genau drei Zeilen"
+assertContains "vorgespult" "$(grep 'develop' <<< "${out}")" "Statuszeile develop"
+assertEquals "4" "$(grep -c . <<< "${out}")" "genau vier Zeilen"
 assertNotContains "semVerBump" "${out}" "keine Rezeptzeile"
 assertNotContains "file changed" "${out}" "keine rohe git-commit-Ausgabe"
 assertNotContains "[master" "${out}" "keine rohe git-commit-Kopfzeile"
@@ -99,6 +102,8 @@ assertNotContains "${work}" "${out}" "kein absoluter Pfad"
 assertEquals "" "$(git -C "${work}/ok" status --porcelain)" "Working Tree danach sauber"
 assertEquals "docs(changelog): update release history" "$(git -C "${work}/ok" log -1 --format=%s)" "Changelog-Commit liegt lokal"
 assertEquals "Aus Release-Tags und Conventional Commits erzeugt." "$(sed -n 3p "${work}/ok/CHANGELOG.md")" "Changelog deutsch, auch unter LANG=C.UTF-8"
+assertContains "## ${tag} " "$(cat "${work}/ok/CHANGELOG.md")" "Changelog hat den Abschnitt des neuen Tags"
+assertEquals "$(git -C "${work}/ok" rev-parse master)" "$(git -C "${work}/ok" rev-parse develop)" "develop danach auf master vorgespult"
 assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --format=%s "${tag}")" "Tag zeigt auf den Version-Commit"
 assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
 assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"
@@ -117,6 +122,35 @@ recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
 assertNotContains "--generate" "${recipe}" "Rezept ohne changelog --generate"
 assertNotContains "git commit" "${recipe}" "Rezept ohne eigenen Changelog-Commit"
+
+echo
+echo "make tag-patch: nur auf master, nur wenn develop nicht weiter ist"
+echo
+
+# Auf einem Ticket-Branch: das Board übernimmt per Merge-Commit, ein Tag dort
+# fiele aus der First-Parent-Historie und damit aus dem Changelog.
+makeRepo branch
+git -C "${work}/branch" checkout -q -b t-1-ticket
+before="$(git -C "${work}/branch" rev-parse HEAD)"
+runMake branch tag-patch
+assertEquals "1" "$(( rc != 0 ))" "Ticket-Branch: Exit ungleich 0"
+assertContains "nur auf master" "${out}" "Ticket-Branch: Meldung nennt master"
+assertEquals "" "$(git -C "${work}/branch" tag)" "Ticket-Branch: kein Tag"
+assertEquals "${before}" "$(git -C "${work}/branch" rev-parse HEAD)" "Ticket-Branch: kein Versionssprung"
+
+# develop hat nicht abgenommene Tickets
+makeRepo ahead
+git -C "${work}/ahead" branch develop
+git -C "${work}/ahead" checkout -q develop
+git -C "${work}/ahead" commit -q --no-verify --allow-empty -m "feat: noch nicht abgenommen"
+git -C "${work}/ahead" checkout -q master
+before="$(git -C "${work}/ahead" rev-parse HEAD)"
+runMake ahead tag-patch
+assertEquals "1" "$(( rc != 0 ))" "develop weiter: Exit ungleich 0"
+assertContains "develop ist weiter als master" "${out}" "develop weiter: Meldung"
+assertContains "al ticket accept" "${out}" "develop weiter: nächster Schritt"
+assertEquals "" "$(git -C "${work}/ahead" tag)" "develop weiter: kein Tag"
+assertEquals "${before}" "$(git -C "${work}/ahead" rev-parse HEAD)" "develop weiter: kein Versionssprung"
 
 echo
 echo "make tag-patch: Fehler bleiben sichtbar"

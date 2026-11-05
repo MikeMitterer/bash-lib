@@ -117,17 +117,25 @@ anlegt, entfernt der Test wieder. Ein schon vorhandenes bleibt bestehen;
 
 Die Version steht nur in `pyproject.toml` (`version = "X.Y.Z"`); das
 Makefile liest sie mit `readProjectVersion` (`make version`). Ein Release
-entsteht auf `master` mit
+entsteht **nach der Abnahme auf `master`**, nicht in einem Ticket:
 
 ```bash
 make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
-git push --follow-tags
+git push --follow-tags origin master
 ```
+
+Das Board übernimmt Tickets per Merge-Commit. Ein Tag auf einem Ticket-Branch
+läge dann neben der First-Parent-Historie, die `changelog` liest, und das
+Release fehlte im Changelog. Deshalb brechen `make tag-*` auf einem anderen
+Branch als `master` ab, ebenso, wenn `develop` weiter ist als `master`
+(nicht abgenommene Tickets; erst `al ticket accept`). Nach dem Release spulen
+sie `develop` auf `master` vor, damit die nächste Abnahme `master` wieder per
+Fast-Forward vorspulen kann.
 
 `make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
 `vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
 (`changelog --commit`), alles nur lokal. Es meldet je Schritt eine
-Statuszeile: Version alt → neu, Tag (nur lokal) und Changelog. Veröffentlicht
+Statuszeile: Version alt → neu, Tag (nur lokal), Changelog und develop. Veröffentlicht
 wird erst mit `git push --follow-tags`. `make changelog` zeigt vorher eine
 Vorschau.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
