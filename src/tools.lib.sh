@@ -17,8 +17,9 @@ readonly DASH10="----------"
 readonly DASH50="--------------------------------------------------"
 readonly DASH80="--------------------------------------------------------------------------------"
 
-# Theme-Ausgabe für alle Skripte. Farben und Abstände kommen aus colors.lib.sh.
-# $1 Überschrift; THEME_GROUP_SPACING steuert die Leerzeilen davor.
+# Theme-Ausgabe für alle Skripte. Farben und Abstände kommen aus colors.lib.sh,
+# das die Theme-Datei von CLITheme liest.
+# $1 Überschrift; THEME_GROUP_SPACING (SPACE) steuert die Leerzeilen davor.
 printThemeHeading() {
     themeHeading "${1}"
 }
@@ -28,11 +29,18 @@ printThemeRow() {
     themeLine "$@"
 }
 
-# $1 Symbol, $2 Text, $3 Farbrolle (SUCCESS, WARNING, DANGER, …).
+# $1 Symbol, $2 Text, $3 Farbrolle (SUCCESS, WARNING, DANGER, … oder OK, WARN, ERR).
 # Inhalt und Umleitung nach stderr legt der Aufrufer fest.
 printThemeStatus() {
-    local -r _SYMBOL="${1}" _MESSAGE="${2}" _ROLE="${3}"
+    local -r _SYMBOL="${1}" _MESSAGE="${2}"
+    local _ROLE="${3}"
+    case "${_ROLE}" in
+        OK) _ROLE=SUCCESS ;;
+        WARN) _ROLE=WARNING ;;
+        ERR) _ROLE=DANGER ;;
+    esac
     local -r _COLOR_NAME="THEME_COLOR_${_ROLE}"
+    themeNotice
     printf '%s' "${THEME_INDENT_GROUP}"
     themeStyle "${_SYMBOL} ${_MESSAGE}" "${!_COLOR_NAME:-}"
     printf '\n'
@@ -78,7 +86,7 @@ logFileStatus() {
 
 # Helper zum Anzeigen der "Usage"
 #
-# Die Breite kommt aus THEME_WIDTH_TARGET in colors.lib.sh.
+# Die Breite kommt aus THEME_WIDTH_TARGET (W_KEY der Theme-Datei).
 #
 # Usage:
 #       usageLine "info | -i                " "Show App-Settings"
