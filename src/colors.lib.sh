@@ -307,6 +307,7 @@ readonly RESET="${NC}"
 #
 # Danach stehen die Rollen C_HEAD … C_MARK als Rohwert der Datei (bold+11, dim, …)
 # und die Abstände I_HEAD … SPACE als Zahl bereit; C_OFF beendet eine Farbe.
+# THEME_NAME und THEME_SOURCE nennen das gewählte Theme und seine Datei.
 # Die THEME_*-Variablen werden aus den Rollen gesetzt; im Skript vor dem Einbinden
 # gesetzte THEME_*-Werte gewinnen, geerbte (exportierte) nicht.
 #
@@ -405,6 +406,9 @@ themeLoad() {
     [[ ${_BASE} == /* ]] || _BASE="${HOME}/.config"
     _FOLDER="${_BASE}/cli-theme"
     _FILE="${_FOLDER}/${_SELECTED}.theme"
+    # Name und Ort des gewählten Themes, etwa für eine Info-Ausgabe
+    THEME_NAME="${_SELECTED}"
+    THEME_SOURCE="${_FILE}"
 
     for _ROLE in ${THEME_ROLES} ${THEME_SPACING}; do unset "_THEME_${_ROLE}"; done
     if [[ ! ${_SELECTED} =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then

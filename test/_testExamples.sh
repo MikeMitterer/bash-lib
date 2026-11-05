@@ -52,6 +52,10 @@ assertEquals "" "${err}" "Hilfe: stderr leer in der Pipe"
 runDemo info
 assertEquals "0" "${rc}" "info: Exit 0"
 assertContains "${work}/config/cli-theme/classic.theme" "${out}" "info: Pfad der Theme-Datei"
+# info zeigt, was colors.lib.sh geladen hat, auch mit dem Ersatznamen MAKE_THEME
+out="$(env -i PATH="${PATH}" HOME="${work}" XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" MAKE_THEME=ocean "${DEMO}" info)"
+assertContains "${work}/config/cli-theme/ocean.theme" "${out}" "info mit MAKE_THEME=ocean: Pfad von ocean"
+assertEquals "ocean" "$(awk '$1 == "Theme" { print $2 }' <<< "${out}")" "info mit MAKE_THEME=ocean: Theme ocean"
 assertContains "aus (keine Ausgabe an ein Terminal)" "${out}" "info: Farben aus in der Pipe"
 
 runDemo hints
@@ -144,6 +148,8 @@ colored="$(onTerminal "CLI_THEME=probe" status)"
 assertContains $'\033[1;38;5;5mStatus\033[0m' "${colored}" "Terminal, Theme probe: Überschrift in C_HEAD"
 assertContains $'\033[38;5;2m✓ Erfolg' "${colored}" "Terminal, Theme probe: Erfolg in C_OK"
 assertContains $'\033[38;5;1m✗ Fehler' "${colored}" "Terminal, Theme probe: Fehler in C_ERR"
+colored="$(onTerminal "CLI_THEME=probe" info)"
+assertEquals "an" "$(grep Farben <<< "${colored}" | sed $'s/\033\\[[0-9;]*m//g; s/^ *Farben *//')" "Terminal, Theme probe: info meldet Farben an"
 colored="$(onTerminal "CLI_THEME=probe" hints)"
 assertContains $'\n   \033[38;5;6mThemes anlegen\033[0m' "${colored}" "Terminal, Theme probe: Einrückung I_ROW=3 und C_KEY"
 plain="$(onTerminal "CLI_THEME=probe NO_COLOR=1" hints)"

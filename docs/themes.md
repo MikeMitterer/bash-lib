@@ -34,6 +34,8 @@ bereit:
   `C_OFF` beendet eine Farbe.
 - **Abstände** `I_HEAD`, `I_ROW`, `I_HINT`, `W_KEY`, `GAP`, `WIDTH`, `SPACE`
   als Zahl.
+- **`THEME_NAME`** und **`THEME_SOURCE`**: Name des gewählten Themes (auch über
+  `MAKE_THEME`) und Pfad seiner Datei, etwa für eine Info-Ausgabe.
 
 **Ohne gültige Datei:** keine Farben, die Abstände der classic-Vorlage. Das
 gilt für eine fehlende Datei, einen ungültigen Eintrag, fehlende Einträge,

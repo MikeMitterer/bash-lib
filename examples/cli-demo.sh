@@ -50,18 +50,17 @@ showHelp() {
     echo
 }
 
-# Info: Werte wie Pfade und Version, eine Zeile je Wert.
+# Info: Werte wie Pfade und Version, eine Zeile je Wert. Theme und Datei kommen
+# aus colors.lib.sh (THEME_NAME, THEME_SOURCE), so wie es sie geladen hat.
 showInfo() {
-    local _base="${XDG_CONFIG_HOME:-}"
-    [[ ${_base} == /* ]] || _base="${HOME}/.config"
-
+    colorState
     printThemeHeading "Info"
     printThemeRow "Version" "${DEMO_VERSION}"
     printThemeRow "Skript" "${BASH_SOURCE[0]}"
     printThemeRow "BASH_LIBS" "${BASH_LIBS}"
-    printThemeRow "CLI_THEME" "${CLI_THEME:-classic}"
-    printThemeRow "Theme-Datei" "${_base}/cli-theme/${CLI_THEME:-classic}.theme"
-    printThemeRow "Farben" "$(colorState)"
+    printThemeRow "Theme" "${THEME_NAME}"
+    printThemeRow "Theme-Datei" "${THEME_SOURCE}"
+    printThemeRow "Farben" "${COLOR_STATE}"
     echo
 }
 
@@ -88,7 +87,7 @@ showStatus() {
 showTheme() {
     local _entry _role _variable
 
-    printThemeHeading "Farbrollen (${CLI_THEME:-classic})"
+    printThemeHeading "Farbrollen (${THEME_NAME})"
     for _entry in C_HEAD=GROUP C_KEY=TARGET C_TEXT=DESC C_VAL=VALUE C_HINT=HINT \
         C_ACC=ACCENT C_OK=SUCCESS C_WARN=WARNING C_ERR=DANGER C_MARK=SERVER; do
         _role="${_entry%%=*}"
@@ -116,13 +115,14 @@ greet() {
     echo
 }
 
-# Farben am Terminal an oder aus, mit Grund.
+# Setzt COLOR_STATE: Farben am Terminal an oder aus, mit Grund. Nicht in $(…)
+# aufrufen, dort ist stdout nie ein Terminal.
 colorState() {
-    if [[ -n ${NO_COLOR+x} ]]; then echo "aus (NO_COLOR gesetzt)"
-    elif [[ ! -t 1 ]]; then echo "aus (keine Ausgabe an ein Terminal)"
-    elif [[ ${TERM:-} == dumb ]]; then echo "aus (TERM=dumb)"
-    elif [[ -z ${C_HEAD} && -z ${C_KEY} ]]; then echo "aus (keine gültige Theme-Datei)"
-    else echo "an"
+    if [[ -n ${NO_COLOR+x} ]]; then COLOR_STATE="aus (NO_COLOR gesetzt)"
+    elif [[ ! -t 1 ]]; then COLOR_STATE="aus (keine Ausgabe an ein Terminal)"
+    elif [[ ${TERM:-} == dumb ]]; then COLOR_STATE="aus (TERM=dumb)"
+    elif [[ -z ${C_HEAD} && -z ${C_KEY} ]]; then COLOR_STATE="aus (keine gültige Theme-Datei)"
+    else COLOR_STATE="an"
     fi
 }
 
