@@ -5,12 +5,12 @@ steht im [README](../README.md).
 
 ## Voraussetzungen
 
-- Bash ab 4.3 und Git.
+- Bash ab 4.3, Git und [pipx](https://pipx.pypa.io).
 - [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
-  für `make docs-check`, `make test`, `make status` und `make changelog`. Den
-  verlangten Release-Tag nennt `.dev-tools.conf.sh`, den Installationsbefehl
-  `make hints`. Fehlt ProjectTools oder ist es zu alt, brechen diese Targets
-  mit dem Befehl ab.
+  für `make docs-check`, `make test`, `make status` und `make changelog`. Die
+  verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
+  installierten Stand, `make hints` den Installationsbefehl. Fehlt ProjectTools
+  oder ist es zu alt, brechen diese Targets mit dem Befehl ab.
 - Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
   auf deren `src`: Das Makefile nimmt dann deren Farben und Themes, sonst
   erscheint die Ausgabe ohne Farben.
@@ -28,11 +28,9 @@ lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` mit `cli-theme install`
 fehlende CLI-Theme-Dateien an, die `colors.lib.sh` liest; vorhandene bleiben
-unverändert. Fehlt CLITheme oder ist es älter als `CLITHEME_TAG` in
-`.dev-tools.conf.sh`, nennt `make setup` den pipx-Befehl und läuft weiter;
-die Ausgabe der Skripte bleibt dann ohne Farben. Die Bibliotheken selbst
-rufen `cli-theme` nie auf. `make hints` zeigt den Installationsbefehl,
-`make info` die gefundene Version.
+unverändert. Fehlt CLITheme oder ist es zu alt, nennt `make setup` den
+pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
+Farben.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
 (`pipx install -e --force`); die Befehle des Pakets zeigen danach auf `src/`.
@@ -95,10 +93,9 @@ installiert, liest es zusätzlich alle Vorlagen von CLITheme mit
 classic-Abstände in `colors.lib.sh` mit der Vorlage. Ändert CLITheme sein
 Format, wird der Test dort rot.
 
-`test/_testSetupThemes.sh` ruft `make setup-themes` (Teil von `make setup`)
-mit einem nachgebauten `cli-theme` auf: vorhanden, zu alt, `install` scheitert
-und fehlt. In jedem Fall endet der Schritt mit Exit 0 und nennt den nächsten
-Schritt.
+`test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
+mit nachgebautem `pipx` und `cli-theme`: vorhanden, zu alt, `install`
+scheitert, fehlt und ohne pipx.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 

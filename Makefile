@@ -45,15 +45,16 @@ THEME_GROUP_SPACING ?= 1
 # „— Maintainer“.
 MAINTAINER_MARK = $(THEME_COLOR_DANGER)[Maintainer]$(THEME_COLOR_DESC)
 
-# ProjectTools (docs-check, repo-status, changelog) per pipx, Tag aus .dev-tools.conf.sh
-PROJECTTOOLS_MIN     := $(patsubst v%,%,$(firstword $(subst +, ,$(PROJECTTOOLS_TAG))))
-PROJECTTOOLS_INSTALL := pipx install --force 'git+https://github.com/MikeMitterer/bash-ProjectTools.git@$(PROJECTTOOLS_TAG)'
-PROJECTTOOLS_FOUND    = $(shell projecttools --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-
-# CLITheme (cli-theme) per pipx, Tag aus .dev-tools.conf.sh; nur für make setup
-CLITHEME_MIN     := $(patsubst v%,%,$(firstword $(subst +, ,$(CLITHEME_TAG))))
-CLITHEME_INSTALL := pipx install --force 'git+https://github.com/MikeMitterer/python-clitheme.git@$(CLITHEME_TAG)'
-CLITHEME_FOUND    = $(shell cli-theme --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+# ProjectTools und CLITheme: Tag und Quelle stehen nur in .dev-tools.conf.sh; devtools (Paket
+# mmit-devtools) liest sie, prüft die Mindestversion und nennt den Installationsbefehl. pipx run
+# holt devtools am Tag aus DEVTOOLS_TAG; der Tag geht über die Umgebung in den Befehl.
+export DEVTOOLS_SPEC := git+https://github.com/MikeMitterer/python-devtools.git@$(DEVTOOLS_TAG)
+# --no-path-check: ohne Warnung, wenn devtools zusätzlich im PATH installiert ist
+DEV_TOOLS = pipx run --no-path-check --spec "$$DEVTOOLS_SPEC" devtools
+# devtools braucht pipx: eine Meldung, wenn es fehlt, und der Grund, wenn devtools nichts liefert.
+PIPX_URL := https://pipx.pypa.io
+pipx_missing = printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)$(PIPX_URL)$(RESET)\n' >&2
+devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools gescheitert' || echo 'pipx fehlt ($(PIPX_URL))')
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
@@ -88,8 +89,8 @@ info: ## Umgebungsvariablen anzeigen
 	@echo "    $(YELLOW)DEV_MAKE$(RESET)      = $(BLUE)$${DEV_MAKE:-nicht gesetzt}$(RESET)"
 	@echo "    $(YELLOW)PACKAGE$(RESET)       = $(BLUE)$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(RESET)"
 	@echo "    $(YELLOW)VERSION$(RESET)       = $(BLUE)$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null || echo 'nicht gesetzt')$(RESET)"
-	@echo "    $(YELLOW)ProjectTools$(RESET)  = $(BLUE)$(or $(PROJECTTOOLS_FOUND),fehlt)$(RESET) (verlangt ab $(PROJECTTOOLS_MIN))"
-	@echo "    $(YELLOW)CLITheme$(RESET)      = $(BLUE)$(or $(CLITHEME_FOUND),fehlt)$(RESET) (verlangt ab $(CLITHEME_MIN))"
+	@# devtools rückt um zwei Zeichen ein; zwei mehr stellen die Zeilen unter die Variablen.
+	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/  /' || echo "    Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
 # Repo-Adresse aus git remote origin (SSH oder HTTPS) als https-URL; leer ohne Remote.
@@ -118,13 +119,6 @@ hint_row = label="$(1)"; \
 	printf "$(THEME_INDENT_TARGET)$(THEME_COLOR_TARGET)%s$(RESET)%*s$(THEME_COLOR_DESC)%s$(RESET)\n" \
 		"$$label" $$(( $(THEME_WIDTH_TARGET) - chars + $(THEME_COLUMN_GAP) )) "" "$(2)"
 
-# Setzt checkout auf den pipx-Befehl für die Arbeitskopie hinter der Variable $(1), wenn an
-# deren Git-Wurzel das Paket $(2) liegt.
-tool_checkout = top=""; [[ -n "$${$(1):-}" ]] && top=$$(git -C "$${$(1)}" rev-parse --show-toplevel 2>/dev/null); \
-	if [[ -n "$$top" ]] && grep -qx 'name = "$(2)"' "$$top/pyproject.toml" 2>/dev/null; then \
-		checkout="pipx install -e '$$(printf '%s' "$$top" | sed "s/'/'\\\\''/g")'"; \
-	else checkout="keine Arbeitskopie über $(1)"; fi
-
 .PHONY: hints
 hints: ## Nützliche Links und Hinweise anzeigen
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
@@ -139,11 +133,10 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@$(call hint_row,Umgebung,export BASH_LIBS=\$$(bashlib-path))
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)ProjectTools (docs-check$(COMMA) status$(COMMA) changelog)$(RESET)"
-	@$(call hint_row,Installieren,$(PROJECTTOOLS_INSTALL))
-	@$(call tool_checkout,PROJECT_TOOLS,mmit-projecttools); $(call hint_row,Arbeitskopie,$$checkout)
+	@cmd=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)CLITheme (Farben und Abstände der Ausgabe)$(RESET)"
-	@$(call hint_row,Installieren,$(CLITHEME_INSTALL))
+	@cmd=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
 	@$(call hint_row,Themes anlegen,cli-theme install (macht make setup))
 	@$(call hint_row,Auswahl,export CLI_THEME=ocean)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
@@ -166,12 +159,8 @@ precheck:
 # Ohne `##`: verlangt ProjectTools in Mindestversion und nennt sonst den Installationsbefehl.
 .PHONY: require-tools
 require-tools:
-	@found='$(PROJECTTOOLS_FOUND)'; \
-	if [[ -z "$$found" ]]; then problem='fehlt'; \
-	elif [[ "$$(printf '%s\n' '$(PROJECTTOOLS_MIN)' "$$found" | sort -V | head -1)" != '$(PROJECTTOOLS_MIN)' ]]; then problem="$$found ist zu alt"; \
-	else exit 0; fi; \
-	printf '  $(RED)✗$(RESET) ProjectTools %s (verlangt ab %s): $(YELLOW)%s$(RESET)\n' "$$problem" '$(PROJECTTOOLS_MIN)' "$(PROJECTTOOLS_INSTALL)" >&2; \
-	exit 1
+	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
+	@$(DEV_TOOLS) check projecttools
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -188,16 +177,12 @@ setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@$(MAKE) --no-print-directory setup-themes
 
 # Ohne `##`: Teil von setup; scheitert nie, damit setup ohne cli-theme durchläuft.
+# devtools meldet fehlendes oder zu altes CLITheme samt Installationsbefehl; ohne
+# cli-theme bleibt die Ausgabe der Skripte farblos.
 .PHONY: setup-themes
 setup-themes:
-	@found='$(CLITHEME_FOUND)'; \
-	if [[ -z "$$found" ]]; then \
-		printf '  $(RED)✗$(RESET) CLITheme fehlt, Ausgabe ohne Farben: $(YELLOW)%s$(RESET)\n' "$(CLITHEME_INSTALL)" >&2; \
-		exit 0; \
-	fi; \
-	if [[ "$$(printf '%s\n' '$(CLITHEME_MIN)' "$$found" | sort -V | head -1)" != '$(CLITHEME_MIN)' ]]; then \
-		printf '  $(RED)✗$(RESET) CLITheme %s ist zu alt (verlangt ab %s): $(YELLOW)%s$(RESET)\n' "$$found" '$(CLITHEME_MIN)' "$(CLITHEME_INSTALL)" >&2; \
-	fi; \
+	@if command -v pipx >/dev/null; then $(DEV_TOOLS) check clitheme >&2 || true; else $(pipx_missing); fi; \
+	command -v cli-theme >/dev/null || exit 0; \
 	if output=$$(cli-theme install 2>&1); then \
 		printf '  $(GREEN)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(cli-theme path)")"; \
 	else \
@@ -210,8 +195,7 @@ setup-themes:
 # pipx nur beim Installieren an; nach einem Update deshalb erneut aufrufen.
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
-	@command -v pipx >/dev/null || { \
-		printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)https://pipx.pypa.io$(RESET)\n' >&2; exit 1; }
+	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
 	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
 		names='$(PACKAGE_CMDS)'; printf '  $(GREEN)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
 	else \
