@@ -20,6 +20,7 @@ work=""
 
 # shellcheck disable=SC2329  # per trap aufgerufen
 cleanup() {
+    removeOwnEggInfos
     if [[ -n "${work}" && -d "${work}" ]]; then
         command rm -rf -- "${work}"
     fi
@@ -67,6 +68,17 @@ checkInstall() {
 }
 
 expected_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "${ROOT}/pyproject.toml" 2>/dev/null)"
+# pip legt beim Bauen python/*.egg-info im Checkout an; nur selbst angelegte entfernen.
+eggInfos() { find "${ROOT}/python" -maxdepth 1 -name '*.egg-info' -type d | sort; }
+EGG_INFOS_BEFORE="$(eggInfos)"
+readonly EGG_INFOS_BEFORE
+removeOwnEggInfos() {
+    local dir
+    while IFS= read -r dir; do
+        [[ -n ${dir} ]] && ! grep -qxF -- "${dir}" <<< "${EGG_INFOS_BEFORE}" && command rm -rf -- "${dir}"
+    done <<< "$(eggInfos)"
+}
+
 work="$(mktemp -d "${TMPDIR:-/tmp}/bashlib-package.XXXXXX")"
 work="$(cd "${work}" && pwd -P)"
 
@@ -86,5 +98,8 @@ assertEquals "0" "${rc}" "pip install -e"
 
 version="$("${work}/wheel/bin/python" -c 'from importlib.metadata import version; print(version("mmit-bashlib"))' 2>/dev/null)"
 assertEquals "${expected_version:-?}" "${version:-fehlt}" "Version aus pyproject.toml"
+
+removeOwnEggInfos
+assertEquals "${EGG_INFOS_BEFORE}" "$(eggInfos)" "keine neuen python/*.egg-info im Checkout"
 
 finishTests
