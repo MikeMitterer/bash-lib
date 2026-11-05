@@ -115,7 +115,7 @@ runMake ok hints
 assertContains ".git@${tag}'" "${out}" "make hints: Installationsbefehl mit dem Release-Tag"
 assertNotContains "deploy-2026-11" "${out}" "make hints: kein deploy-Tag"
 runMake ok version
-assertContains "${tag}" "$(grep 'git tag' <<< "${out}")" "make version: git tag ist der Release-Tag"
+assertContains "${tag}" "$(grep 'Release-Tag' <<< "${out}")" "make version: Release-Tag ist der Release-Tag"
 
 # Das Rezept lässt changelog selbst committen (ohne Push), kein eigener Umweg
 recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"

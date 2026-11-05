@@ -5,6 +5,9 @@
 : "${GREEN:=""}"
 : "${NC:=""}"
 
+# tools.lib.sh bindet version.lib.sh ein; ein zweites . version.lib.sh ohne
+# Guard bricht sonst an readonly ab.
+[[ -z "${__VERSION_LIB__:-}" ]] || return 0
 readonly __VERSION_LIB__="version.lib.sh";
 
 #------------------------------------------------------------------------------
@@ -53,6 +56,32 @@ gitReleaseTag() {
 
     command git -C "$_repo" rev-parse --verify --quiet "${_commit}^{commit}" >/dev/null 2>&1 || return 2
     command git -C "$_repo" describe --tags --abbrev=0 --match 'v[0-9]*' "$_commit" 2>/dev/null || return 1
+}
+
+# Gibt die Release-Tags eines Repos als Daten aus, neueste zuerst: je Zeile
+# Tag, Tabulator, Nachricht (bei annotierten Tags deren erste Zeile, sonst die
+# Commit-Nachricht). Nur Tags v<Ziffer>…, wie bei gitReleaseTag. Ohne
+# Formatierung; die Anzeige im CLI-Theme macht showReleaseTags (tools.lib.sh).
+#
+# Usage:
+#      gitListReleaseTags | while IFS=$'\t' read -r tag msg; do …; done
+#      gitListReleaseTags 3 "${repo}"
+#
+# Parameter:
+#   $1  anzahl  (default: 10)
+#   $2  repo    (default: .)
+#
+# Exit:
+#   0  Liste (auch leer, wenn es keinen Release-Tag gibt)
+#   2  kein Git-Repo oder anzahl keine positive Zahl
+#
+gitListReleaseTags() {
+    local _count="${1:-10}"
+    local _repo="${2:-.}"
+
+    [[ "$_count" =~ ^[1-9][0-9]*$ ]] || return 2
+    command git -C "$_repo" for-each-ref --count="$_count" --sort=-v:refname \
+        --format='%(refname:short)%09%(contents:subject)' 'refs/tags/v[0-9]*' 2>/dev/null || return 2
 }
 
 # Gibt die aktuelle (SemVer-kompatible) Version zurück.
@@ -828,6 +857,45 @@ bumpVer() {
 }
 
 #------------------------------------------------------------------------------
+# semVerNext major|minor|patch [source=auto] [repo=.]
+#
+# Gibt die nächste SemVer-Version aus, ohne etwas zu schreiben, etwa für die
+# Vorschau „0.4.0 → 0.5.0“ in make help. semVerBump rechnet genauso
+# (_semVerIncrement). Die Version liest readProjectVersion.
+#
+# Usage:
+#   next="$(semVerNext minor)"                # 0.4.0 → 0.5.0
+#   next="$(semVerNext patch auto ../app)"
+#
+# Exit:
+#   0      nächste Version auf stdout, ohne v
+#   2      unbekannter bump-Typ
+#   5,6,7  wie readProjectVersion (keine, fehlende oder leere Versionsdatei)
+#
+semVerNext() {
+  local _bump="${1:-}"
+  local _cur
+  _cur="$(readProjectVersion "${2:-auto}" "${3:-.}")" || return $?
+  _semVerIncrement "$_cur" "$_bump"
+}
+
+# Rechnet aus Version $1 die nächste für bump $2 (major|minor|patch);
+# Exit 2 bei unbekanntem bump. Gemeinsame Rechnung von semVerNext und semVerBump.
+_semVerIncrement() {
+  local _maj _min _pat
+  _maj="$(echo "$1" | cut -d. -f1)"
+  _min="$(echo "$1" | cut -d. -f2)"
+  _pat="$(echo "$1" | cut -d. -f3)"
+
+  case "$2" in
+      major) echo "$((10#$_maj+1)).0.0" ;;
+      minor) echo "$_maj.$((10#$_min+1)).0" ;;
+      patch) echo "$_maj.$_min.$((10#$_pat+1))" ;;
+      *) return 2 ;;
+  esac
+}
+
+#------------------------------------------------------------------------------
 # semVerBump [bump=major|minor|patch] [source=auto|package.json|pyproject.toml|VERSION] [prerelease] [msg]
 #
 # SemVer-Variante von bumpVer: liest die aktuelle Version aus der Versionsdatei,
@@ -895,21 +963,12 @@ semVerBump() {
       return 7
   fi
 
-  # --- SemVer-Komponenten und nächste Version ----------------------------------
-  local _maj _min _pat _next
-  _maj="$(echo "$_cur" | cut -d. -f1)"
-  _min="$(echo "$_cur" | cut -d. -f2)"
-  _pat="$(echo "$_cur" | cut -d. -f3)"
-
-  case "$_bump" in
-      major) _next="$((10#$_maj+1)).0.0" ;;
-      minor) _next="$_maj.$((10#$_min+1)).0" ;;
-      patch) _next="$_maj.$_min.$((10#$_pat+1))" ;;
-      *)
-          printf 'semVerBump: unbekannter bump-Typ: %s (major|minor|patch)\n' "$_bump" >&2
-          return 2
-          ;;
-  esac
+  # --- Nächste Version (dieselbe Rechnung wie semVerNext) ----------------------
+  local _next
+  if ! _next="$(_semVerIncrement "$_cur" "$_bump")"; then
+      printf 'semVerBump: unbekannter bump-Typ: %s (major|minor|patch)\n' "$_bump" >&2
+      return 2
+  fi
 
   local _base="v${_next}"
   [[ -n "$_pre" ]] && _base="${_base}-${_pre}"
