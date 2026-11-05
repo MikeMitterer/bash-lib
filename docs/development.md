@@ -26,7 +26,13 @@ make check
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
-Hooks erscheinen vollständig.
+Hooks erscheinen vollständig. Danach legt `make setup` mit `cli-theme install`
+fehlende CLI-Theme-Dateien an, die `colors.lib.sh` liest; vorhandene bleiben
+unverändert. Fehlt CLITheme oder ist es älter als `CLITHEME_TAG` in
+`.dev-tools.conf.sh`, nennt `make setup` den pipx-Befehl und läuft weiter;
+die Ausgabe der Skripte bleibt dann ohne Farben. Die Bibliotheken selbst
+rufen `cli-theme` nie auf. `make hints` zeigt den Installationsbefehl,
+`make info` die gefundene Version.
 `make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
 `make setup` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
 `make hints` die Befehle für den ersten Start.
@@ -66,6 +72,11 @@ installiert, liest es zusätzlich alle Vorlagen von CLITheme mit
 `colors.lib.sh` und vergleicht das Ergebnis mit CLITheme selbst sowie die
 classic-Abstände in `colors.lib.sh` mit der Vorlage. Ändert CLITheme sein
 Format, wird der Test dort rot.
+
+`test/_testSetupThemes.sh` ruft `make setup-themes` (Teil von `make setup`)
+mit einem nachgebauten `cli-theme` auf: vorhanden, zu alt, `install` scheitert
+und fehlt. In jedem Fall endet der Schritt mit Exit 0 und nennt den nächsten
+Schritt.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 

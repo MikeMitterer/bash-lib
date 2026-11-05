@@ -50,6 +50,11 @@ PROJECTTOOLS_MIN     := $(patsubst v%,%,$(firstword $(subst +, ,$(PROJECTTOOLS_T
 PROJECTTOOLS_INSTALL := pipx install --force 'git+https://github.com/MikeMitterer/bash-ProjectTools.git@$(PROJECTTOOLS_TAG)'
 PROJECTTOOLS_FOUND    = $(shell projecttools --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
 
+# CLITheme (cli-theme) per pipx, Tag aus .dev-tools.conf.sh; nur für make setup
+CLITHEME_MIN     := $(patsubst v%,%,$(firstword $(subst +, ,$(CLITHEME_TAG))))
+CLITHEME_INSTALL := pipx install --force 'git+https://github.com/MikeMitterer/python-clitheme.git@$(CLITHEME_TAG)'
+CLITHEME_FOUND    = $(shell cli-theme --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
 # Liste der Makefiles unausgewertet über die Umgebung (siehe Standard-Header)
@@ -84,6 +89,7 @@ info: ## Umgebungsvariablen anzeigen
 	@echo "    $(YELLOW)PACKAGE$(RESET)       = $(BLUE)$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(RESET)"
 	@echo "    $(YELLOW)VERSION$(RESET)       = $(BLUE)$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null || echo 'nicht gesetzt')$(RESET)"
 	@echo "    $(YELLOW)ProjectTools$(RESET)  = $(BLUE)$(or $(PROJECTTOOLS_FOUND),fehlt)$(RESET) (verlangt ab $(PROJECTTOOLS_MIN))"
+	@echo "    $(YELLOW)CLITheme$(RESET)      = $(BLUE)$(or $(CLITHEME_FOUND),fehlt)$(RESET) (verlangt ab $(CLITHEME_MIN))"
 	@echo
 
 # Repo-Adresse aus git remote origin (SSH oder HTTPS) als https-URL; leer ohne Remote.
@@ -133,6 +139,11 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@$(call hint_row,Installieren,$(PROJECTTOOLS_INSTALL))
 	@$(call tool_checkout,PROJECT_TOOLS,mmit-projecttools); $(call hint_row,Arbeitskopie,$$checkout)
 	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
+	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)CLITheme (Farben und Abstände der Ausgabe)$(RESET)"
+	@$(call hint_row,Installieren,$(CLITHEME_INSTALL))
+	@$(call hint_row,Themes anlegen,cli-theme install (macht make setup))
+	@$(call hint_row,Auswahl,export CLI_THEME=ocean)
+	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
 	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)Links$(RESET)"
 	@$(call hint_row,Repository,$(or $(REPO_URL),$(NO_REMOTE)))
 	@echo
@@ -163,12 +174,33 @@ require-tools:
 
 ##@ Setup
 
-# Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die versionierten
-# Git-Hooks. Wiederholbar und ohne Rückfrage.
+# Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die
+# versionierten Git-Hooks und legt mit cli-theme install fehlende Theme-Dateien
+# an. Fehlt cli-theme, nennt setup den Installationsbefehl und läuft weiter.
+# Wiederholbar und ohne Rückfrage.
 .PHONY: setup
-setup: ## Git-Hooks einrichten (pre-commit: make docs-check)
+setup: ## Git-Hooks einrichten (pre-commit: make docs-check) und CLI-Themes anlegen
 	@git config core.hooksPath .githooks
 	@echo -e "  $(GREEN)✓$(RESET) Git-Hooks aus .githooks aktiv"
+	@$(MAKE) --no-print-directory setup-themes
+
+# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne cli-theme durchläuft.
+.PHONY: setup-themes
+setup-themes:
+	@found='$(CLITHEME_FOUND)'; \
+	if [[ -z "$$found" ]]; then \
+		printf '  $(RED)✗$(RESET) CLITheme fehlt, Ausgabe ohne Farben: $(YELLOW)%s$(RESET)\n' "$(CLITHEME_INSTALL)" >&2; \
+		exit 0; \
+	fi; \
+	if [[ "$$(printf '%s\n' '$(CLITHEME_MIN)' "$$found" | sort -V | head -1)" != '$(CLITHEME_MIN)' ]]; then \
+		printf '  $(RED)✗$(RESET) CLITheme %s ist zu alt (verlangt ab %s): $(YELLOW)%s$(RESET)\n' "$$found" '$(CLITHEME_MIN)' "$(CLITHEME_INSTALL)" >&2; \
+	fi; \
+	if output=$$(cli-theme install 2>&1); then \
+		printf '  $(GREEN)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(cli-theme path)")"; \
+	else \
+		printf '%s\n' "$$output" >&2; \
+		printf '  $(RED)✗$(RESET) cli-theme install fehlgeschlagen; Ausgabe ohne Farben: $(YELLOW)cli-theme show$(RESET)\n' >&2; \
+	fi
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
