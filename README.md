@@ -117,7 +117,7 @@ statt abzubrechen.
 | Bibliothek | Inhalt | Lädt mit |
 |---|---|---|
 | `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), Ports, Zeichenketten | colors, apps, dtime |
-| `colors.lib.sh` | ANSI-Farben, Themes und Spaltenlayout | – |
+| `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -136,11 +136,12 @@ statt abzubrechen.
 
 ## Farben und Themes
 
-Die Ausgabehelfer folgen einem gemeinsamen Theme, das auch MakeLib und
-ProjectTools verwenden. `MAKE_THEME` wählt es (`classic`, `ocean`, `earth`,
-`night`, `mono`, `sunset`, `forest`, `neon`, `shell`); bei `NO_COLOR`, in
-Pipes und bei `TERM=dumb` gibt es keine Farben. Layoutwerte und Farbrollen
-stehen in [docs/themes.md](docs/themes.md).
+Die Ausgabehelfer lesen Farben und Abstände aus der Theme-Datei von
+[CLITheme](https://github.com/MikeMitterer/python-clitheme), dieselbe Datei
+wie Python-Werkzeuge und Makefiles. `CLI_THEME` wählt sie (Standard
+`classic`); `cli-theme install` legt die Vorlagen an. Ohne Datei gibt es
+keine Farben, bei `NO_COLOR`, in Pipes und bei `TERM=dumb` ebenfalls nicht.
+Rollen, Abstände und Rückfallverhalten stehen in [docs/themes.md](docs/themes.md).
 
 [↑ Übersicht](#übersicht)
 

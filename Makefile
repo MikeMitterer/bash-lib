@@ -174,9 +174,9 @@ require-tools:
 
 ##@ Setup
 
-# Die Tests brauchen nur Bash und Git; setup aktiviert die versionierten
-# Git-Hooks und legt mit cli-theme install fehlende Theme-Dateien an.
-# Fehlt cli-theme, nennt setup den Installationsbefehl und läuft weiter.
+# Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die
+# versionierten Git-Hooks und legt mit cli-theme install fehlende Theme-Dateien
+# an. Fehlt cli-theme, nennt setup den Installationsbefehl und läuft weiter.
 # Wiederholbar und ohne Rückfrage.
 .PHONY: setup
 setup: ## Git-Hooks einrichten (pre-commit: make docs-check) und CLI-Themes anlegen

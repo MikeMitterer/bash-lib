@@ -5,9 +5,10 @@ readonly __COLORS_LIB__="colors.lib.sh";
 #------------------------------------------------------------------------------
 # ANSI Colors für diverse Scripts
 #
-# Palette, Themes und Layout sind mit MakeLib/colours.mk und
-# ProjectTools/src/python/colors.py abgestimmt. Änderungen in allen drei
-# Farb-Libs abgleichen; die Dateien werden eigenständig gepflegt.
+# Die Palette (RED, GREEN, NC, …) bleibt fest. Farben und Abstände der
+# Theme-Helfer (themeLine, themeHeading und die print*-Helfer in tools.lib.sh)
+# kommen aus der Theme-Datei von CLITheme, siehe Abschnitt „CLI-Theme“ unten
+# und docs/themes.md.
 #
 # Einbinden:
 #     if [[ "${__COLORS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/colors.lib.sh"; fi
@@ -297,99 +298,170 @@ readonly NEON_YELLOW="${ESC}${CSI}${FG_COLOR};${ANSI_COLOR_NEON_YELLOW}m"
 readonly BOLD="${ESC}[1m"
 readonly RESET="${NC}"
 
-# Theme-Auswahl wie in colours.mk. Vor dem Sourcen setzen oder hier umstellen.
-# MAKE_THEME=ocean; source "${BASH_LIBS}/colors.lib.sh"
-: "${MAKE_THEME:=classic}"
-# : "${MAKE_THEME:=ocean}"
-# : "${MAKE_THEME:=earth}"
-# : "${MAKE_THEME:=night}"
-# : "${MAKE_THEME:=mono}"
-# : "${MAKE_THEME:=sunset}"
-# : "${MAKE_THEME:=forest}"
-# : "${MAKE_THEME:=neon}"
-# : "${MAKE_THEME:=shell}"
+# CLI-Theme ----------------------------------------------------------------------------------------
+# Farben und Abstände kommen aus der Theme-Datei von CLITheme (mmit-cli-theme):
+#     ${XDG_CONFIG_HOME:-~/.config}/cli-theme/${CLI_THEME:-classic}.theme
+# Die Datei wird beim Einbinden einmal gelesen, Zeile für Zeile mit den Regeln von
+# CLITheme und nie mit source; eine fremde Datei führt so keinen Code aus.
+# MAKE_THEME gilt als veralteter Ersatzname, wenn CLI_THEME fehlt.
+#
+# Danach stehen die Rollen C_HEAD … C_MARK als Rohwert der Datei (bold+11, dim, …)
+# und die Abstände I_HEAD … SPACE als Zahl bereit; C_OFF beendet eine Farbe.
+# Die THEME_*-Variablen werden aus den Rollen gesetzt; im Skript vor dem Einbinden
+# gesetzte THEME_*-Werte gewinnen, geerbte (exportierte) nicht.
+#
+# Ohne gültige Datei: keine Farben, Abstände der classic-Vorlage, ein Hinweis auf
+# stderr bei der ersten Theme-Ausgabe am Terminal.
 
-case "${MAKE_THEME}" in
-    classic)
-        : "${THEME_COLOR_GROUP=${YELLOW}}"
-        : "${THEME_COLOR_TARGET=${BLUE}}"
-        : "${THEME_COLOR_DESC=${GREEN}}"
-        : "${THEME_COLOR_SERVER=${ORANGE}}"
-        : "${THEME_COLOR_DANGER=${RED}}"
-        ;;
-    ocean)
-        : "${THEME_COLOR_GROUP=${ORANGE}}"
-        : "${THEME_COLOR_TARGET=${STEEL_BLUE}}"
-        : "${THEME_COLOR_DESC=${LIGHT_GREEN}}"
-        : "${THEME_COLOR_SERVER=${GOLD}}"
-        : "${THEME_COLOR_DANGER=${CORAL}}"
-        ;;
-    earth)
-        : "${THEME_COLOR_GROUP=${ORANGE}}"
-        : "${THEME_COLOR_TARGET=${TAN}}"
-        : "${THEME_COLOR_DESC=${OLIVE}}"
-        : "${THEME_COLOR_SERVER=${AMBER}}"
-        : "${THEME_COLOR_DANGER=${BRICK}}"
-        ;;
-    night)
-        : "${THEME_COLOR_GROUP=${PURPLE}}"
-        : "${THEME_COLOR_TARGET=${SLATE_BLUE}}"
-        : "${THEME_COLOR_DESC=${TEAL}}"
-        : "${THEME_COLOR_SERVER=${SALMON}}"
-        : "${THEME_COLOR_DANGER=${HOT_PINK}}"
-        ;;
-    mono)
-        : "${THEME_COLOR_GROUP=${BOLD}${WHITE}}"
-        : "${THEME_COLOR_TARGET=${WHITE}}"
-        : "${THEME_COLOR_DESC=${GREY}}"
-        : "${THEME_COLOR_SERVER=${YELLOW}}"
-        : "${THEME_COLOR_DANGER=${RED}}"
-        ;;
-    sunset)
-        : "${THEME_COLOR_GROUP=${PINK}}"
-        : "${THEME_COLOR_TARGET=${SALMON}}"
-        : "${THEME_COLOR_DESC=${CREAM}}"
-        : "${THEME_COLOR_SERVER=${GOLD}}"
-        : "${THEME_COLOR_DANGER=${BRIGHT_RED}}"
-        ;;
-    forest)
-        : "${THEME_COLOR_GROUP=${DARK_GREEN}}"
-        : "${THEME_COLOR_TARGET=${LIME}}"
-        : "${THEME_COLOR_DESC=${PALE_GREEN}}"
-        : "${THEME_COLOR_SERVER=${STRAW}}"
-        : "${THEME_COLOR_DANGER=${TERRACOTTA}}"
-        ;;
-    neon)
-        : "${THEME_COLOR_GROUP=${MAGENTA}}"
-        : "${THEME_COLOR_TARGET=${NEON_GREEN}}"
-        : "${THEME_COLOR_DESC=${NEON_YELLOW}}"
-        : "${THEME_COLOR_SERVER=${AMBER}}"
-        : "${THEME_COLOR_DANGER=${BRIGHT_RED}}"
-        ;;
-    shell)
-        : "${THEME_COLOR_GROUP=${YELLOW}}"
-        : "${THEME_COLOR_TARGET=${LIGHT_BLUE}}"
-        : "${THEME_COLOR_DESC=${LIGHT_GRAY}}"
-        : "${THEME_COLOR_SERVER=${ORANGE}}"
-        : "${THEME_COLOR_DANGER=${RED}}"
-        ;;
-esac
-# Unbekannte Namen fallen wie in MakeLib auf classic zurück.
-: "${THEME_COLOR_GROUP=${YELLOW}}"
-: "${THEME_COLOR_TARGET=${BLUE}}"
-: "${THEME_COLOR_DESC=${GREEN}}"
-: "${THEME_COLOR_SERVER=${ORANGE}}"
-: "${THEME_COLOR_DANGER=${RED}}"
-: "${THEME_COLOR_VALUE=${YELLOW}}"
-: "${THEME_COLOR_SUCCESS=${GREEN}}"
-: "${THEME_COLOR_WARNING=${THEME_COLOR_SERVER}}"
-# Leere Einrückung bedeutet ausdrücklich null Leerzeichen.
-: "${THEME_INDENT_GROUP=  }"
-: "${THEME_INDENT_TARGET=       }"
-: "${THEME_WIDTH_TARGET=22}"
-: "${THEME_COLUMN_GAP=1}"
-: "${THEME_WIDTH_HELP=110}"
-: "${THEME_GROUP_SPACING=1}"
+# Rollen und Abstände der Theme-Datei, Reihenfolge wie in CLITheme.
+readonly THEME_ROLES="C_HEAD C_KEY C_TEXT C_VAL C_HINT C_ACC C_OK C_WARN C_ERR C_MARK"
+readonly THEME_SPACING="I_HEAD I_ROW I_HINT W_KEY GAP WIDTH SPACE"
+# Abstände der classic-Vorlage von CLITheme; test/_testTheme.sh vergleicht sie mit
+# der installierten Vorlage.
+readonly THEME_CLASSIC_SPACING="I_HEAD=2 I_ROW=7 I_HINT=7 W_KEY=21 GAP=2 WIDTH=120 SPACE=1"
+
+readonly C_OFF="${NC}"
+
+# Hinweis zur Theme-Datei (zwei Zeilen: Befund, nächster Schritt); themeNotice gibt
+# ihn einmal aus.
+THEME_NOTICE=""
+
+# Escape-Folge zu einer Farbangabe der Theme-Datei; leer bleibt leer.
+# $1 Name der Zielvariable, $2 Farbangabe (bold+11, dim, 33, …)
+themeSgr() {
+    local -r _TARGET="${1}" _SPEC="${2}"
+    local _CODES
+    case "${_SPEC}" in
+        "") _CODES="" ;;
+        bold) _CODES="1" ;;
+        dim) _CODES="2" ;;
+        bold+*) _CODES="1;${FG_COLOR};$((10#${_SPEC#bold+}))" ;;
+        dim+*) _CODES="2;${FG_COLOR};$((10#${_SPEC#dim+}))" ;;
+        *) _CODES="${FG_COLOR};$((10#${_SPEC}))" ;;
+    esac
+    if [[ -n ${_CODES} ]]; then
+        printf -v "${_TARGET}" '%s' "${ESC}${CSI}${_CODES}m"
+    else
+        printf -v "${_TARGET}" '%s' ""
+    fi
+}
+
+# Liest die Theme-Datei in _THEME_<NAME>; Fehler stehen danach in THEME_NOTICE.
+# Gibt 1 zurück, wenn die Datei fehlt oder ungültig ist.
+themeRead() {
+    local -r _FILE="${1}"
+    local _LINE _ENTRY _KEY _VALUE _NUMBER=0 _NAME _MISSING=""
+    local -r _ENTRY_PATTERN='^([A-Z][A-Z_]*)=(.*)$'
+    local -r _COLOR_PATTERN='^((bold|dim)\+)?([0-9]{1,3})$|^(bold|dim)?$'
+
+    while IFS= read -r _LINE || [[ -n ${_LINE} ]]; do
+        _NUMBER=$((_NUMBER + 1))
+        _ENTRY="${_LINE%%#*}"
+        _ENTRY="${_ENTRY#"${_ENTRY%%[![:space:]]*}"}"
+        _ENTRY="${_ENTRY%"${_ENTRY##*[![:space:]]}"}"
+        [[ -n ${_ENTRY} ]] || continue
+
+        _KEY="" _VALUE=""
+        if [[ ${_ENTRY} =~ ${_ENTRY_PATTERN} ]]; then
+            _KEY="${BASH_REMATCH[1]}"
+            _VALUE="${BASH_REMATCH[2]}"
+            _VALUE="${_VALUE#"${_VALUE%%[![:space:]]*}"}"
+        fi
+        if [[ " ${THEME_ROLES} " == *" ${_KEY} "* && ${_VALUE} =~ ${_COLOR_PATTERN} ]] \
+            && (( 10#${BASH_REMATCH[3]:-0} < 256 )); then
+            printf -v "_THEME_${_KEY}" '%s' "${_VALUE}"
+        elif [[ " ${THEME_SPACING} " == *" ${_KEY} "* && ${_VALUE} =~ ^[0-9]+$ ]]; then
+            printf -v "_THEME_${_KEY}" '%d' "$((10#${_VALUE}))"
+        else
+            _LINE="${_LINE%"${_LINE##*[![:space:]]}"}"
+            THEME_NOTICE="${_FILE}:${_NUMBER}: ungültiger Eintrag '${_LINE#"${_LINE%%[![:space:]]*}"}'"
+            return 1
+        fi
+    done < "${_FILE}"
+
+    for _NAME in ${THEME_ROLES} ${THEME_SPACING}; do
+        _KEY="_THEME_${_NAME}"
+        [[ -n ${!_KEY+x} ]] || _MISSING="${_MISSING:+${_MISSING}, }${_NAME}"
+    done
+    if [[ -n ${_MISSING} ]]; then
+        THEME_NOTICE="${_FILE}: fehlende Einträge ${_MISSING}"
+        return 1
+    fi
+}
+
+# Wahr, wenn das Skript $1 selbst gesetzt hat: gesetzt und nicht aus der Umgebung
+# geerbt (exportiert).
+themeOwn() {
+    local -r _EXPORTED='^declare -[A-Za-z]*x'
+    [[ -n ${!1+x} && ! $(declare -p "${1}" 2>/dev/null) =~ ${_EXPORTED} ]]
+}
+
+# Sucht und liest die Theme-Datei wie CLITheme und setzt Rollen, Abstände und THEME_*.
+# Ungültige Angaben fallen als Ganzes zurück: keine Farben, Abstände von classic.
+themeLoad() {
+    local _SELECTED="${CLI_THEME:-${MAKE_THEME:-classic}}"
+    local _BASE="${XDG_CONFIG_HOME:-}" _FOLDER _FILE _ENTRY _ROLE _SOURCE _SGR _LOADED=no
+    # Ein relativer XDG_CONFIG_HOME gilt nach der XDG-Spezifikation nicht.
+    [[ ${_BASE} == /* ]] || _BASE="${HOME}/.config"
+    _FOLDER="${_BASE}/cli-theme"
+    _FILE="${_FOLDER}/${_SELECTED}.theme"
+
+    for _ROLE in ${THEME_ROLES} ${THEME_SPACING}; do unset "_THEME_${_ROLE}"; done
+    if [[ ! ${_SELECTED} =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+        THEME_NOTICE="Ungültiger CLI_THEME '${_SELECTED}'"
+    elif [[ -L ${_FOLDER} || -L ${_FILE} ]]; then
+        THEME_NOTICE="$([[ -L ${_FOLDER} ]] && printf '%s' "${_FOLDER}" || printf '%s' "${_FILE}") ist ein Link; aus Sicherheitsgründen abgelehnt"
+    elif [[ ! -e ${_FILE} ]]; then
+        THEME_NOTICE="CLI-Theme fehlt (${_FILE})"$'\n'"cli-theme install"
+    elif [[ ! -f ${_FILE} ]]; then
+        THEME_NOTICE="${_FILE} ist keine reguläre Datei"
+    elif [[ ! -r ${_FILE} ]]; then
+        THEME_NOTICE="${_FILE}: nicht lesbar"
+    elif themeRead "${_FILE}"; then
+        _LOADED=yes
+    fi
+    # Ein Befund ohne eigenen nächsten Schritt verweist auf cli-theme show.
+    [[ -z ${THEME_NOTICE} || ${THEME_NOTICE} == *$'\n'* ]] || THEME_NOTICE+=$'\n'"cli-theme show"
+
+    for _ROLE in ${THEME_ROLES}; do
+        _ENTRY="_THEME_${_ROLE}"
+        [[ ${_LOADED} == yes ]] && printf -v "${_ROLE}" '%s' "${!_ENTRY}" || printf -v "${_ROLE}" '%s' ""
+    done
+    for _ENTRY in ${THEME_CLASSIC_SPACING}; do
+        _ROLE="_THEME_${_ENTRY%%=*}"
+        [[ ${_LOADED} == yes ]] && printf -v "${_ENTRY%%=*}" '%d' "${!_ROLE}" || printf -v "${_ENTRY%%=*}" '%d' "${_ENTRY#*=}"
+    done
+    for _ROLE in ${THEME_ROLES} ${THEME_SPACING}; do unset "_THEME_${_ROLE}"; done
+
+    # Kompatibilität: THEME_* aus den Rollen. Im Skript vor dem Einbinden gesetzte
+    # Werte gewinnen; geerbte, exportierte (etwa von MakeLib aus make) nicht.
+    for _ENTRY in GROUP=C_HEAD TARGET=C_KEY DESC=C_TEXT VALUE=C_VAL HINT=C_HINT ACCENT=C_ACC \
+        SUCCESS=C_OK WARNING=C_WARN DANGER=C_ERR SERVER=C_MARK; do
+        _ROLE="THEME_COLOR_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
+        if ! themeOwn "${_ROLE}"; then
+            themeSgr _SGR "${!_SOURCE}"
+            printf -v "${_ROLE}" '%s' "${_SGR}"
+        fi
+    done
+    for _ENTRY in GROUP=I_HEAD TARGET=I_ROW HINT=I_HINT; do
+        _ROLE="THEME_INDENT_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
+        themeOwn "${_ROLE}" || printf -v "${_ROLE}" '%*s' "${!_SOURCE}" ''
+    done
+    for _ENTRY in WIDTH_TARGET=W_KEY COLUMN_GAP=GAP WIDTH_HELP=WIDTH GROUP_SPACING=SPACE; do
+        _ROLE="THEME_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
+        themeOwn "${_ROLE}" || printf -v "${_ROLE}" '%s' "${!_SOURCE}"
+    done
+}
+
+themeLoad
+
+# Gibt den Hinweis zur Theme-Datei einmal auf stderr aus, nur am Terminal.
+themeNotice() {
+    [[ -n ${THEME_NOTICE} && -t 2 ]] || return 0
+    printf '%s⚠ %s\n%s%s\n' "${THEME_INDENT_GROUP}" "${THEME_NOTICE%%$'\n'*}" \
+        "${THEME_INDENT_HINT}" "${THEME_NOTICE#*$'\n'}" >&2
+    THEME_NOTICE=""
+}
 
 # Nur neue Theme-Helfer berücksichtigen TTY/NO_COLOR. Alte ANSI-Konstanten
 # bleiben unverändert, auch für bestehende printf-%b-/echo-e-Aufrufer.
@@ -426,12 +498,14 @@ themeNumber() {
 
 # Zwei Spalten; lange Beschriftung erhält eine eigene Zeile.
 # $3 erhält die zusätzliche Beschreibungseinrückung von usageLine.
+# shellcheck disable=SC2153  # W_KEY und GAP setzt themeLoad mit printf -v
 themeLine() {
     local -r _LABEL="${1}" _LINE_TEXT="${2}" _EXTRA="${3:-0}"
     local _WIDTH _GAP _PADDING _PLAIN_LABEL
+    themeNotice
     _PLAIN_LABEL=$(themePlain "${_LABEL}")
-    _WIDTH=$(themeNumber "${THEME_WIDTH_TARGET}" 22)
-    _GAP=$(themeNumber "${THEME_COLUMN_GAP}" 1)
+    _WIDTH=$(themeNumber "${THEME_WIDTH_TARGET}" "${W_KEY}")
+    _GAP=$(themeNumber "${THEME_COLUMN_GAP}" "${GAP}")
     (( _GAP >= 1 )) || _GAP=1
     _WIDTH=$((_WIDTH + _EXTRA))
     printf '%s' "${THEME_INDENT_TARGET}"
@@ -448,9 +522,11 @@ themeLine() {
 }
 
 # Gruppenüberschrift mit konfigurierbarem Abstand davor.
+# shellcheck disable=SC2153  # SPACE setzt themeLoad mit printf -v
 themeHeading() {
     local _SPACING _INDEX
-    _SPACING=$(themeNumber "${THEME_GROUP_SPACING}" 1)
+    themeNotice
+    _SPACING=$(themeNumber "${THEME_GROUP_SPACING}" "${SPACE}")
     for ((_INDEX=0; _INDEX<_SPACING; _INDEX++)); do printf '\n'; done
     printf '%s' "${THEME_INDENT_GROUP}"
     themeStyle "${1}" "${THEME_COLOR_GROUP}"
