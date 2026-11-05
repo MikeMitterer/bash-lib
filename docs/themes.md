@@ -34,8 +34,9 @@ bereit:
   `C_OFF` beendet eine Farbe.
 - **Abstände** `I_HEAD`, `I_ROW`, `I_HINT`, `W_KEY`, `GAP`, `WIDTH`, `SPACE`
   als Zahl.
-- **`THEME_NAME`** und **`THEME_SOURCE`**: Name des gewählten Themes (auch über
-  `MAKE_THEME`) und Pfad seiner Datei, etwa für eine Info-Ausgabe.
+- **`THEME_NAME`**, **`THEME_SOURCE`** und **`THEME_ORIGIN`**: Name des gewählten
+  Themes, Pfad seiner Datei und woher die Wahl kommt (`CLI_THEME`, `MAKE_THEME`
+  oder `Standard`), etwa für eine Info-Ausgabe.
 
 **Ohne gültige Datei:** keine Farben, die Abstände der classic-Vorlage. Das
 gilt für eine fehlende Datei, einen ungültigen Eintrag, fehlende Einträge,
@@ -77,6 +78,26 @@ Palette. Mit classic beginnt die Beschreibung wie bisher in Spalte 31.
 `printThemeStatus SYMBOL TEXT ROLLE` stehen in `tools.lib.sh`. Als Rolle nimmt
 `printThemeStatus` `OK`, `WARN`, `ERR` oder die bisherigen Namen `SUCCESS`,
 `WARNING`, `DANGER` und jede andere `THEME_COLOR_*`-Endung.
+
+Für die übrigen Rollen gibt es eigene Helfer; ohne Farben bleibt jeweils nur
+der Text in denselben Spalten:
+
+| Helfer | Rolle | Wofür |
+|---|---|---|
+| `printThemeValue LABEL WERT` | `C_VAL` | Zeile mit Wert, Befehl oder Pfad rechts |
+| `printThemeHint TEXT` | `C_HINT`, Einrückung `I_HINT` | Hinweistext in eigener Zeile |
+| `themeAccent TEXT [FARBE]` | `C_ACC` | Hervorhebung in einer Beschreibung: Platzhalter, zulässige Werte |
+| `themeMark TEXT [FARBE]` | `C_MARK` | Markierung: Maintainer, Server, Herkunft eines Werts |
+
+`themeAccent` und `themeMark` liefern ein Stück Text zum Einbetten und kehren
+danach zur Farbe `FARBE` zurück, ohne Angabe zur Farbe der Beschreibung. In
+einer Wertzeile gibt man `THEME_COLOR_VALUE` mit:
+
+```bash
+printThemeRow "greet NAME" "Begrüßt $(themeAccent NAME)"
+printThemeValue "Theme" "${THEME_NAME} $(themeMark "(aus ${THEME_ORIGIN})" "${THEME_COLOR_VALUE}")"
+printThemeHint "Jeder Befehl steht für sich und lässt sich kopieren."
+```
 
 `usageLine LABEL TEXT [no|yes|intend|ZAHL]` bleibt gültig. `yes`/`intend`
 rücken die Beschreibung um vier weitere Leerzeichen ein. Eingebettete

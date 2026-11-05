@@ -26,22 +26,23 @@ readonly DEMO_VERSION="1.0.0"
 
 # -- Ausgaben -----------------------------------------------------------------
 
-# Hilfe: Befehle, Optionen, Umgebung und Beispiele.
+# Hilfe: Befehle, Optionen, Umgebung und Beispiele. themeAccent hebt Platzhalter
+# und zulässige Werte in der Beschreibung hervor (Rolle C_ACC).
 showHelp() {
     printThemeHeading "Aufruf: ${APPNAME} BEFEHL [ARGUMENT]"
     printThemeRow "info | -i" "Einstellungen und Pfade anzeigen"
     printThemeRow "hints" "Nächste Schritte mit Befehlen anzeigen"
     printThemeRow "status" "Statuszeilen für Erfolg, Warnung und Fehler zeigen"
     printThemeRow "theme" "Farbrollen und Abstände des gewählten Themes zeigen"
-    printThemeRow "greet NAME" "Begrüßt NAME; ohne NAME ein Fehler mit Exit 2"
+    printThemeRow "greet NAME" "Begrüßt $(themeAccent NAME); ohne $(themeAccent NAME) ein Fehler mit $(themeAccent "Exit 2")"
     # usageLine ist die ältere Form; sie bleibt gültig und folgt dem Theme.
     usageLine "" "Zweite Beschreibungszeile, eingerückt mit usageLine … yes" "yes"
     printThemeRow "-h | --help" "Diese Hilfe anzeigen (auch ohne Argument)"
 
     printThemeHeading "Umgebung"
     printThemeRow "BASH_LIBS" "Ordner der BashLib-Bibliotheken (Pflicht)"
-    printThemeRow "CLI_THEME" "Theme der Ausgabe (Standard classic)"
-    printThemeRow "NO_COLOR" "Ausgabe ohne Farben"
+    printThemeRow "CLI_THEME" "Theme der Ausgabe (Standard $(themeAccent classic))"
+    printThemeRow "NO_COLOR" "Ausgabe ohne Farben, wenn $(themeAccent gesetzt) (auch leer)"
 
     printThemeHeading "Beispiele"
     printThemeRow "${APPNAME} info" "Einstellungen anzeigen"
@@ -50,27 +51,33 @@ showHelp() {
     echo
 }
 
-# Info: Werte wie Pfade und Version, eine Zeile je Wert. Theme und Datei kommen
-# aus colors.lib.sh (THEME_NAME, THEME_SOURCE), so wie es sie geladen hat.
+# Info: Werte wie Pfade und Version, eine Zeile je Wert in C_VAL. Theme, Datei und
+# Herkunft kommen aus colors.lib.sh (THEME_NAME, THEME_SOURCE, THEME_ORIGIN); die
+# Herkunft steht als Markierung in C_MARK, ein Hinweis in C_HINT schließt ab.
 showInfo() {
     colorState
     printThemeHeading "Info"
-    printThemeRow "Version" "${DEMO_VERSION}"
-    printThemeRow "Skript" "${BASH_SOURCE[0]}"
-    printThemeRow "BASH_LIBS" "${BASH_LIBS}"
-    printThemeRow "Theme" "${THEME_NAME}"
-    printThemeRow "Theme-Datei" "${THEME_SOURCE}"
-    printThemeRow "Farben" "${COLOR_STATE}"
+    printThemeValue "Version" "${DEMO_VERSION}"
+    printThemeValue "Skript" "${BASH_SOURCE[0]}"
+    printThemeValue "BASH_LIBS" "${BASH_LIBS}"
+    local _origin="(aus ${THEME_ORIGIN})"
+    [[ ${THEME_ORIGIN} != Standard ]] || _origin="(Standard)"
+    printThemeValue "Theme" "${THEME_NAME} $(themeMark "${_origin}" "${THEME_COLOR_VALUE}")"
+    printThemeValue "Theme-Datei" "${THEME_SOURCE}"
+    printThemeValue "Farben" "${COLOR_STATE}"
+    printThemeHint "Farben gibt es nur am Terminal; NO_COLOR schaltet sie ab."
     echo
 }
 
-# Hinweise: je Schritt eine Zeile, der Befehl steht für sich und lässt sich kopieren.
+# Hinweise: je Schritt eine Zeile, der Befehl steht in C_VAL für sich und lässt sich
+# kopieren; erklärender Text in C_HINT.
 showHints() {
     printThemeHeading "Nächste Schritte"
-    printThemeRow "Themes anlegen" "cli-theme install"
-    printThemeRow "Theme ansehen" "cli-theme show"
-    printThemeRow "Theme wechseln" "export CLI_THEME=ocean"
-    printThemeRow "Ohne Farben" "NO_COLOR=1 ${APPNAME} info"
+    printThemeValue "Themes anlegen" "cli-theme install"
+    printThemeValue "Theme ansehen" "cli-theme show"
+    printThemeValue "Theme wechseln" "export CLI_THEME=ocean"
+    printThemeValue "Ohne Farben" "NO_COLOR=1 ${APPNAME} info"
+    printThemeHint "Jeder Befehl steht für sich und lässt sich kopieren."
     echo
 }
 
@@ -100,8 +107,9 @@ showTheme() {
 
     printThemeHeading "Abstände"
     for _role in I_HEAD I_ROW I_HINT W_KEY GAP WIDTH SPACE; do
-        printThemeRow "${_role}" "${!_role}"
+        printThemeValue "${_role}" "${!_role}"
     done
+    printThemeHint "WIDTH gilt für Python-Werkzeuge; BashLib bricht Zeilen nicht um."
     echo
 }
 

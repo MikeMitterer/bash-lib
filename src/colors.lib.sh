@@ -307,7 +307,8 @@ readonly RESET="${NC}"
 #
 # Danach stehen die Rollen C_HEAD … C_MARK als Rohwert der Datei (bold+11, dim, …)
 # und die Abstände I_HEAD … SPACE als Zahl bereit; C_OFF beendet eine Farbe.
-# THEME_NAME und THEME_SOURCE nennen das gewählte Theme und seine Datei.
+# THEME_NAME, THEME_SOURCE und THEME_ORIGIN nennen das gewählte Theme, seine
+# Datei und woher die Wahl kommt (CLI_THEME, MAKE_THEME oder Standard).
 # Die THEME_*-Variablen werden aus den Rollen gesetzt; im Skript vor dem Einbinden
 # gesetzte THEME_*-Werte gewinnen, geerbte (exportierte) nicht.
 #
@@ -406,9 +407,13 @@ themeLoad() {
     [[ ${_BASE} == /* ]] || _BASE="${HOME}/.config"
     _FOLDER="${_BASE}/cli-theme"
     _FILE="${_FOLDER}/${_SELECTED}.theme"
-    # Name und Ort des gewählten Themes, etwa für eine Info-Ausgabe
+    # Name, Ort und Herkunft des gewählten Themes, etwa für eine Info-Ausgabe
     THEME_NAME="${_SELECTED}"
     THEME_SOURCE="${_FILE}"
+    if [[ -n ${CLI_THEME:-} ]]; then THEME_ORIGIN="CLI_THEME"
+    elif [[ -n ${MAKE_THEME:-} ]]; then THEME_ORIGIN="MAKE_THEME"
+    else THEME_ORIGIN="Standard"
+    fi
 
     for _ROLE in ${THEME_ROLES} ${THEME_SPACING}; do unset "_THEME_${_ROLE}"; done
     if [[ ! ${_SELECTED} =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
@@ -501,10 +506,11 @@ themeNumber() {
 }
 
 # Zwei Spalten; lange Beschriftung erhält eine eigene Zeile.
-# $3 erhält die zusätzliche Beschreibungseinrückung von usageLine.
+# $3 erhält die zusätzliche Beschreibungseinrückung von usageLine,
+# $4 die Farbe der rechten Spalte (Standard THEME_COLOR_DESC).
 # shellcheck disable=SC2153  # W_KEY und GAP setzt themeLoad mit printf -v
 themeLine() {
-    local -r _LABEL="${1}" _LINE_TEXT="${2}" _EXTRA="${3:-0}"
+    local -r _LABEL="${1}" _LINE_TEXT="${2}" _EXTRA="${3:-0}" _TEXT_COLOR="${4-${THEME_COLOR_DESC}}"
     local _WIDTH _GAP _PADDING _PLAIN_LABEL
     themeNotice
     _PLAIN_LABEL=$(themePlain "${_LABEL}")
@@ -521,7 +527,7 @@ themeLine() {
         _PADDING=$((_WIDTH - ${#_PLAIN_LABEL} + _GAP))
     fi
     printf '%*s' "${_PADDING}" ''
-    themeStyle "${_LINE_TEXT}" "${THEME_COLOR_DESC}"
+    themeStyle "${_LINE_TEXT}" "${_TEXT_COLOR}"
     printf '\n'
 }
 
