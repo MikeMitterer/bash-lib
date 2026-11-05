@@ -77,10 +77,18 @@ export BASH_LIBS="$(bashlib-path)"
 
 `bashlib-path` gibt das Verzeichnis der installierten Bibliotheken aus. Mit
 `pip install -e <Klon>` zeigt es auf `src` des Klons, Änderungen wirken dann
-ohne Neuinstallation. `bashlib` zeigt die installierte Version und je Befehl
-des Pakets eine Zeile mit kurzer Beschreibung, im gewählten CLI-Theme
+ohne Neuinstallation. `bashlib` zeigt Aufruf, Version und Kurzbeschreibung,
+je Befehl des Pakets eine Zeile sowie die Optionen, im gewählten CLI-Theme
 ([Farben und Themes](#farben-und-themes)); `bashlib --version` gibt nur die
 Version aus.
+
+Neue Befehle legt pipx nur beim Installieren an, auch bei `pip install -e`.
+Nach einem Update von BashLib deshalb neu installieren:
+
+```bash
+make install    # in einem Klon: installiert ihn editierbar mit pipx
+pipx install --force 'git+https://github.com/MikeMitterer/bash-lib.git@<release-tag>'
+```
 
 [↑ Übersicht](#übersicht)
 

@@ -80,11 +80,13 @@ themeMark() {
     themeInline "${THEME_COLOR_SERVER}" "${1}" "${2-${THEME_COLOR_DESC}}"
 }
 
-# Text in Farbe $1, danach Farbe $3; ohne Farbe nur der Text.
+# Text in Farbe $1, danach Farbe $3; ohne Farbe nur der Text. Vor der Rückkehr
+# wird zurückgesetzt: Sonst wirken fett (bold+N) oder die Vordergrundfarbe weiter,
+# wenn $3 sie nicht selbst neu setzt (etwa C_HINT=dim).
 themeInline() {
     local -r _INLINE_COLOR="${1}" _INLINE_TEXT="${2}" _BACK="${3}"
     if [[ -n ${_INLINE_COLOR} ]]; then
-        printf '%s%s%s' "${_INLINE_COLOR}" "${_INLINE_TEXT}" "${_BACK}"
+        printf '%s%s%s%s' "${_INLINE_COLOR}" "${_INLINE_TEXT}" "${NC}" "${_BACK}"
     else
         printf '%s' "${_INLINE_TEXT}"
     fi
