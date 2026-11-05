@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
 # _testVersionPush.sh — Versions-Bumps taggen nur lokal, git push
-# veröffentlicht
+# veröffentlicht; gitReleaseTag findet den Release-Tag eines Commits
 #
 # Legt je Fall ein Wegwerf-Repo mit VERSION-Datei an, dazu ein lokales
 # Bare-Remote oder gar kein Remote. Bindet src/version.lib.sh dieser Arbeitskopie ein, nicht
@@ -174,6 +174,40 @@ git -C "${work}/push-ok" push -q --follow-tags 2> /dev/null || pushRc=$?
 assertEquals "0" "${pushRc}" "git push --follow-tags: Exit 0"
 assertEquals "${pushTag}" "$(remoteTags push-ok)" "git push --follow-tags: Tag liegt im Remote"
 assertEquals "$(git -C "${work}/push-ok" rev-parse HEAD)" "$(remoteMain push-ok)" "git push --follow-tags: Bump-Commit liegt im Remote"
+
+echo
+echo "Release-Tag eines Commits"
+echo
+
+# Commit 1 mit v-Tag, Commit 2 mit Nicht-Release-Tag (näher an HEAD), Commit 3 ohne Tag
+makeRepo release none
+git -C "${work}/release" tag -a v0.1.0+261105.1000.abc12 -m "release"
+releaseCommit="$(git -C "${work}/release" rev-parse HEAD)"
+git -C "${work}/release" commit -q --allow-empty -m "deploy"
+git -C "${work}/release" tag -a deploy-2026-11 -m "deploy"
+git -C "${work}/release" commit -q --allow-empty -m "weiter"
+runIn release gitReleaseTag
+assertEquals "0" "${rc}" "gitReleaseTag: Exit 0"
+assertEquals "v0.1.0+261105.1000.abc12" "${out}" "gitReleaseTag: v-Tag statt des näheren deploy-Tags"
+runIn release gitReleaseTag "${releaseCommit}" "${work}/release"
+assertEquals "v0.1.0+261105.1000.abc12" "${out}" "gitReleaseTag: Commit und Repo als Argumente"
+runIn release gitVersion
+assertEquals "0.1.0+261105.1000.abc12" "${out}" "gitVersion: Version aus dem v-Tag"
+runIn release semVerWithDate
+assertEquals "0.1.0" "${out%%+*}" "semVerWithDate: Basis aus dem v-Tag"
+runIn release gitDockerTag 0
+assertEquals "0.1.0" "${out%%-*}" "gitDockerTag: Basis aus dem v-Tag"
+
+makeRepo untagged none
+git -C "${work}/untagged" tag deploy-2026-11
+runIn untagged gitReleaseTag
+assertEquals "1" "${rc}" "gitReleaseTag ohne v-Tag: Exit 1"
+assertEquals "" "${out}" "gitReleaseTag ohne v-Tag: keine Ausgabe"
+runIn untagged gitReleaseTag gibtsnicht
+assertEquals "2" "${rc}" "gitReleaseTag mit unbekanntem Commit: Exit 2"
+mkdir -p "${work}/nogit"
+runIn nogit gitReleaseTag
+assertEquals "2" "${rc}" "gitReleaseTag außerhalb eines Repos: Exit 2"
 
 echo
 if [[ ${tests_failed} -eq 0 ]]; then

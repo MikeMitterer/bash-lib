@@ -128,7 +128,7 @@ statt abzubrechen.
 | `fs.lib.sh` | Datei- und Verzeichnisfunktionen | – |
 | `net.lib.sh` | IP- und Netzfunktionen | os |
 | `docker.lib.sh` | Docker-Images bauen und pushen (Docker Hub, GHCR, ECR) | colors |
-| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`) | – |
+| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), Release-Tag eines Commits (`gitReleaseTag`) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
 | `styles.lib.sh` | Global definierte Ausgabestile | colors |
 | `test.lib.sh` | Funktionen für Skripttests | – |

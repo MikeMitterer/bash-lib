@@ -47,7 +47,10 @@ prüfen.
 `test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
 `calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
 einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
-und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Es bindet
+und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Außerdem
+prüft es `gitReleaseTag`: Ein Tag wie `deploy-2026-11` näher am Commit zählt
+nicht, `gitVersion`, `semVerWithDate` und `gitDockerTag` nehmen den v-Tag.
+Es bindet
 `src/version.lib.sh` der eigenen Arbeitskopie ein, nicht die unter
 `BASH_LIBS`, und blendet die globale Git-Konfiguration aus.
 
