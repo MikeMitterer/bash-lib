@@ -116,7 +116,8 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     assert '\x1b[1;38;5;5mAufruf: bashlib [--version] [-h]\x1b[0m' in out, out
     assert '\x1b[1;38;5;5mBefehle\x1b[0m' in out, out
     assert '\n   \x1b[38;5;6mbashlib-path\x1b[0m     \x1b[38;5;7m' in out, out
-    assert '\x1b[38;5;9m<befehl>\x1b[2m --help' in out, out
+    # Nach dem Platzhalter erst zurücksetzen, dann wieder C_HINT (dim setzt keine Vordergrundfarbe)
+    assert '\x1b[38;5;9m<befehl>\x1b[0m\x1b[2m --help' in out, out
     plain, _ = run(terminal=True, extra={'CLI_THEME': 'probe', 'NO_COLOR': ''})
     assert '\x1b' not in plain and '\n   bashlib-path     ' in plain, plain
 

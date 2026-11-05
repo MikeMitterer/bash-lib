@@ -90,8 +90,12 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     # themeAccent liefert Escape-Text: über themeStyle umgesetzt bzw. entfernt, mit echo roh.
     accent = 'themeStyle "x $(themeAccent N) y" "$THEME_COLOR_DESC"'
     assert run(accent) == 'x N y'
-    assert '\x1b[38;5;10mx \x1b[38;5;14mN\x1b[38;5;10m y\x1b[0m' in run(accent, terminal=True)
-    assert run('echo "$(themeAccent N)"') == '\\x1B[38;5;14mN\\x1B[38;5;10m\n'
+    assert '\x1b[38;5;10mx \x1b[38;5;14mN\x1b[0m\x1b[38;5;10m y\x1b[0m' in run(accent, terminal=True)
+    assert run('echo "$(themeAccent N)"') == '\\x1B[38;5;14mN\\x1B[0m\\x1B[38;5;10m\n'
+    # Ein fetter Akzent (bold+N) endet mit dem Wort; der Rest der Zeile ist nicht fett.
+    theme.write_text(classic.replace('C_ACC=14', 'C_ACC=bold+14'))
+    assert '\x1b[1;38;5;14mN\x1b[0m\x1b[38;5;10m y' in run(accent, terminal=True)
+    theme.write_text(classic)
     assert '\x1b[1;38;5;11m' in run('printThemeHeading Titel', terminal=True, extra={'CLI_THEME': 'classic', 'MAKE_THEME': 'mono'})
     for extra in ({'NO_COLOR': ''}, {'TERM': 'dumb'}):
         assert '\x1b' not in run('usageLine "${RED}opt${NC}" "${GREEN}Text${NC}"', terminal=True, extra=extra)
