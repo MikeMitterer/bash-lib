@@ -1156,7 +1156,7 @@ getPackageName() {
     # --- Git-Repo: Tag/Hash/Dirty einbauen ----------------------------------
     if _is_git_repo; then
         local _tag _clean _hash="nogit" _dirty=""
-        _tag="$(git -C "$_repo" describe --tags --abbrev=0 2>/dev/null || true)"
+        _tag="$(gitReleaseTag HEAD "$_repo" || true)"
         if [[ -n "$_tag" ]]; then
             _clean="${_tag#v}"
             _clean="${_clean//+/-}" # dateifreundlich

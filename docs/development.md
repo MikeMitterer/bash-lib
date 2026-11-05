@@ -49,7 +49,9 @@ prüfen.
 einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
 und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Außerdem
 prüft es `gitReleaseTag`: Ein Tag wie `deploy-2026-11` näher am Commit zählt
-nicht, `gitVersion`, `semVerWithDate` und `gitDockerTag` nehmen den v-Tag.
+nicht, `gitVersion`, `semVerWithDate`, `gitDockerTag` und `getPackageName`
+nehmen den v-Tag. `test/_testMakeTag.sh` prüft dasselbe für `make hints`
+(Installationsbefehl) und `make version` (git tag).
 Es bindet
 `src/version.lib.sh` der eigenen Arbeitskopie ein, nicht die unter
 `BASH_LIBS`, und blendet die globale Git-Konfiguration aus.

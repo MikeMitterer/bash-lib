@@ -97,7 +97,8 @@ info: ## Umgebungsvariablen anzeigen
 # Werte von außen landen im Rezept; Ref-Namen dürfen $, ( und ) enthalten. Nur
 # erlaubte Zeichen übernehmen, sonst leer – ein Tag wie v1$(touch x) liefe sonst.
 REPO_URL    := $(shell git remote get-url origin 2>/dev/null | sed -E 's|^git@([^:]+):|https://\1/|; s|\.git$$||' | grep -xE '[A-Za-z0-9._:/@+~-]+')
-RELEASE_TAG := $(or $(shell git describe --tags --abbrev=0 2>/dev/null | grep -xE '[A-Za-z0-9._+-]+'),vX.Y.Z)
+# Release-Tag (v…) über gitReleaseTag dieses Checkouts; ein deploy-Tag zählt nicht.
+RELEASE_TAG := $(or $(shell source "$(BASH_LIBS)/version.lib.sh" 2>/dev/null && gitReleaseTag | grep -xE '[A-Za-z0-9._+-]+'),vX.Y.Z)
 NO_REMOTE   := kein Remote origin (git remote add origin …)
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
 # [project.scripts]); nur erlaubte Zeichen, sonst leer wie bei REPO_URL.
@@ -252,7 +253,7 @@ version: precheck ## Aktuelle Version anzeigen (pyproject.toml + git tag) — Ma
 	@echo
 	@VER=$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null); \
 	 [[ -z "$$VER" ]] && VER='nicht gesetzt'; \
-	 TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo 'kein Tag'); \
+	 TAG=$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && gitReleaseTag || echo 'kein Release-Tag'); \
 	 echo "    $(YELLOW)version$(RESET)      = $(BLUE)$$VER$(RESET)"; \
 	 echo "    $(YELLOW)git tag$(RESET)      = $(BLUE)$$TAG$(RESET)"
 	@echo
