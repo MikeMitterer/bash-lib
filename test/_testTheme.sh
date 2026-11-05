@@ -89,6 +89,14 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     assert run('usageLine opt Text intend') == run('usageLine opt Text 4')
     assert run('printThemeRow opt Text', setup='THEME_INDENT_TARGET=""; THEME_WIDTH_TARGET=5; THEME_COLUMN_GAP=3') == 'opt     Text\n'
     assert '\x1b[35mTitel' in run('printThemeHeading Titel', terminal=True, setup="THEME_COLOR_GROUP='\\033[35m'")
+    # Geerbte, exportierte THEME_*-Werte (etwa von MakeLib aus make) zählen nicht, die Datei gilt.
+    inherited = {'THEME_WIDTH_TARGET': '5', 'THEME_COLUMN_GAP': '3', 'THEME_INDENT_TARGET': '',
+                 'THEME_COLOR_GROUP': '\\033[35m', 'THEME_GROUP_SPACING': '3'}
+    assert run('printThemeRow opt Text', extra=inherited) == '       opt                    Text\n'
+    assert '\x1b[1;38;5;11mTitel' in run('printThemeHeading Titel', terminal=True, extra=inherited)
+    assert run('printThemeHeading Titel', extra=inherited) == '\n  Titel\n'
+    # Ein eigener Wert mit x (Escape wie die Palette) gilt nicht als exportiert.
+    assert '\x1b[35mTitel' in run('printThemeHeading Titel', terminal=True, setup="THEME_COLOR_GROUP='\\x1B[35m'")
     palette = run('printf "%s|%s|%s" "$RED" "$NC" "$GREP_COLOR_GREEN"')
     assert palette == r'\x1B[38;5;196m|\x1B[0m|38;5;10'
     # Loading happens once; deleting the file after source must not change output.

@@ -307,8 +307,8 @@ readonly RESET="${NC}"
 #
 # Danach stehen die Rollen C_HEAD … C_MARK als Rohwert der Datei (bold+11, dim, …)
 # und die Abstände I_HEAD … SPACE als Zahl bereit; C_OFF beendet eine Farbe.
-# Die THEME_*-Variablen werden aus den Rollen gesetzt; vor dem Einbinden gesetzte
-# THEME_*-Werte gewinnen.
+# Die THEME_*-Variablen werden aus den Rollen gesetzt; im Skript vor dem Einbinden
+# gesetzte THEME_*-Werte gewinnen, geerbte (exportierte) nicht.
 #
 # Ohne gültige Datei: keine Farben, Abstände der classic-Vorlage, ein Hinweis auf
 # stderr bei der ersten Theme-Ausgabe am Terminal.
@@ -389,6 +389,13 @@ themeRead() {
     fi
 }
 
+# Wahr, wenn das Skript $1 selbst gesetzt hat: gesetzt und nicht aus der Umgebung
+# geerbt (exportiert).
+themeOwn() {
+    local -r _EXPORTED='^declare -[A-Za-z]*x'
+    [[ -n ${!1+x} && ! $(declare -p "${1}" 2>/dev/null) =~ ${_EXPORTED} ]]
+}
+
 # Sucht und liest die Theme-Datei wie CLITheme und setzt Rollen, Abstände und THEME_*.
 # Ungültige Angaben fallen als Ganzes zurück: keine Farben, Abstände von classic.
 themeLoad() {
@@ -426,22 +433,23 @@ themeLoad() {
     done
     for _ROLE in ${THEME_ROLES} ${THEME_SPACING}; do unset "_THEME_${_ROLE}"; done
 
-    # Kompatibilität: THEME_* aus den Rollen, vorher gesetzte Werte gewinnen.
+    # Kompatibilität: THEME_* aus den Rollen. Im Skript vor dem Einbinden gesetzte
+    # Werte gewinnen; geerbte, exportierte (etwa von MakeLib aus make) nicht.
     for _ENTRY in GROUP=C_HEAD TARGET=C_KEY DESC=C_TEXT VALUE=C_VAL HINT=C_HINT ACCENT=C_ACC \
         SUCCESS=C_OK WARNING=C_WARN DANGER=C_ERR SERVER=C_MARK; do
         _ROLE="THEME_COLOR_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
-        if [[ -z ${!_ROLE+x} ]]; then
+        if ! themeOwn "${_ROLE}"; then
             themeSgr _SGR "${!_SOURCE}"
             printf -v "${_ROLE}" '%s' "${_SGR}"
         fi
     done
     for _ENTRY in GROUP=I_HEAD TARGET=I_ROW HINT=I_HINT; do
         _ROLE="THEME_INDENT_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
-        [[ -n ${!_ROLE+x} ]] || printf -v "${_ROLE}" '%*s' "${!_SOURCE}" ''
+        themeOwn "${_ROLE}" || printf -v "${_ROLE}" '%*s' "${!_SOURCE}" ''
     done
     for _ENTRY in WIDTH_TARGET=W_KEY COLUMN_GAP=GAP WIDTH_HELP=WIDTH GROUP_SPACING=SPACE; do
         _ROLE="THEME_${_ENTRY%%=*}" _SOURCE="${_ENTRY#*=}"
-        [[ -n ${!_ROLE+x} ]] || printf -v "${_ROLE}" '%s' "${!_SOURCE}"
+        themeOwn "${_ROLE}" || printf -v "${_ROLE}" '%s' "${!_SOURCE}"
     done
 }
 

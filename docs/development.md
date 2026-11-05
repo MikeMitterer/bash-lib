@@ -109,6 +109,8 @@ Danach die Tabelle der Bibliotheken im README ergänzen.
 
 ## Farben und Themes
 
-Palette und Themes sind mit MakeLib `colours.mk` und ProjectTools
-`colors.py` abgestimmt; wer sie ändert, ändert alle drei. Details in
-[themes.md](themes.md).
+Die Palette (`RED`, `GREEN`, `NC`, …) in `colors.lib.sh` ist fest. Farben und
+Abstände der Theme-Helfer kommen aus der Theme-Datei von
+[CLITheme](https://github.com/MikeMitterer/python-clitheme); Themes werden dort
+gepflegt, nicht in BashLib. `test/_testTheme.sh` prüft, dass `colors.lib.sh`
+die Vorlagen von CLITheme gleich liest. Details in [themes.md](themes.md).

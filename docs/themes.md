@@ -47,8 +47,11 @@ Theme-Ausgabe am Terminal steht einmal ein Hinweis auf stderr, etwa:
 
 ## THEME_*-Variablen
 
-Die bisherigen Variablen bleiben und werden aus den Rollen gesetzt. Vor dem
-Einbinden gesetzte Werte gewinnen.
+Die bisherigen Variablen bleiben und werden aus den Rollen gesetzt. Werte, die
+das Skript selbst vor dem Einbinden setzt, gewinnen. Geerbte, exportierte Werte
+zählen nicht: MakeLib exportiert seine `THEME_*`-Werte an jedes Rezept, und ein
+Skript, das aus make startet, zeigt trotzdem das gewählte Theme. Ein anderes
+Theme für einen Aufruf wählt `CLI_THEME`.
 
 | Variable | Rolle | Variable | Abstand |
 |---|---|---|---|
