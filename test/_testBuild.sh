@@ -42,8 +42,8 @@ mkdir -p "samples"
 # Erster Test ist das Einbinden der LIBs
 #
 
-if [ -z ${TEST_LIB+x} ]; then
-    readonly TEST_LIB="test.lib.sh"; . "${BASH_LIBS}/${TEST_LIB}"
+if [ -z ${ASSERT_LIB+x} ]; then
+    readonly ASSERT_LIB="assert.lib.sh"; . "${BASH_LIBS}/${ASSERT_LIB}"
 fi
 
 if [ -z ${BUILD_LIB+x} ]; then

@@ -131,8 +131,7 @@ statt abzubrechen.
 | `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), Release-Tag eines Commits (`gitReleaseTag`) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
 | `styles.lib.sh` | Global definierte Ausgabestile | colors |
-| `test.lib.sh` | Funktionen für Skripttests | – |
-| `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`) | – |
+| `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
 | `webapp.lib.sh` | Node- und TypeScript-Apps veröffentlichen | colors, fs |
 
