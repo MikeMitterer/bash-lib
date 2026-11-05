@@ -51,6 +51,15 @@ die drei Statuszeilen, bei einem Fehler die Meldung mit Exit ungleich 0. Es
 prüft außerdem, dass die Hooks ohne Probleme still bleiben und Fehler zeigen.
 Es braucht ProjectTools wie `make check`.
 
+`test/_testTheme.sh` prüft das Lesen der CLI-Theme-Datei in `colors.lib.sh`
+mit eigenem `XDG_CONFIG_HOME`: gültige Themes, fehlende und ungültige Dateien,
+Links, `MAKE_THEME`, vorbelegte `THEME_*`-Werte und `NO_COLOR`. Die Farben
+prüft es an einem Pseudoterminal; dafür braucht es `python3`. Ist `cli-theme`
+installiert, liest es zusätzlich alle Vorlagen von CLITheme mit
+`colors.lib.sh` und vergleicht das Ergebnis mit CLITheme selbst sowie die
+classic-Abstände in `colors.lib.sh` mit der Vorlage. Ändert CLITheme sein
+Format, wird der Test dort rot.
+
 Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
 
 ```bash
@@ -100,6 +109,8 @@ Danach die Tabelle der Bibliotheken im README ergänzen.
 
 ## Farben und Themes
 
-Palette und Themes sind mit MakeLib `colours.mk` und ProjectTools
-`colors.py` abgestimmt; wer sie ändert, ändert alle drei. Details in
-[themes.md](themes.md).
+Die Palette (`RED`, `GREEN`, `NC`, …) in `colors.lib.sh` ist fest. Farben und
+Abstände der Theme-Helfer kommen aus der Theme-Datei von
+[CLITheme](https://github.com/MikeMitterer/python-clitheme); Themes werden dort
+gepflegt, nicht in BashLib. `test/_testTheme.sh` prüft, dass `colors.lib.sh`
+die Vorlagen von CLITheme gleich liest. Details in [themes.md](themes.md).

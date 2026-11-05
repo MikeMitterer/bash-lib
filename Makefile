@@ -163,7 +163,7 @@ require-tools:
 
 ##@ Setup
 
-# Die Tests brauchen nur Bash und Git; setup aktiviert die versionierten
+# Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die versionierten
 # Git-Hooks. Wiederholbar und ohne Rückfrage.
 .PHONY: setup
 setup: ## Git-Hooks einrichten (pre-commit: make docs-check)
