@@ -29,6 +29,54 @@ printThemeRow() {
     themeLine "$@"
 }
 
+# Zeile Bezeichnung · Wert; der Wert in der Rolle C_VAL (Werte, Befehle, Pfade).
+# $1 Bezeichnung, $2 Wert
+printThemeValue() {
+    themeLine "${1}" "${2}" 0 "${THEME_COLOR_VALUE}"
+}
+
+# Hinweistext in eigener Zeile: Einrückung I_HINT, Rolle C_HINT.
+# $1 Text
+printThemeHint() {
+    themeNotice
+    printf '%s' "${THEME_INDENT_HINT}"
+    themeStyle "${1}" "${THEME_COLOR_HINT}"
+    printf '\n'
+}
+
+# Hervorhebung im Text (Rolle C_ACC: Platzhalter, zulässige Werte, Antworten) zum
+# Einbetten in eine Beschreibung; danach gilt wieder die Farbe $2. Ohne Farben
+# (Pipe, NO_COLOR, ohne Theme-Datei) bleibt nur der Text.
+#
+# Usage:
+#   printThemeRow "greet NAME" "Begrüßt $(themeAccent NAME)"
+#
+# $1 Text, $2 Farbe danach (Standard THEME_COLOR_DESC, die Farbe der Beschreibung)
+themeAccent() {
+    themeInline "${THEME_COLOR_ACCENT}" "${1}" "${2-${THEME_COLOR_DESC}}"
+}
+
+# Markierung im Text (Rolle C_MARK: Sonderstellung wie Maintainer oder Server,
+# Herkunft eines Werts), sonst wie themeAccent.
+#
+# Usage:
+#   printThemeValue "Theme" "${THEME_NAME} $(themeMark "(aus ${THEME_ORIGIN})" "${THEME_COLOR_VALUE}")"
+#
+# $1 Text, $2 Farbe danach (Standard THEME_COLOR_DESC)
+themeMark() {
+    themeInline "${THEME_COLOR_SERVER}" "${1}" "${2-${THEME_COLOR_DESC}}"
+}
+
+# Text in Farbe $1, danach Farbe $3; ohne Farbe nur der Text.
+themeInline() {
+    local -r _INLINE_COLOR="${1}" _INLINE_TEXT="${2}" _BACK="${3}"
+    if [[ -n ${_INLINE_COLOR} ]]; then
+        printf '%s%s%s' "${_INLINE_COLOR}" "${_INLINE_TEXT}" "${_BACK}"
+    else
+        printf '%s' "${_INLINE_TEXT}"
+    fi
+}
+
 # $1 Symbol, $2 Text, $3 Farbrolle (SUCCESS, WARNING, DANGER, … oder OK, WARN, ERR).
 # Inhalt und Umleitung nach stderr legt der Aufrufer fest.
 printThemeStatus() {

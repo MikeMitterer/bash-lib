@@ -84,6 +84,9 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     assert '\x1b[1mTitel' in run('printThemeHeading Titel', terminal=True, extra={'MAKE_THEME': 'mono'})
     assert run('printf "%s|%s" "$THEME_NAME" "$THEME_SOURCE"', extra={'MAKE_THEME': 'mono'}) == f'mono|{folder}/mono.theme'
     assert run('printf "%s|%s" "$THEME_NAME" "$THEME_SOURCE"') == f'classic|{theme}'
+    assert run('printf "%s" "$THEME_ORIGIN"') == 'Standard'
+    assert run('printf "%s" "$THEME_ORIGIN"', extra={'MAKE_THEME': 'mono'}) == 'MAKE_THEME'
+    assert run('printf "%s" "$THEME_ORIGIN"', extra={'CLI_THEME': 'mono', 'MAKE_THEME': 'classic'}) == 'CLI_THEME'
     assert '\x1b[1;38;5;11m' in run('printThemeHeading Titel', terminal=True, extra={'CLI_THEME': 'classic', 'MAKE_THEME': 'mono'})
     for extra in ({'NO_COLOR': ''}, {'TERM': 'dumb'}):
         assert '\x1b' not in run('usageLine "${RED}opt${NC}" "${GREEN}Text${NC}"', terminal=True, extra=extra)

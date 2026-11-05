@@ -16,11 +16,11 @@ export BASH_LIBS=/pfad/zu/BashLib/src
 
 | Aufruf | Ergebnis |
 |---|---|
-| `cli-demo.sh`, `-h`, `--help` | Hilfe: Befehle, Umgebung und Beispiele in zwei Spalten; lange Beschriftungen stehen in eigener Zeile |
-| `cli-demo.sh info` | Version, Pfade, gewähltes Theme, Ort der Theme-Datei und ob Farben an sind (mit Grund) |
-| `cli-demo.sh hints` | Nächste Schritte; jeder Befehl steht für sich und lässt sich kopieren |
+| `cli-demo.sh`, `-h`, `--help` | Hilfe: Befehle, Umgebung und Beispiele in zwei Spalten; lange Beschriftungen stehen in eigener Zeile; Platzhalter und Werte wie `NAME` oder `classic` sind mit `themeAccent` hervorgehoben (Rolle `C_ACC`) |
+| `cli-demo.sh info` | Version, Pfade, gewähltes Theme mit Herkunft (`themeMark`, Rolle `C_MARK`), Ort der Theme-Datei und ob Farben an sind; Werte in `C_VAL` (`printThemeValue`), darunter ein Hinweis in `C_HINT` (`printThemeHint`) |
+| `cli-demo.sh hints` | Nächste Schritte; jeder Befehl steht in `C_VAL` für sich und lässt sich kopieren |
 | `cli-demo.sh status` | Je eine Statuszeile für Erfolg (`C_OK`), Warnung (`C_WARN`) und Fehler (`C_ERR`) |
-| `cli-demo.sh theme` | Jede Farbrolle in ihrer Farbe mit dem Wert aus der Theme-Datei, dazu die Abstände |
+| `cli-demo.sh theme` | Jede Farbrolle in ihrer Farbe mit dem Wert aus der Theme-Datei, dazu die Abstände; `WIDTH` gilt nur für Python-Werkzeuge, BashLib bricht nicht um |
 | `cli-demo.sh greet NAME` | Statuszeile „Hallo NAME“ |
 | `cli-demo.sh greet` | Fehler auf stderr: „Fehlende Angabe: NAME“, darunter der Befehl `cli-demo.sh greet NAME`; Exit 2 |
 | `cli-demo.sh --foo`, `cli-demo.sh bla` | Fehler auf stderr: unbekannte Option bzw. unbekannter Befehl, darunter `cli-demo.sh --help`; Exit 2 |
