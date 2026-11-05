@@ -110,7 +110,8 @@ Es installiert BashLib einmal normal und einmal mit `pip install -e` in je
 eine temporäre venv, bindet daraus eine Bibliothek ein und ruft `bashlib` auf. Dafür braucht es
 Python ab 3.11 (`PYTHON=…`, sonst `python3`) und Zugriff auf den
 Paketindex für setuptools. Das `python/*.egg-info`, das pip dabei im Checkout
-anlegt, entfernt der Test wieder; ein schon vorhandenes bleibt.
+anlegt, entfernt der Test wieder. Ein schon vorhandenes bleibt bestehen;
+`pip install -e` aktualisiert dabei aber seinen Inhalt auf den aktuellen Stand.
 
 ## Version und Release
 

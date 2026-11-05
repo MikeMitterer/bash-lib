@@ -69,6 +69,7 @@ checkInstall() {
 
 expected_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "${ROOT}/pyproject.toml" 2>/dev/null)"
 # pip legt beim Bauen python/*.egg-info im Checkout an; nur selbst angelegte entfernen.
+# Ein vorhandenes bleibt bestehen, pip install -e aktualisiert aber seinen Inhalt.
 eggInfos() { find "${ROOT}/python" -maxdepth 1 -name '*.egg-info' -type d | sort; }
 EGG_INFOS_BEFORE="$(eggInfos)"
 readonly EGG_INFOS_BEFORE
