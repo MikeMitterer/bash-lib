@@ -82,7 +82,8 @@ base="$(git -C "${work}/ok" rev-parse HEAD)"
 old="$(cd "${work}/ok" && . src/version.lib.sh && readProjectVersion)"
 IFS=. read -r major minor patch <<< "${old}"
 new="${major}.${minor}.$((patch + 1))"
-runMake ok tag-patch
+# Mit C-Locale wie in Agenten-Shells: der Changelog bleibt trotzdem deutsch
+LANG=C.UTF-8 LC_ALL= LANGUAGE= runMake ok tag-patch
 tag="$(git -C "${work}/ok" tag --sort=-creatordate | head -n1)"
 assertEquals "0" "${rc}" "Exit 0"
 assertContains "Version" "$(grep "${old} → ${new}" <<< "${out}")" "Statuszeile Version alt → neu"
@@ -97,6 +98,7 @@ assertNotContains "Hinweis:" "${out}" "kein Roh-Hinweis der Bibliothek"
 assertNotContains "${work}" "${out}" "kein absoluter Pfad"
 assertEquals "" "$(git -C "${work}/ok" status --porcelain)" "Working Tree danach sauber"
 assertEquals "docs(changelog): update release history" "$(git -C "${work}/ok" log -1 --format=%s)" "Changelog-Commit liegt lokal"
+assertEquals "Aus Release-Tags und Conventional Commits erzeugt." "$(sed -n 3p "${work}/ok/CHANGELOG.md")" "Changelog deutsch, auch unter LANG=C.UTF-8"
 assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --format=%s "${tag}")" "Tag zeigt auf den Version-Commit"
 assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
 assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"

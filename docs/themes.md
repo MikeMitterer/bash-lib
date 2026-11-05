@@ -5,6 +5,7 @@
 [CLITheme](https://github.com/MikeMitterer/python-clitheme).** Python-Werkzeuge
 und Makefiles verwenden dieselbe Datei. Skripte binden wie bisher
 `colors.lib.sh` oder `tools.lib.sh` ein; ein zusätzliches Modul gibt es nicht.
+Das Theme gibt es ab BashLib 0.4.0.
 
 ```bash
 if [[ "${__TOOLS_LIB__:=}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi

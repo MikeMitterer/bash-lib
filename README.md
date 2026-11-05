@@ -153,6 +153,8 @@ wie Python-Werkzeuge und Makefiles. `CLI_THEME` wählt sie (Standard
 `classic`); `cli-theme install` legt die Vorlagen an. Ohne Datei gibt es
 keine Farben, bei `NO_COLOR`, in Pipes und bei `TERM=dumb` ebenfalls nicht.
 Rollen, Abstände und Rückfallverhalten stehen in [docs/themes.md](docs/themes.md).
+Das Theme gibt es ab BashLib 0.4.0; ältere Releases haben die fest
+eingebauten Themes mit `MAKE_THEME`.
 
 Ein lauffähiges Beispiel mit Hilfe, Info, Hinweisen, Statuszeilen und
 Fehlermeldungen liegt in [examples/](examples/README.md):
