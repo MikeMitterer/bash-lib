@@ -292,6 +292,10 @@ export CHANGELOG_LANGUAGE
 
 # $(call release,major|minor|patch): bumpen, taggen und CHANGELOG.md committen,
 # alles nur lokal; veröffentlicht wird mit git push --follow-tags.
+# Nur auf master und nur, wenn develop nicht weiter ist (T-36): Das Board übernimmt
+# Tickets per Merge-Commit, ein Tag auf einem Ticket-Branch läge dann neben der
+# First-Parent-Historie, und changelog ließe das Release aus. Danach wird develop
+# auf master vorgespult, damit die nächste Abnahme master wieder vorspulen kann.
 # Ausgabe: je Schritt eine Statuszeile. semVerBump gibt auf stdout nur den Tag
 # aus; seine stderr-Ausgabe erscheint bei einem Fehler vollständig, bei Erfolg
 # ohne die Zeilen „Hinweis: …“, die hier die Tag-Zeile ersetzt.
@@ -299,6 +303,15 @@ export CHANGELOG_LANGUAGE
 # Erfolgszeile (mit absolutem Pfad) ersetzt die Changelog-Zeile, Fehler gehen
 # nach stderr. Ob committet wurde, zeigt ein neuer HEAD.
 define release
+	@branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
+	 if [[ "$$branch" != master ]]; then \
+		printf '  $(RED)✗$(RESET) Release nur auf master, nicht auf %s; nach der Abnahme auf master:\n       $(YELLOW)make %s$(RESET)\n' "$$branch" '$@' >&2; \
+		exit 1; \
+	 fi; \
+	 if git rev-parse -q --verify refs/heads/develop >/dev/null && ! git merge-base --is-ancestor develop HEAD; then \
+		printf '  $(RED)✗$(RESET) develop ist weiter als master; erst die Tickets abnehmen:\n       $(YELLOW)al ticket accept$(RESET)\n' >&2; \
+		exit 1; \
+	 fi
 	@source "$${BASH_LIBS}/version.lib.sh"; \
 	 err=$$(mktemp); trap 'command rm -f -- "$$err"' EXIT; \
 	 old=$$(readProjectVersion); \
@@ -312,6 +325,12 @@ define release
 		$(call release_row,Changelog,CHANGELOG.md unverändert); \
 	 else \
 		$(call release_row,Changelog,CHANGELOG.md committet); \
+	 fi
+	@if old=$$(git rev-parse -q --verify refs/heads/develop); then \
+		holder=$$(git worktree list --porcelain | awk '/^worktree /{ w = substr($$0, 10) } $$0 == "branch refs/heads/develop" { print w }'); \
+		if [[ -n "$$holder" ]]; then git -C "$$holder" merge -q --ff-only master || exit $$?; \
+		else git update-ref refs/heads/develop HEAD "$$old" || exit $$?; fi; \
+		$(call release_row,develop,auf master vorgespult); \
 	 fi
 endef
 
