@@ -44,6 +44,12 @@ direkt startet, setzt es selbst, sonst bricht es mit „Var 'BASH_LIBS' nicht
 gesetzt!“ ab. Änderungen an Skripten zusätzlich mit `bash -n` und ShellCheck
 prüfen.
 
+Die Bash-Tests unter `test/` binden `src/assert.lib.sh` der eigenen
+Arbeitskopie ein: `assertEquals`, `assertContains`, `assertNotContains` und
+`finishTests` für die Summenzeile und den Exit-Code. Die Bibliothek kommt wie
+alle `src/*.lib.sh` ins pip-Paket und steht auch anderen Projekten zur
+Verfügung.
+
 `test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
 `calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
 einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,

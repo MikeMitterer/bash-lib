@@ -12,37 +12,15 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# assertEquals, assertContains, … und finishTests aus dieser Arbeitskopie
+. "${ROOT}/src/assert.lib.sh"
 LIB="${ROOT}/src/version.lib.sh"
 
 # Eigene Git-Konfiguration der Nutzer (Signieren, Hooks, Aliase) bleibt draußen
 export GIT_CONFIG_GLOBAL=/dev/null
 export GIT_CONFIG_NOSYSTEM=1
 
-tests_run=0
-tests_failed=0
 work=""
-
-assertEquals() {
-    local expected="$1" actual="$2" message="$3"
-    tests_run=$((tests_run + 1))
-    if [[ "${expected}" == "${actual}" ]]; then
-        echo "  ✓ ${message}"
-    else
-        tests_failed=$((tests_failed + 1))
-        echo "  ✗ ${message} (erwartet '${expected}', war '${actual}')"
-    fi
-}
-
-assertContains() {
-    local needle="$1" haystack="$2" message="$3"
-    tests_run=$((tests_run + 1))
-    if [[ -n "${needle}" && "${haystack}" == *"${needle}"* ]]; then
-        echo "  ✓ ${message}"
-    else
-        tests_failed=$((tests_failed + 1))
-        echo "  ✗ ${message} ('${needle}' fehlt in: ${haystack})"
-    fi
-}
 
 # shellcheck disable=SC2329  # per trap aufgerufen
 cleanup() {
@@ -209,10 +187,4 @@ mkdir -p "${work}/nogit"
 runIn nogit gitReleaseTag
 assertEquals "2" "${rc}" "gitReleaseTag außerhalb eines Repos: Exit 2"
 
-echo
-if [[ ${tests_failed} -eq 0 ]]; then
-    echo "  ${tests_run} Tests, alle gruen"
-    exit 0
-fi
-echo "  ${tests_failed} von ${tests_run} Tests fehlgeschlagen"
-exit 1
+finishTests
