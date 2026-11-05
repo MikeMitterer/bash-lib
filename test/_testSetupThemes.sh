@@ -8,30 +8,19 @@
 #
 #   ./test/_testSetupThemes.sh
 # ------------------------------------------------------------------------------
-# shellcheck disable=SC2319  # check bekommt bewusst den Exit-Code der Bedingung davor
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# assertEquals, assertContains, … und finishTests
+. "${ROOT}/test/assert.sh"
 # Ein umgebendes make (make check) gibt sonst seine Flags weiter
 unset MAKEFLAGS MAKELEVEL MFLAGS
 
-tests_run=0
-tests_failed=0
 work="$(mktemp -d)"
 # shellcheck disable=SC2329  # per trap aufgerufen
 cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
-# $1 Exit-Code der Prüfung davor (0 = erfüllt), $2 Beschreibung, $3 Ausgabe für den Fehlerfall
-check() {
-    tests_run=$((tests_run + 1))
-    if [[ $1 == 0 ]]; then
-        echo "  ✓ $2"
-    else
-        tests_failed=$((tests_failed + 1))
-        echo "  ✗ $2: $3"
-    fi
-}
 
 # Nachgebautes cli-theme: Version aus FAKE_VERSION, install scheitert mit FAKE_FAIL.
 mkdir -p "${work}/bin"
@@ -64,28 +53,22 @@ echo "make setup-themes"
 echo
 
 runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION="${MIN}"
-[[ ${status} == 0 ]]; check $? "vorhanden: Exit 0" "${status}"
-[[ $(cat "${work}/log") == install ]]; check $? "vorhanden: cli-theme install aufgerufen" "$(cat "${work}/log")"
-[[ ${output} == *"✓ CLI-Themes in ${work}/config/cli-theme"* ]]; check $? "vorhanden: Statuszeile nennt den Ordner" "${output}"
+assertEquals "0" "${status}" "vorhanden: Exit 0"
+assertEquals "install" "$(cat "${work}/log")" "vorhanden: cli-theme install aufgerufen"
+assertContains "✓ CLI-Themes in ${work}/config/cli-theme" "${output}" "vorhanden: Statuszeile nennt den Ordner"
 
 runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION=0.0.1
-[[ ${status} == 0 ]]; check $? "zu alt: Exit 0" "${status}"
-[[ ${output} == *"0.0.1 ist zu alt"*"pipx install --force"* ]]; check $? "zu alt: Hinweis mit pipx-Befehl" "${output}"
-[[ $(cat "${work}/log") == install ]]; check $? "zu alt: install trotzdem aufgerufen" "$(cat "${work}/log")"
+assertEquals "0" "${status}" "zu alt: Exit 0"
+assertContains "0.0.1 ist zu alt (verlangt ab ${MIN}): pipx install --force" "${output}" "zu alt: Hinweis mit pipx-Befehl"
+assertEquals "install" "$(cat "${work}/log")" "zu alt: install trotzdem aufgerufen"
 
 runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION="${MIN}" FAKE_FAIL=1
-[[ ${status} == 0 ]]; check $? "install scheitert: Exit 0" "${status}"
-[[ ${output} == *kaputt*"cli-theme install fehlgeschlagen"* ]]; check $? "install scheitert: Ausgabe und Hinweis" "${output}"
+assertEquals "0" "${status}" "install scheitert: Exit 0"
+assertContains "kaputt"$'\n'"  ✗ cli-theme install fehlgeschlagen" "${output}" "install scheitert: Ausgabe und Hinweis"
 
 runSetup "${BASE_PATH}"
-[[ ${status} == 0 ]]; check $? "fehlt: Exit 0" "${status}"
-[[ ${output} == *"CLITheme fehlt"*"python-clitheme.git@v${MIN}+"* ]]; check $? "fehlt: Hinweis mit pipx-Befehl" "${output}"
-[[ ! -s ${work}/log ]]; check $? "fehlt: kein install" "$(cat "${work}/log")"
+assertEquals "0" "${status}" "fehlt: Exit 0"
+assertContains "CLITheme fehlt, Ausgabe ohne Farben: pipx install --force 'git+https://github.com/MikeMitterer/python-clitheme.git@v${MIN}+" "${output}" "fehlt: Hinweis mit pipx-Befehl"
+assertEquals "" "$(cat "${work}/log")" "fehlt: kein install"
 
-echo
-if (( tests_failed == 0 )); then
-    echo "  ${tests_run} Tests, alle gruen"
-else
-    echo "  ${tests_failed} von ${tests_run} Tests fehlgeschlagen"
-    exit 1
-fi
+finishTests
