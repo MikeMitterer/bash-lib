@@ -1,6 +1,4 @@
 lib.iml
-.config.mk
-
 
 # pip-Paket (pyproject.toml)
 *.egg-info/
