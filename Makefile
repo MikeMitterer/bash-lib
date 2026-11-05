@@ -285,6 +285,11 @@ tags: ## Letzte 10 Tags mit Message anzeigen
 # Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
 release_row = printf '  $(GREEN)✓$(RESET) %-10s $(BLUE)%s$(RESET)\n' "$(1)" "$(2)"
 
+# Sprache von CHANGELOG.md, unabhängig von der Locale der Shell (changelog folgt
+# sonst LANG; unter C.UTF-8 käme Englisch). Überschreiben: make … CHANGELOG_LANGUAGE=en
+CHANGELOG_LANGUAGE ?= de
+export CHANGELOG_LANGUAGE
+
 # $(call release,major|minor|patch): bumpen, taggen und CHANGELOG.md committen,
 # alles nur lokal; veröffentlicht wird mit git push --follow-tags.
 # Ausgabe: je Schritt eine Statuszeile. semVerBump gibt auf stdout nur den Tag
@@ -302,7 +307,7 @@ define release
 	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
 	 $(call release_row,Tag,$${tag##*$$'\n'} (nur lokal))
 	@head=$$(git rev-parse HEAD); \
-	 changelog --commit >/dev/null || exit $$?; \
+	 LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --commit >/dev/null || exit $$?; \
 	 if [[ "$$(git rev-parse HEAD)" == "$$head" ]]; then \
 		$(call release_row,Changelog,CHANGELOG.md unverändert); \
 	 else \
@@ -312,7 +317,7 @@ endef
 
 .PHONY: changelog
 changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
-	@changelog --dry-run
+	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --dry-run
 
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem Tag.

@@ -129,6 +129,8 @@ Statuszeile: Version alt → neu, Tag (nur lokal) und Changelog. Veröffentlicht
 wird erst mit `git push --follow-tags`. `make changelog` zeigt vorher eine
 Vorschau.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
+Der Changelog ist deutsch, unabhängig von der Locale der Shell
+(`CHANGELOG_LANGUAGE`, Standard `de`).
 
 Mit `git config push.followTags true` nimmt schon ein einfaches `git push`
 alle lokalen annotierten Tags mit. Wer einen Tag erst nach einer Prüfung
