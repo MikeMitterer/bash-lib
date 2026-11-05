@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------------------
+# _testMakeInstall.sh — make install installiert die Arbeitskopie mit pipx
+#
+# Ruft make install mit einem nachgebauten pipx auf (hält nur die Argumente
+# fest), dazu mit scheiterndem und fehlendem pipx. Echte pipx-Installationen
+# bleiben unberührt.
+#
+#   ./test/_testMakeInstall.sh
+# ------------------------------------------------------------------------------
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# assertEquals, assertContains, … und finishTests aus dieser Arbeitskopie
+. "${ROOT}/src/assert.lib.sh"
+# Ein umgebendes make (make check) gibt sonst seine Flags weiter
+unset MAKEFLAGS MAKELEVEL MFLAGS
+
+work="$(mktemp -d)"
+# shellcheck disable=SC2329  # per trap aufgerufen
+cleanup() { command rm -rf -- "${work}"; }
+trap cleanup EXIT
+
+# Nachgebautes pipx: schreibt seine Argumente zeilenweise, scheitert mit FAKE_FAIL.
+mkdir -p "${work}/bin"
+cat > "${work}/bin/pipx" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "${FAKE_LOG}"
+[[ -z ${FAKE_FAIL:-} ]] || { echo "pipx kaputt"; exit 1; }
+echo "  These apps are now available"
+EOF
+chmod +x "${work}/bin/pipx"
+
+# Ohne ~/.local/bin, damit ein installiertes pipx nicht mitspielt.
+BASE_PATH="/usr/bin:/bin:$(dirname "$(command -v make)"):$(dirname "$(command -v bash)")"
+
+# Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
+runInstall() {
+    local path="$1"; shift
+    : > "${work}/log"
+    output="$(env -i HOME="${work}" PATH="${path}" FAKE_LOG="${work}/log" "$@" \
+        make --no-print-directory -C "${ROOT}" install 2>&1)"
+    status=$?
+    output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
+}
+
+echo
+echo "make install"
+echo
+
+runInstall "${work}/bin:${BASE_PATH}"
+assertEquals "0" "${status}" "pipx vorhanden: Exit 0"
+assertEquals $'install\n-e\n--force\n'"${ROOT}" "$(cat "${work}/log")" "pipx install -e --force mit dem Pfad der Arbeitskopie"
+assertContains "✓ bashlib, bashlib-path aus ${ROOT}" "${output}" "Statuszeile nennt Befehle und Arbeitskopie"
+assertNotContains "These apps" "${output}" "keine rohe pipx-Ausgabe"
+
+runInstall "${work}/bin:${BASE_PATH}" FAKE_FAIL=1
+assertEquals "1" "$(( status != 0 ))" "pipx scheitert: Exit ungleich 0"
+assertContains "pipx kaputt" "${output}" "pipx scheitert: Ausgabe von pipx sichtbar"
+assertContains "✗ pipx install fehlgeschlagen" "${output}" "pipx scheitert: Statuszeile"
+
+runInstall "${BASE_PATH}"
+assertEquals "1" "$(( status != 0 ))" "pipx fehlt: Exit ungleich 0"
+assertContains "✗ pipx fehlt" "${output}" "pipx fehlt: Meldung"
+assertContains "https://pipx.pypa.io" "${output}" "pipx fehlt: Installationsweg"
+assertEquals "" "$(cat "${work}/log")" "pipx fehlt: kein Aufruf"
+
+help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
+assertContains "install" "$(grep -E '^ +install ' <<< "${help}")" "make help nennt install"
+# Sichtbare Zeichen, nicht Bytes (Umlaute)
+longest="$(python3 -c 'import sys; print(max(len(l) for l in sys.stdin.read().splitlines()))' <<< "${help}")"
+assertEquals "1" "$(( longest <= 100 ))" "make help: keine Zeile über 100 Zeichen (längste ${longest})"
+
+finishTests

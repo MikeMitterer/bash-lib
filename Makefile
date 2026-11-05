@@ -103,7 +103,9 @@ NO_REMOTE   := kein Remote origin (git remote add origin …)
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
 # [project.scripts]); nur erlaubte Zeichen, sonst leer wie bei REPO_URL.
 PACKAGE_NAME := $(shell awk -F'"' '/^\[/ { s = $$0 } s == "[project]" && /^name *=/ { print $$2; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
-PACKAGE_CMD  := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+# Befehle aus [project.scripts], durch Leerzeichen getrennt; der erste ist PACKAGE_CMD
+PACKAGE_CMDS := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1 }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+PACKAGE_CMD  := $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
 COMMA       := ,
 
@@ -180,7 +182,7 @@ require-tools:
 # an. Fehlt cli-theme, nennt setup den Installationsbefehl und läuft weiter.
 # Wiederholbar und ohne Rückfrage.
 .PHONY: setup
-setup: ## Git-Hooks einrichten (pre-commit: make docs-check) und CLI-Themes anlegen
+setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@git config core.hooksPath .githooks
 	@echo -e "  $(GREEN)✓$(RESET) Git-Hooks aus .githooks aktiv"
 	@$(MAKE) --no-print-directory setup-themes
@@ -201,6 +203,20 @@ setup-themes:
 	else \
 		printf '%s\n' "$$output" >&2; \
 		printf '  $(RED)✗$(RESET) cli-theme install fehlgeschlagen; Ausgabe ohne Farben: $(YELLOW)cli-theme show$(RESET)\n' >&2; \
+	fi
+
+# Installiert diese Arbeitskopie editierbar mit pipx: die Befehle aus
+# [project.scripts] zeigen danach auf src/ dieses Checkouts. Neue Befehle legt
+# pipx nur beim Installieren an; nach einem Update deshalb erneut aufrufen.
+.PHONY: install
+install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
+	@command -v pipx >/dev/null || { \
+		printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)https://pipx.pypa.io$(RESET)\n' >&2; exit 1; }
+	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
+		names='$(PACKAGE_CMDS)'; printf '  $(GREEN)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
+	else \
+		printf '%s\n' "$$output" >&2; \
+		printf '  $(RED)✗$(RESET) pipx install fehlgeschlagen\n' >&2; exit 1; \
 	fi
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
@@ -231,7 +247,7 @@ test: docs-check require-setup ## Doku prüfen und Bash-Tests ausführen (test/t
 	@./test/testAll.sh
 
 .PHONY: docs-check
-docs-check: require-tools ## Nutzerdoku gegen das Projekt prüfen (Links, Befehle, verbotene Begriffe)
+docs-check: require-tools ## Nutzerdoku gegen das Projekt prüfen (Links, Befehle, Begriffe)
 	@docs-check --run
 
 # Installiert Pakete in temporäre venvs und braucht den Paketindex; deshalb

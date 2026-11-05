@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     base = Path(scratch)
     info = base / 'site' / 'mmit_bashlib-9.8.7.dist-info'
     info.mkdir(parents=True)
-    (info / 'METADATA').write_text('Metadata-Version: 2.1\nName: mmit-bashlib\nVersion: 9.8.7\n')
+    (info / 'METADATA').write_text('Metadata-Version: 2.1\nName: mmit-bashlib\nVersion: 9.8.7\nSummary: Testpaket\n')
     (info / 'entry_points.txt').write_text('[console_scripts]\n' + '\n'.join(entries) + '\nbashlib-demo = demo:run\n')
     (base / 'site' / 'demo.py').write_text('def run():\n    """Nur im Test vorhanden.\n\n    Zweite Zeile zählt nicht."""\n')
     (base / 'cli-theme').mkdir()
@@ -82,32 +82,45 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
         assert child.wait(timeout=10) == code
         return b''.join(chunks).decode().replace('\r\n', '\n'), ''
 
-    # Ohne Theme-Datei: classic-Abstände, keine Farben, Version aus den Metadaten.
+    # Ohne Theme-Datei: classic-Abstände, keine Farben, Version und Beschreibung aus den Metadaten.
     out, err = run()
     assert not err, err
+    assert '\x1b' not in out
     lines = out.splitlines()
-    assert lines[0] == '' and lines[1] == '  BashLib 9.8.7', out
-    rows = {line.split()[0]: line for line in lines[2:] if line.strip()}
-    assert all(len(line.split()) > 1 for line in rows.values()), out
-    assert sorted(rows) == sorted(names + ['bashlib-demo']), (rows, names)
+    assert lines[:4] == ['', '  Aufruf: bashlib [--version] [-h]', '       BashLib 9.8.7 – Testpaket',
+                         '       Hilfe zu einem Befehl: <befehl> --help'], out
+    headings = [line.strip() for line in lines if line.startswith('  ') and not line.startswith('   ')]
+    assert headings == ['Aufruf: bashlib [--version] [-h]', 'Befehle', 'Optionen', 'Umgebung'], headings
+    section = lambda title: lines[lines.index('  ' + title) + 1:]
+    commands = []
+    for line in section('Befehle'):
+        if not line.strip():
+            break
+        commands.append(line)
+    rows = {line.split()[0]: line for line in commands}
+    assert sorted(rows) == sorted([name for name in names if name != 'bashlib'] + ['bashlib-demo']), rows
+    assert 'bashlib' not in rows, 'bashlib steht nicht in der eigenen Befehlsliste'
     for name, line in rows.items():
         assert line.startswith('       ' + name + ' '), line
         assert line.index(line.split(None, 1)[1]) == 30, line
     assert rows['bashlib-demo'].endswith('Nur im Test vorhanden.'), rows['bashlib-demo']
+    options = section('Optionen')[:2]
+    assert options == ['            --version         Zeigt die installierte Version.',
+                       '       -h | --help            Zeigt diese Hilfe.'], options
     assert out.endswith('\n\n'), repr(out)
-    assert '\x1b' not in out
+    for option in ('-h', '--help'):
+        assert run(option)[0] == out, option
 
-    # Mit Theme-Datei am Terminal: Farben und Abstände aus der Datei.
+    # Mit Theme-Datei am Terminal: Farben und Abstände aus der Datei, Platzhalter in C_ACC.
     out, _ = run(terminal=True, extra={'CLI_THEME': 'probe'})
-    assert '\x1b[1;38;5;5mBashLib 9.8.7\x1b[0m' in out, out
+    assert '\x1b[1;38;5;5mAufruf: bashlib [--version] [-h]\x1b[0m' in out, out
+    assert '\x1b[1;38;5;5mBefehle\x1b[0m' in out, out
     assert '\n   \x1b[38;5;6mbashlib-path\x1b[0m     \x1b[38;5;7m' in out, out
+    assert '\x1b[38;5;9m<befehl>\x1b[2m --help' in out, out
     plain, _ = run(terminal=True, extra={'CLI_THEME': 'probe', 'NO_COLOR': ''})
     assert '\x1b' not in plain and '\n   bashlib-path     ' in plain, plain
 
-    # Hilfe und Fehler.
-    out, _ = run('--help')
-    assert 'bashlib [-h | --help | --version]' in out and '--version' in out, out
-    assert run('-h')[0] == out
+    # Version und Fehler.
     assert run('--version')[0] == '9.8.7\n'
     out, err = run('--unbekannt', code=2)
     assert not out and err == 'Unbekanntes Argument --unbekannt\nbashlib --help\n', err
@@ -121,6 +134,8 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     info.rmdir()
     version = re.search(r'^version = "(.*)"$', (root / 'pyproject.toml').read_text(), re.M).group(1)
     out, _ = run()
-    assert f'  BashLib {version}' in out and 'bashlib-path' in out and 'bashlib-demo' not in out, out
+    summary = re.search(r'^description = "(.*)"$', (root / 'pyproject.toml').read_text(), re.M).group(1)
+    assert f'       BashLib {version} – {summary}\n' in out, out
+    assert 'bashlib-path' in out and 'bashlib-demo' not in out and '       bashlib ' not in out, out
     print('bashlib: Version, Befehle aus einer Quelle, Theme, Hilfe bestanden')
 PY
