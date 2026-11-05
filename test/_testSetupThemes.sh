@@ -2,9 +2,10 @@
 # ------------------------------------------------------------------------------
 # _testSetupThemes.sh — make setup legt die CLI-Themes mit cli-theme install an
 #
-# Ruft make setup-themes (Teil von make setup) mit einem nachgebauten cli-theme
-# auf: vorhanden, zu alt, install scheitert, fehlt. setup-themes endet immer mit
-# Exit 0, damit make setup ohne cli-theme durchläuft.
+# Ruft make setup-themes (Teil von make setup) auf. Ein nachgebautes pipx spielt
+# devtools (check clitheme: in Ordnung, zu alt, fehlt), ein nachgebautes
+# cli-theme die Installation. setup-themes endet immer mit Exit 0, damit
+# make setup ohne cli-theme oder pipx durchläuft.
 #
 #   ./test/_testSetupThemes.sh
 # ------------------------------------------------------------------------------
@@ -21,54 +22,75 @@ work="$(mktemp -d)"
 cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
+INSTALL_CMD="pipx install --force git+https://github.com/MikeMitterer/python-clitheme.git@v0.4.0"
 
-# Nachgebautes cli-theme: Version aus FAKE_VERSION, install scheitert mit FAKE_FAIL.
-mkdir -p "${work}/bin"
-cat > "${work}/bin/cli-theme" <<'EOF'
+# Nachgebautes pipx: hält die Argumente fest und antwortet wie devtools check
+# (FAKE_CHECK: ok, old, missing).
+mkdir -p "${work}/pipx-bin" "${work}/theme-bin"
+cat > "${work}/pipx-bin/pipx" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" > "\${FAKE_PIPX_LOG}"
+case "\${FAKE_CHECK:-ok}" in
+    ok) exit 0 ;;
+    old) echo "  ✗ CLITheme 0.0.1 is too old (requires 0.4.0 or later): ${INSTALL_CMD}" >&2; exit 1 ;;
+    missing) echo "  ✗ CLITheme is missing: ${INSTALL_CMD}" >&2; exit 1 ;;
+esac
+EOF
+# Nachgebautes cli-theme: install scheitert mit FAKE_FAIL.
+cat > "${work}/theme-bin/cli-theme" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
-    --version) echo "cli-theme ${FAKE_VERSION}" ;;
     install) echo install >> "${FAKE_LOG}"; [[ -z ${FAKE_FAIL:-} ]] || { echo "kaputt"; exit 1; } ;;
     path) echo "${XDG_CONFIG_HOME}/cli-theme/classic.theme" ;;
 esac
 EOF
-chmod +x "${work}/bin/cli-theme"
+chmod +x "${work}/pipx-bin/pipx" "${work}/theme-bin/cli-theme"
 
-# Ohne ~/.local/bin, damit ein installiertes cli-theme nicht mitspielt.
+# Ohne ~/.local/bin, damit installierte Werkzeuge nicht mitspielen.
 BASE_PATH="/usr/bin:/bin:$(dirname "$(command -v make)"):$(dirname "$(command -v bash)")"
-MIN="$(sed -n 's/^CLITHEME_TAG=v\([0-9.]*\)+.*/\1/p' "${ROOT}/.dev-tools.conf.sh")"
+DEVTOOLS_TAG="$(sed -n 's/^DEVTOOLS_TAG=//p' "${ROOT}/.dev-tools.conf.sh")"
 
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
 runSetup() {
     local path="$1"; shift
     : > "${work}/log"
+    : > "${work}/pipx"
     output="$(env -i HOME="${work}" PATH="${path}" XDG_CONFIG_HOME="${work}/config" \
-        FAKE_LOG="${work}/log" "$@" make --no-print-directory -C "${ROOT}" setup-themes 2>&1)"
+        FAKE_LOG="${work}/log" FAKE_PIPX_LOG="${work}/pipx" "$@" \
+        make --no-print-directory -C "${ROOT}" setup-themes 2>&1)"
     status=$?
     output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 }
+
+TOOLS="${work}/pipx-bin:${work}/theme-bin:${BASE_PATH}"
 
 echo
 echo "make setup-themes"
 echo
 
-runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION="${MIN}"
+runSetup "${TOOLS}" FAKE_CHECK=ok
 assertEquals "0" "${status}" "vorhanden: Exit 0"
+assertEquals "run --no-path-check --spec git+https://github.com/MikeMitterer/python-devtools.git@${DEVTOOLS_TAG} devtools check clitheme" \
+    "$(cat "${work}/pipx")" "vorhanden: devtools prüft clitheme am Tag aus .dev-tools.conf.sh"
 assertEquals "install" "$(cat "${work}/log")" "vorhanden: cli-theme install aufgerufen"
 assertContains "✓ CLI-Themes in ${work}/config/cli-theme" "${output}" "vorhanden: Statuszeile nennt den Ordner"
 
-runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION=0.0.1
+runSetup "${TOOLS}" FAKE_CHECK=old
 assertEquals "0" "${status}" "zu alt: Exit 0"
-assertContains "0.0.1 ist zu alt (verlangt ab ${MIN}): pipx install --force" "${output}" "zu alt: Hinweis mit pipx-Befehl"
+assertContains "too old (requires 0.4.0 or later): ${INSTALL_CMD}" "${output}" "zu alt: Meldung von devtools mit Installationsbefehl"
 assertEquals "install" "$(cat "${work}/log")" "zu alt: install trotzdem aufgerufen"
 
-runSetup "${work}/bin:${BASE_PATH}" FAKE_VERSION="${MIN}" FAKE_FAIL=1
+runSetup "${TOOLS}" FAKE_CHECK=ok FAKE_FAIL=1
 assertEquals "0" "${status}" "install scheitert: Exit 0"
 assertContains "kaputt"$'\n'"  ✗ cli-theme install fehlgeschlagen" "${output}" "install scheitert: Ausgabe und Hinweis"
 
-runSetup "${BASE_PATH}"
+runSetup "${work}/pipx-bin:${BASE_PATH}" FAKE_CHECK=missing
 assertEquals "0" "${status}" "fehlt: Exit 0"
-assertContains "CLITheme fehlt, Ausgabe ohne Farben: pipx install --force 'git+https://github.com/MikeMitterer/python-clitheme.git@v${MIN}+" "${output}" "fehlt: Hinweis mit pipx-Befehl"
+assertContains "CLITheme is missing: ${INSTALL_CMD}" "${output}" "fehlt: Meldung von devtools mit Installationsbefehl"
 assertEquals "" "$(cat "${work}/log")" "fehlt: kein install"
+
+runSetup "${BASE_PATH}"
+assertEquals "0" "${status}" "ohne pipx und cli-theme: Exit 0"
+assertEquals "" "$(cat "${work}/log")" "ohne pipx und cli-theme: kein install"
 
 finishTests
