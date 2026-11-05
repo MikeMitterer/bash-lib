@@ -2,7 +2,9 @@
 readonly __ASSERT_LIB__="assert.lib.sh";
 
 #------------------------------------------------------------------------------
-# Asserts für Bash-Tests: vergleichen, zählen, Summenzeile und Exit-Code
+# Asserts für Bash-Tests: vergleichen, zählen, Summenzeile und Exit-Code;
+# checkStatus für einfache Prüfungen, die beim ersten Fehler abbrechen
+# (ersetzt test.lib.sh)
 #
 # Ohne Abhängigkeiten zu anderen Bibliotheken. Ausgabe je Prüfung
 # „  ✓ Beschreibung“ oder „  ✗ Beschreibung (Grund)“; finishTests gibt am Ende
@@ -63,6 +65,28 @@ assertNotContains() {
     else
         tests_failed=$((tests_failed + 1))
         echo "  ✗ ${message} ('${needle}' steht in: ${haystack})"
+    fi
+}
+
+# Prüft den Exit-Code eines vorhergehenden Aufrufs; bei Fehler endet das Skript
+# mit Exit 1 (früher in test.lib.sh). Die Farben stehen nur in der Funktion.
+#
+# Usage:
+#    toClipboard "Test" >> /dev/null
+#    checkStatus ${?} "toClipboard 'Test'"
+#
+# Params:
+#   $1 - Exit-Code
+#   $2 - Beschreibung des Aufrufs
+checkStatus() {
+    local -r _STATUS="${1}" _FUNCTION="${2}"
+    local -r _OK='\033[0;32m' _FAIL='\033[0;31m' _OFF='\033[0m'
+
+    if [[ ${_STATUS} -eq 0 ]]; then
+        echo -e "\t${_OK}OK    ${_OFF}\tCalling ${_FUNCTION} works!"
+    else
+        echo -e "\t${_FAIL}FAILED${_OFF}\tCalling ${_FUNCTION} failed!"
+        exit 1
     fi
 }
 

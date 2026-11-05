@@ -57,7 +57,7 @@ testImports() {
     LIBS=(
         # Muss ganz oben stehen da sonst
         # checkStatus nicht bekannt ist!
-        "test.lib.sh"
+        "assert.lib.sh"
 
         # Colors wird von einigen Libs benötigt
         "colors.lib.sh"
@@ -81,7 +81,6 @@ testImports() {
         "version.lib.sh"
         "fs.lib.sh"
         "webapp.lib.sh"
-        "assert.lib.sh"
 
     )
 
