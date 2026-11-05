@@ -57,6 +57,13 @@ die drei Statuszeilen, bei einem Fehler die Meldung mit Exit ungleich 0. Es
 prüft außerdem, dass die Hooks ohne Probleme still bleiben und Fehler zeigen.
 Es braucht ProjectTools wie `make check`.
 
+`test/_testBashlibCommand.sh` ruft den Befehl `bashlib` ohne Installation
+auf. Ein nachgebautes `dist-info` liefert Version und Befehle wie nach
+`pip install`, dazu einen Befehl, der nur dort steht: Er erscheint ohne
+weitere Pflegestelle. Die Beschreibung je Befehl ist die erste Zeile des
+Docstrings seiner Funktion; die Befehle selbst stehen nur in
+`[project.scripts]`.
+
 `test/_testTheme.sh` prüft das Lesen der CLI-Theme-Datei in `colors.lib.sh`
 mit eigenem `XDG_CONFIG_HOME`: gültige Themes, fehlende und ungültige Dateien,
 Links, `MAKE_THEME`, vorbelegte `THEME_*`-Werte und `NO_COLOR`. Die Farben
@@ -71,14 +78,14 @@ mit einem nachgebauten `cli-theme` auf: vorhanden, zu alt, `install` scheitert
 und fehlt. In jedem Fall endet der Schritt mit Exit 0 und nennt den nächsten
 Schritt.
 
-Das pip-Paket (`pyproject.toml`, Befehl `bashlib-path`) prüft
+Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 
 ```bash
 make test-package
 ```
 
 Es installiert BashLib einmal normal und einmal mit `pip install -e` in je
-eine temporäre venv und bindet daraus eine Bibliothek ein. Dafür braucht es
+eine temporäre venv, bindet daraus eine Bibliothek ein und ruft `bashlib` auf. Dafür braucht es
 Python ab 3.11 (`PYTHON=…`, sonst `python3`) und Zugriff auf den
 Paketindex für setuptools.
 
