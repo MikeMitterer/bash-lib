@@ -1,12 +1,12 @@
 # Changelog
 
-Generated from release tags and Conventional Commits.
+Aus Release-Tags und Conventional Commits erzeugt.
 
 ## v0.4.0+261105.1713.51c76 — 2026-11-05
 
 CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bashlib, make install, gitReleaseTag
 
-### Fixes
+### Fehlerkorrekturen
 
 - Bump-Funktionen committen leise und brechen bei Commit-Fehler ab (`3887804`)
 - pre-commit und post-commit ohne Probleme still (`5ff28cd`)
@@ -19,13 +19,13 @@ CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bash
 - scriptToDoc und repeat beenden Skripte unter set -e nicht (`4b9cf17`)
 - themeAccent/themeMark setzen vor der Rückkehrfarbe zurück (`2390bbf`)
 
-### Other changes
+### Weitere Änderungen
 
 - tag-\* committen den Changelog mit changelog --commit (`9e51cf9`)
 - Asserts als Bibliothek src/assert.lib.sh (`a501e40`)
 - checkStatus nach assert.lib.sh, test.lib.sh entfernt (`f70916a`)
 
-### Features
+### Neue Funktionen
 
 - Theme-Helfer lesen die CLI-Theme-Datei (`401b453`)
 - make setup legt die CLI-Themes mit cli-theme install an (`08db8b5`)
@@ -34,7 +34,7 @@ CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bash
 - Helfer für alle Theme-Rollen, Beispiel nutzt sie (`72d6642`)
 - bashlib-Übersicht wie projecttools, make install (`fd70b0d`)
 
-### Documentation
+### Dokumentation
 
 - Beispiel-CLI mit CLI-Theme (help, info, hints, Fehler) (`257edea`)
 - themeAccent/themeMark nur an Theme-Helfer oder themeStyle (`5c5bc00`)
@@ -44,11 +44,11 @@ CLI-Theme in colors.lib.sh (cli-theme), Theme-Helfer, assert.lib.sh, Befehl bash
 
 Tag-Funktionen pushen nicht mehr
 
-### Breaking changes
+### Inkompatible Änderungen
 
 - Tag-Funktionen taggen nur lokal, Push als eigener Schritt (`6934fb3`)
 
-### Fixes
+### Fehlerkorrekturen
 
 - tag-\* committen CHANGELOG.md lokal, kein push-Target (`85a58d2`)
 - Hinweis nach dem Taggen ohne Push-Befehl (`599569a`)
@@ -57,18 +57,18 @@ Tag-Funktionen pushen nicht mehr
 
 Makefile nach Konventionen, gescheiterter Push wird gemeldet, Paketname in hints
 
-### Fixes
+### Fehlerkorrekturen
 
 - gescheiterten git push melden statt mit Exit 0 weiterzulaufen (`cc8ce2f`)
 - Testskripte laufen auch in Pfaden mit Leerzeichen (`4081ab8`)
 - Maintainer-Targets in make help kennzeichnen (`eacc2ac`)
 
-### Features
+### Neue Funktionen
 
 - Makefile nach makefile-conventions mit Setup, Prüflauf und Versionierung (`8543b3a`)
 - hints und info nennen den Python-Paketnamen (`55ff7da`)
 
-### Documentation
+### Dokumentation
 
 - Beschreibung der tag-\*-Targets in make help kürzen (`3cc46bc`)
 
@@ -76,17 +76,17 @@ Makefile nach Konventionen, gescheiterter Push wird gemeldet, Paketname in hints
 
 BashLib als pip-Paket (mmit-bashlib) mit Befehl bashlib-path
 
-### Documentation
+### Dokumentation
 
 - README auf Einbinden, Voraussetzungen und BASH\_LIBS ausrichten (`611298f`)
 - DEV\_MAKE zeigt auf MakeLib/src (`27896d3`)
 
-### Fixes
+### Fehlerkorrekturen
 
 - Makefile läuft ohne MakeLib mit Ersatzfarben (`deac74d`)
 - ohne MakeLib keine Ersatzfarben, Ausgabe ohne Farben (`49545e3`)
 - Version mit readProjectVersion statt sed lesen (`d657ebd`)
 
-### Features
+### Neue Funktionen
 
 - BashLib als pip-Paket mit Befehl bashlib-path installierbar machen (`4bd9591`)
