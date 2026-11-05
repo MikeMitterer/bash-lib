@@ -99,6 +99,16 @@ printThemeValue "Theme" "${THEME_NAME} $(themeMark "(aus ${THEME_ORIGIN})" "${TH
 printThemeHint "Jeder Befehl steht für sich und lässt sich kopieren."
 ```
 
+**Das Ergebnis enthält Escape-Text** (`\x1B[…m`). Es gehört nur an die
+Theme-Helfer oben oder an `themeStyle TEXT FARBE`; die setzen ihn am Terminal
+um und entfernen ihn in Pipes und mit `NO_COLOR`. Mit `echo` oder `printf`
+steht er roh in der Ausgabe. `printf '%b'` hilft nicht, weil es auch in einer
+Pipe färbt. Für eine eigene Zeile außerhalb der Helfer:
+
+```bash
+themeStyle "Fertig: $(themeAccent 3) Dateien" "${THEME_COLOR_DESC}"; echo
+```
+
 `usageLine LABEL TEXT [no|yes|intend|ZAHL]` bleibt gültig. `yes`/`intend`
 rücken die Beschreibung um vier weitere Leerzeichen ein. Eingebettete
 Farbcodes in bestehenden Texten bleiben am Terminal erhalten.
