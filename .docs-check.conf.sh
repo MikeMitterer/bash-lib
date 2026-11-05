@@ -20,6 +20,7 @@ DOCS=(
     "README.md"
     "LICENSING.md"
     "docs"
+    "examples"
 )
 
 # Interne Doku, die nur auf tote Links, fehlende Bilder und Anker geprüft

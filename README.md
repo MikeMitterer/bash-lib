@@ -146,6 +146,10 @@ wie Python-Werkzeuge und Makefiles. `CLI_THEME` wählt sie (Standard
 keine Farben, bei `NO_COLOR`, in Pipes und bei `TERM=dumb` ebenfalls nicht.
 Rollen, Abstände und Rückfallverhalten stehen in [docs/themes.md](docs/themes.md).
 
+Ein lauffähiges Beispiel mit Hilfe, Info, Hinweisen, Statuszeilen und
+Fehlermeldungen liegt in [examples/](examples/README.md):
+`./examples/cli-demo.sh --help`.
+
 [↑ Übersicht](#übersicht)
 
 ## Entwicklung
