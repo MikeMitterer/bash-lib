@@ -256,7 +256,8 @@ repeat() {
     local _MAX=${2:-80}
 
     local _RANGE
-    _RANGE=$(seq "${_START}" "${_MAX}")
+    # Ungültige Anzahl: seq meldet den Fehler, das aufrufende Skript läuft weiter (set -e)
+    _RANGE=$(seq "${_START}" "${_MAX}") || true
 
     for i in $_RANGE ; do echo -n "${_STRING_TO_REPEAT}"; done
 }
@@ -302,9 +303,10 @@ scriptToDoc() {
     _NC="$(printf %q "${NC}")"
 
     # Der letzte Part in der |-Verkettung löscht die Leerzeilen!
+    # Ohne Doku-Zeilen scheitert grep; das aufrufende Skript läuft weiter (set -e)
     _SCRIPT_DOC="$(\grep "^#['\"|]" "${_SCRIPT}" | sed "s/^#'[ ]*-[-]*//" | \
         sed "s/^#\" /${_COLOR_HEADLINE}/" | sed "s/^#'[ ]*/${_COLOR_DETAIL}/" | \
-        sed 's/^[ ]*$//' | sed "N;s/\n/${_NC}/g" | sed 's/^#|[ ]*/\\n/')"
+        sed 's/^[ ]*$//' | sed "N;s/\n/${_NC}/g" | sed 's/^#|[ ]*/\\n/')" || true
 
     echo "${_SCRIPT_DOC}${NC}"
 }
