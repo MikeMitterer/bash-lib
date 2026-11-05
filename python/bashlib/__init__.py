@@ -108,7 +108,10 @@ def cli() -> int:
         print(version())
         return 0
     if arguments:
-        print(f"Unbekanntes Argument {arguments[0]}\nbashlib --help", file=sys.stderr)
+        # Eine bekannte Option mit Zusatz: den Zusatz nennen, nicht die Option.
+        known = arguments[0] in ("-h", "--help", "--version")
+        problem = f"Zu viele Argumente: {arguments[1]}" if known else f"Unbekanntes Argument {arguments[0]}"
+        print(f"{problem}\nbashlib --help", file=sys.stderr)
         return 2
     rows = [("r", name, describe(target)) for name, target in commands()]
     return _render([("h", f"BashLib {version()}", ""), *rows])

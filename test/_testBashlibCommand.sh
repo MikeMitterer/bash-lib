@@ -110,7 +110,10 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     assert run('-h')[0] == out
     assert run('--version')[0] == '9.8.7\n'
     out, err = run('--unbekannt', code=2)
-    assert not out and 'Unbekanntes Argument --unbekannt' in err and 'bashlib --help' in err, err
+    assert not out and err == 'Unbekanntes Argument --unbekannt\nbashlib --help\n', err
+    for option in ('--version', '-h', '--help'):
+        out, err = run(option, 'x', code=2)
+        assert not out and err == 'Zu viele Argumente: x\nbashlib --help\n', (option, err)
 
     # Ohne Metadaten (nicht installiert): Version aus pyproject.toml.
     (info / 'METADATA').unlink()
