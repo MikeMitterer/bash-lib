@@ -43,6 +43,10 @@ jede Bibliothek und rufen ausgewählte Funktionen auf. Das Makefile setzt
 direkt startet, setzt es selbst, sonst bricht es mit „Var 'BASH_LIBS' nicht
 gesetzt!“ ab. Änderungen an Skripten zusätzlich mit `bash -n` und ShellCheck
 prüfen.
+`test/_testShellcheck.sh` lässt ShellCheck über `src/tools.lib.sh` laufen und
+schlägt bei jeder Meldung fehl; ohne installiertes `shellcheck` wird er
+übersprungen. Bewusst stehen gelassene Stellen tragen ein
+`# shellcheck disable=…` mit Begründung.
 
 Die Bash-Tests unter `test/` binden `src/assert.lib.sh` der eigenen
 Arbeitskopie ein: `assertEquals`, `assertContains`, `assertNotContains` und

@@ -9,12 +9,19 @@ readonly __TOOLS_LIB__="tools.lib.sh";
 #
 #------------------------------------------------------------------------------
 
+# shellcheck source=SCRIPTDIR/colors.lib.sh
 if [[ "${__COLORS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/colors.lib.sh"; fi
+# shellcheck source=SCRIPTDIR/apps.lib.sh
 if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
+# shellcheck source=SCRIPTDIR/dtime.lib.sh
 if [[ "${__DTIME_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/dtime.lib.sh"; fi
 
+# Öffentliche Konstanten für Skripte, die tools.lib.sh einbinden
+# shellcheck disable=SC2034  # von einbindenden Skripten verwendet
 readonly DASH10="----------"
+# shellcheck disable=SC2034  # von einbindenden Skripten verwendet
 readonly DASH50="--------------------------------------------------"
+# shellcheck disable=SC2034  # von einbindenden Skripten verwendet
 readonly DASH80="--------------------------------------------------------------------------------"
 
 # Theme-Ausgabe für alle Skripte. Farben und Abstände kommen aus colors.lib.sh,
@@ -179,7 +186,7 @@ usageLine() {
 #
 showModuleLinks() {
     local _PARAMS=("$@")
-    local _HEADLINE=("${_PARAMS[@]:0}")
+    local -r _HEADLINE="${1}"
 
     echo
     echo -e "${YELLOW}${_HEADLINE}:${NC}"
@@ -242,7 +249,8 @@ repeat() {
     local _STRING_TO_REPEAT="${1:--}"
     local _MAX=${2:-80}
 
-    local _RANGE=$(seq "${_START}" "${_MAX}")
+    local _RANGE
+    _RANGE=$(seq "${_START}" "${_MAX}")
 
     for i in $_RANGE ; do echo -n "${_STRING_TO_REPEAT}"; done
 }
@@ -282,12 +290,13 @@ scriptToDoc() {
     # Weitere Infos:
     #     https://askubuntu.com/a/1332058/723654
     #
-    local _COLOR_HEADLINE="$(printf %q "${DARK_GREY}")"
-    local _COLOR_DETAIL="$(printf %q "${LIGHT_GRAY}")"
-    local _NC="$(printf %q "${NC}")"
+    local _COLOR_HEADLINE _COLOR_DETAIL _NC _SCRIPT_DOC
+    _COLOR_HEADLINE="$(printf %q "${DARK_GREY}")"
+    _COLOR_DETAIL="$(printf %q "${LIGHT_GRAY}")"
+    _NC="$(printf %q "${NC}")"
 
     # Der letzte Part in der |-Verkettung löscht die Leerzeilen!
-    local _SCRIPT_DOC="$(\grep "^#['\"|]" "${_SCRIPT}" | sed "s/^#'[ ]*-[-]*//" | \
+    _SCRIPT_DOC="$(\grep "^#['\"|]" "${_SCRIPT}" | sed "s/^#'[ ]*-[-]*//" | \
         sed "s/^#\" /${_COLOR_HEADLINE}/" | sed "s/^#'[ ]*/${_COLOR_DETAIL}/" | \
         sed 's/^[ ]*$//' | sed "N;s/\n/${_NC}/g" | sed 's/^#|[ ]*/\\n/')"
 
@@ -331,7 +340,7 @@ showMenu() {
     local _hint_color="${MM_GLOBAL_STYLE_HINT_COLOR:-${BLUE}}"
 
     # Wenn nur ein Argument übergeben wird, prüfen, ob es sich um ein Array handelt
-    if [[ $# -eq 1 ]] && [[ "$(declare -p $1 2>/dev/null)" =~ "declare -a" ]]; then
+    if [[ $# -eq 1 ]] && [[ "$(declare -p "$1" 2>/dev/null)" =~ "declare -a" ]]; then
         local _title="$_default_title"
         local -n _options=$1
     else
@@ -348,24 +357,26 @@ showMenu() {
         # Split _option where the first | is found
         IFS='|' read -r -a _split <<< "${_option}"
 
-        local _raw_option="$(trim "${_split[0]}")"
-        local _description="$(trim "${_split[1]}")"
+        local _raw_option _description
+        _raw_option="$(trim "${_split[0]}")"
+        _description="$(trim "${_split[1]}")"
 
         local _option="${_raw_option}"
         local _has_bullets=false
         local _has_exit=false
         if [[ ${_raw_option} =~ ^- ]]; then
-            _option=$(echo "${_raw_option}" | sed 's/^- //')
+            _option="${_raw_option#- }"
             _has_bullets=true
         elif [[ ${_raw_option} =~ ^x ]]; then
-            _option=$(echo "${_raw_option}" | sed 's/^x //')
+            _option="${_raw_option#x }"
             _has_exit=true
         fi
 
         # Add space after _option where the max amount of characters is _option_length - 20
         local _max_length=30
-        local _printable=$(echo -e "${_option}")
-        local _not_printable=$(echo -e "${_option}" | tr -cd '[:print:]')
+        local _printable _not_printable
+        _printable=$(echo -e "${_option}")
+        _not_printable=$(echo -e "${_option}" | tr -cd '[:print:]')
 
         # Subtract the length of the color codes
         local _length_diff=$(( ${#_printable} - ${#_not_printable} ))
@@ -378,7 +389,8 @@ showMenu() {
         fi
 
         local _nr_of_spaces=$(( _max_length - _option_length ))
-        local _spaces="$(repeat " " $_nr_of_spaces)"
+        local _spaces
+        _spaces="$(repeat " " "$_nr_of_spaces")"
 
         if [[ ${_has_bullets} == true ]]; then
             echo -e "${_intent}${_bullet_color}$((i+1)).${NC} ${_option}${_spaces}${_hint_color}${_description}${NC}"
