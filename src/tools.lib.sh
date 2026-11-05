@@ -52,11 +52,16 @@ printThemeHint() {
 }
 
 # Hervorhebung im Text (Rolle C_ACC: Platzhalter, zulässige Werte, Antworten) zum
-# Einbetten in eine Beschreibung; danach gilt wieder die Farbe $2. Ohne Farben
-# (Pipe, NO_COLOR, ohne Theme-Datei) bleibt nur der Text.
+# Einbetten in eine Beschreibung; danach gilt wieder die Farbe $2.
+#
+# Das Ergebnis enthält Escape-Text (\x1B[…m). Es gehört nur an die Theme-Helfer
+# (printThemeRow, printThemeValue, printThemeHint, usageLine) oder an
+# themeStyle TEXT FARBE; die setzen ihn am Terminal um und entfernen ihn in Pipe
+# und mit NO_COLOR. Mit echo oder printf steht er roh in der Ausgabe.
 #
 # Usage:
 #   printThemeRow "greet NAME" "Begrüßt $(themeAccent NAME)"
+#   themeStyle "Fertig: $(themeAccent 3) Dateien" "${THEME_COLOR_DESC}"; echo
 #
 # $1 Text, $2 Farbe danach (Standard THEME_COLOR_DESC, die Farbe der Beschreibung)
 themeAccent() {
@@ -64,7 +69,8 @@ themeAccent() {
 }
 
 # Markierung im Text (Rolle C_MARK: Sonderstellung wie Maintainer oder Server,
-# Herkunft eines Werts), sonst wie themeAccent.
+# Herkunft eines Werts), sonst wie themeAccent: nur an die Theme-Helfer oder
+# themeStyle geben, nicht an echo/printf.
 #
 # Usage:
 #   printThemeValue "Theme" "${THEME_NAME} $(themeMark "(aus ${THEME_ORIGIN})" "${THEME_COLOR_VALUE}")"
