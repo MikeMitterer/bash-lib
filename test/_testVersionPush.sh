@@ -175,6 +175,9 @@ runIn release semVerWithDate
 assertEquals "0.1.0" "${out%%+*}" "semVerWithDate: Basis aus dem v-Tag"
 runIn release gitDockerTag 0
 assertEquals "0.1.0" "${out%%-*}" "gitDockerTag: Basis aus dem v-Tag"
+hash="$(git -C "${work}/release" rev-parse --short=5 HEAD)"
+runIn release getPackageName demo
+assertEquals "demo-0.1.0-261105.1000.abc12-${hash}.zip" "${out}" "getPackageName: Version aus dem v-Tag"
 
 makeRepo untagged none
 git -C "${work}/untagged" tag deploy-2026-11

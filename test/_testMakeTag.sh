@@ -101,6 +101,15 @@ assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --for
 assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
 assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"
 
+# hints und version nennen den Release-Tag, nicht einen näheren deploy-Tag
+git -C "${work}/ok" commit -q --no-verify --allow-empty -m "deploy"
+git -C "${work}/ok" tag -a deploy-2026-11 -m "deploy"
+runMake ok hints
+assertContains ".git@${tag}'" "${out}" "make hints: Installationsbefehl mit dem Release-Tag"
+assertNotContains "deploy-2026-11" "${out}" "make hints: kein deploy-Tag"
+runMake ok version
+assertContains "${tag}" "$(grep 'git tag' <<< "${out}")" "make version: git tag ist der Release-Tag"
+
 # Das Rezept lässt changelog selbst committen (ohne Push), kein eigener Umweg
 recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
