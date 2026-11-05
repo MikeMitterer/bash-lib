@@ -66,7 +66,11 @@ und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Außerdem
 prüft es `gitReleaseTag`: Ein Tag wie `deploy-2026-11` näher am Commit zählt
 nicht, `gitVersion`, `semVerWithDate`, `gitDockerTag` und `getPackageName`
 nehmen den v-Tag. `test/_testMakeTag.sh` prüft dasselbe für `make hints`
-(Installationsbefehl) und `make version` (git tag).
+(Installationsbefehl) und `make version` (Release-Tag).
+`test/_testVersionTools.sh` prüft `semVerNext`, `gitListReleaseTags`,
+`showProjectVersion` und `showReleaseTags` gegen echte Git-Repos, dazu die
+Vorschau `{major}`, `{minor}` und `{patch}` in `make help` sowie `make version`
+und `make tags`.
 Es bindet
 `src/version.lib.sh` der eigenen Arbeitskopie ein, nicht die unter
 `BASH_LIBS`, und blendet die globale Git-Konfiguration aus.

@@ -68,9 +68,14 @@ help: ## Alle verfügbaren Befehle anzeigen
 	@echo
 	@echo "Project: $(THEME_COLOR_GROUP)$${PROJECT_NAME}$(RESET)"
 	@echo
-	@set -o pipefail; grep -hE '^(##@|[a-zA-Z0-9_-]+:.*?## )' $${HELP_FILES} | \
-	  awk 'function row(label, description) { \
+	@set -o pipefail; source "$${BASH_LIBS}/version.lib.sh"; \
+	 ver=$$(readProjectVersion 2>/dev/null) || ver='x.y.z'; \
+	 bump() { local next; next=$$(semVerNext "$$1" 2>/dev/null) || next="$$2"; printf '%s → %s' "$$ver" "$$next"; }; \
+	 grep -hE '^(##@|[a-zA-Z0-9_-]+:.*?## )' $${HELP_FILES} | \
+	  awk -v major="$$(bump major X+1.0.0)" -v minor="$$(bump minor x.Y+1.0)" -v patch="$$(bump patch x.y.Z+1)" \
+	    'function row(label, description) { \
 	      sub(/ — Maintainer$$/, " $(MAINTAINER_MARK)", description); \
+	      gsub(/\{major\}/, major, description); gsub(/\{minor\}/, minor, description); gsub(/\{patch\}/, patch, description); \
 	      printf "$(THEME_INDENT_TARGET)$(THEME_COLOR_TARGET)%s$(RESET)", label; \
 	      padding = $(THEME_WIDTH_TARGET) - length(label) + $(THEME_COLUMN_GAP); \
 	      if (length(label) > $(THEME_WIDTH_TARGET)) { printf "\n$(THEME_INDENT_TARGET)"; padding = $(THEME_WIDTH_TARGET) + $(THEME_COLUMN_GAP) }; \
@@ -244,25 +249,20 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 
 # Nach versioning-conventions (templates/versioning.mk): Die Version steht in
 # pyproject.toml; lesen und erhöhen nur über version.lib.sh dieses Checkouts
-# (readProjectVersion, semVerBump).
+# (readProjectVersion, semVerBump, semVerNext für {major}/{minor}/{patch} in help).
 
 ##@ Versionierung
 
 .PHONY: version
-version: precheck ## Aktuelle Version anzeigen (pyproject.toml + git tag) — Maintainer
+version: precheck ## Version aus pyproject.toml und Release-Tag anzeigen — Maintainer
 	@echo
-	@VER=$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null); \
-	 [[ -z "$$VER" ]] && VER='nicht gesetzt'; \
-	 TAG=$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && gitReleaseTag || echo 'kein Release-Tag'); \
-	 echo "    $(YELLOW)version$(RESET)      = $(BLUE)$$VER$(RESET)"; \
-	 echo "    $(YELLOW)git tag$(RESET)      = $(BLUE)$$TAG$(RESET)"
+	@source "$${BASH_LIBS}/tools.lib.sh" && showProjectVersion
 	@echo
 
 .PHONY: tags
-tags: ## Letzte 10 Tags mit Message anzeigen
+tags: precheck ## Letzte 10 Release-Tags mit Nachricht anzeigen
 	@echo
-	@git tag --sort=-version:refname -n1 | head -10 | \
-	  awk '{printf "    $(BLUE)%-28s$(RESET) $(GREEN)%s$(RESET)\n", $$1, substr($$0, index($$0,$$2))}'
+	@source "$${BASH_LIBS}/tools.lib.sh" && showReleaseTags 10
 	@echo
 
 # Eine Statuszeile für tag-*: Häkchen, Beschriftung, Wert.
@@ -325,13 +325,13 @@ changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem Tag.
 .PHONY: tag-major
-tag-major: require-tools precheck ## Major (X.y.z → X+1.0.0)  [MSG="..."] — Maintainer
+tag-major: require-tools precheck ## Major-Release {major}, inkompatibel  [MSG="..."] — Maintainer
 	$(call release,major)
 
 .PHONY: tag-minor
-tag-minor: require-tools precheck ## Minor (x.Y.z → x.Y+1.0)  [MSG="..."] — Maintainer
+tag-minor: require-tools precheck ## Minor-Release {minor}, neue Funktion  [MSG="..."] — Maintainer
 	$(call release,minor)
 
 .PHONY: tag-patch
-tag-patch: require-tools precheck ## Patch (x.y.Z → x.y.Z+1)  [MSG="..."] — Maintainer
+tag-patch: require-tools precheck ## Patch-Release {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
 	$(call release,patch)

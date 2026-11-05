@@ -15,6 +15,8 @@ if [[ "${__COLORS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/colors.lib.sh"; fi
 if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
 # shellcheck source=SCRIPTDIR/dtime.lib.sh
 if [[ "${__DTIME_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/dtime.lib.sh"; fi
+# shellcheck source=SCRIPTDIR/version.lib.sh
+if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
 
 # Öffentliche Konstanten für Skripte, die tools.lib.sh einbinden
 # shellcheck disable=SC2034  # von einbindenden Skripten verwendet
@@ -107,6 +109,49 @@ printThemeStatus() {
     printf '%s' "${THEME_INDENT_GROUP}"
     themeStyle "${_SYMBOL} ${_MESSAGE}" "${!_COLOR_NAME:-}"
     printf '\n'
+}
+
+# Version aus der Versionsdatei und Release-Tag (gitReleaseTag) als zwei Zeilen
+# im CLI-Theme, für make version. Fehlt eines, steht der Grund als Wert da.
+#
+# Usage:
+#   showProjectVersion
+#   showProjectVersion pyproject.toml ../app
+#
+# $1 Quelle wie readProjectVersion (Standard auto), $2 Verzeichnis (Standard .)
+showProjectVersion() {
+    local -r _SOURCE="${1:-auto}" _REPO="${2:-.}"
+    local _version _tag
+    _version="$(readProjectVersion "${_SOURCE}" "${_REPO}")" || _version="keine Versionsdatei"
+    _tag="$(gitReleaseTag HEAD "${_REPO}")" || _tag="kein Release-Tag"
+    printThemeValue "Version" "${_version}"
+    printThemeValue "Release-Tag" "${_tag}"
+}
+
+# Die letzten Release-Tags (gitListReleaseTags) im CLI-Theme, neueste zuerst:
+# Tag als Bezeichnung, Nachricht als Beschreibung; die erste Spalte wird so
+# breit wie der längste Tag. Ohne Release-Tag ein Hinweis.
+#
+# Usage:
+#   showReleaseTags
+#   showReleaseTags 5 ../app
+#
+# $1 Anzahl (Standard 10), $2 Verzeichnis (Standard .); Exit wie gitListReleaseTags
+showReleaseTags() {
+    local _list _tag _message _longest=0 _extra
+    _list="$(gitListReleaseTags "${1:-10}" "${2:-.}")" || return $?
+    if [[ -z ${_list} ]]; then
+        printThemeHint "keine Release-Tags"
+        return 0
+    fi
+    while IFS=$'\t' read -r _tag _message; do
+        (( ${#_tag} > _longest )) && _longest=${#_tag}
+    done <<< "${_list}"
+    _extra=$(( _longest - $(themeNumber "${THEME_WIDTH_TARGET}" "${W_KEY}") ))
+    (( _extra > 0 )) || _extra=0
+    while IFS=$'\t' read -r _tag _message; do
+        printThemeRow "${_tag}" "${_message}" "${_extra}"
+    done <<< "${_list}"
 }
 
 # Zeigt den Status des jeweiligen Files oder Folders an

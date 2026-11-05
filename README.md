@@ -113,7 +113,7 @@ printThemeRow "-h | --help" "Hilfe anzeigen"
 printThemeStatus "✓" "Fertig" SUCCESS
 ```
 
-`tools.lib.sh` bringt `colors.lib.sh`, `apps.lib.sh` und `dtime.lib.sh` mit;
+`tools.lib.sh` bringt `colors.lib.sh`, `apps.lib.sh`, `dtime.lib.sh` und `version.lib.sh` mit;
 für die meisten Skripte genügt diese eine Zeile. Die Wächterzeile jeder
 Bibliothek steht in ihrem Dateikopf unter „Einbinden“.
 
@@ -127,7 +127,7 @@ statt abzubrechen.
 
 | Bibliothek | Inhalt | Lädt mit |
 |---|---|---|
-| `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), Ports, Zeichenketten | colors, apps, dtime |
+| `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
@@ -136,7 +136,7 @@ statt abzubrechen.
 | `fs.lib.sh` | Datei- und Verzeichnisfunktionen | – |
 | `net.lib.sh` | IP- und Netzfunktionen | os |
 | `docker.lib.sh` | Docker-Images bauen und pushen (Docker Hub, GHCR, ECR) | colors |
-| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), Release-Tag eines Commits (`gitReleaseTag`) | – |
+| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
 | `styles.lib.sh` | Global definierte Ausgabestile | colors |
 | `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
