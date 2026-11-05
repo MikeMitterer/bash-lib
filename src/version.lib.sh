@@ -29,6 +29,32 @@ showDevVersion() {
     echo -e "    ${GREEN}$(gitVersion)${NC}"
 }
 
+# Gibt den nächsten Release-Tag eines Commits unverändert aus, mit führendem v
+# und Build-Meta (z. B. v0.3.0+261103.1343.9d0a8). Release-Tags beginnen mit v
+# und einer Ziffer; andere Tags wie deploy-2026-11 zählen nicht, auch wenn sie
+# näher am Commit liegen. Die übrigen Versionsfunktionen lesen den Tag hierüber.
+#
+# Usage:
+#      tag="$(gitReleaseTag)" || echo "kein Release-Tag"
+#      tag="$(gitReleaseTag "${commit}" "${repo}")"
+#
+# Parameter:
+#   $1  commit  (default: HEAD)
+#   $2  repo    (default: .)
+#
+# Exit:
+#   0  Tag gefunden (auf stdout)
+#   1  kein Release-Tag vor dem Commit
+#   2  kein Git-Repo oder unbekannter Commit
+#
+gitReleaseTag() {
+    local _commit="${1:-HEAD}"
+    local _repo="${2:-.}"
+
+    command git -C "$_repo" rev-parse --verify --quiet "${_commit}^{commit}" >/dev/null 2>&1 || return 2
+    command git -C "$_repo" describe --tags --abbrev=0 --match 'v[0-9]*' "$_commit" 2>/dev/null || return 1
+}
+
 # Gibt die aktuelle (SemVer-kompatible) Version zurück.
 #
 # Quelle: Git-Tag (z. B. v25.3.1+250812.1410); bei dirty -> ".d"
@@ -58,7 +84,7 @@ gitVersion() {
 
     # 1) Tag lesen (bevorzugt vYY.MINOR.PATCH+YYMMDD.HHMM)
     local _tag _ver
-    _tag="$(_git describe --tags --abbrev=0 --match 'v[0-9]*' || true)"
+    _tag="$(gitReleaseTag HEAD "$_repo" || true)"
 
     if [[ -n "$_tag" ]]; then
         # Tag ohne führendes "v"
@@ -377,7 +403,7 @@ semVerWithDate() {
     local _base=""
     if _git rev-parse --git-dir >/dev/null; then
         local _tag
-        _tag=$(_git describe --tags --abbrev=0 --match 'v[0-9]*' || true)
+        _tag="$(gitReleaseTag HEAD "$_repo" || true)"
         _base="${_tag#v}"
     fi
     [[ -z "$_base" ]] && _base="0.0.0"
@@ -472,7 +498,7 @@ gitDockerTag() {
 
     # 1) Git-Tag lesen
     local _tag_ref
-    _tag_ref="$(_git describe --tags --abbrev=0 --match 'v[0-9]*' || true)"
+    _tag_ref="$(gitReleaseTag HEAD "$_repo" || true)"
 
     if [[ -z "$_tag_ref" ]]; then
         [[ "$_strict" -ge 1 ]] && return 2
