@@ -97,6 +97,7 @@ der Text in denselben Spalten:
 | `printThemeHint TEXT` | `C_HINT`, Einrückung `I_HINT` | Hinweistext in eigener Zeile |
 | `themeAccent TEXT [FARBE]` | `C_ACC` | Hervorhebung in einer Beschreibung: Platzhalter, zulässige Werte |
 | `themeMark TEXT [FARBE]` | `C_MARK` | Markierung: Maintainer, Server, Herkunft eines Werts |
+| `themeEscape TEXT` | – | Backslashes verdoppeln, damit Text von außen (Pfade, Werte) über die Helfer wörtlich erscheint |
 
 `themeAccent` und `themeMark` liefern ein Stück Text zum Einbetten und kehren
 danach zur Farbe `FARBE` zurück, ohne Angabe zur Farbe der Beschreibung. In
