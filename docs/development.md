@@ -1,7 +1,7 @@
 # Entwicklung
 
 **Für alle, die an BashLib selbst arbeiten.** Wie man die Bibliotheken nutzt,
-steht im [README](../README.md).
+steht im [README](../README.de.md).
 
 ## Voraussetzungen
 

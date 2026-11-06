@@ -128,4 +128,4 @@ Die Theme-Helfer färben nur am Terminal, nicht in Pipes, bei `NO_COLOR` und
 bei `TERM=dumb`. Die Palette (`RED`, `GREEN`, `NC`, `BOLD`, `GREP_COLOR_*` …)
 bleibt unverändert und folgt keinem Theme.
 
-Zurück zum [README](../README.md).
+Zurück zum [README](../README.de.md).

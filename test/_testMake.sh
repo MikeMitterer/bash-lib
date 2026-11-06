@@ -224,7 +224,7 @@ rc=0
 help="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" help 2>"${work}/err")" || rc=$?
 assertEquals "0" "${rc}" "Beispiel: make help Exit 0"
 assertEquals "" "$(cat "${work}/err")" "Beispiel: make help ohne stderr"
-assertContains "Hilfe anzeigen" "${help}" "Beispiel: help über showMakeHelp"
+assertContains "Show this help" "${help}" "Beispiel: help über showMakeHelp"
 hints="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" hints 2>&1)"
 # make -C liefert den physischen Pfad; WORKSPACE_SQ quotet den Apostroph als '\''
 physical="$(cd "${folder}" && pwd -P)"
@@ -235,7 +235,7 @@ for entry in "${work}"/*; do
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 help="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" help 2>&1)"
-assertContains "help: ## Hilfe anzeigen" "${help}" "Beispiel ohne BashLib: schlichte Liste"
+assertContains "help: ## Show this help" "${help}" "Beispiel ohne BashLib: schlichte Liste"
 hints="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" hints 2>&1)"
 assertContains "pipx install -e" "${hints}" "Beispiel ohne BashLib: Hinweise schlicht"
 
