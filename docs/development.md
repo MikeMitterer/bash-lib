@@ -110,6 +110,11 @@ denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
 `/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
 
+`test/_testHelpFormat.sh` prüft `printThemeOption` und `printThemeExample`:
+reservierte Kurzform-Spalte, bündige Langformen, Metavariable, lange Einträge
+in eigener Zeile, `usageLine` wie bisher, Farben am Pseudoterminal und eine
+Metavariable mit `$(…)`, die nie ausgeführt wird.
+
 `test/_testMakeHints.sh` prüft `make hints` in Wegwerf-Repos: SSH-Remote als
 https-Adresse, der Release-Tag `v…` statt eines neueren deploy-Tags, der
 Ersatz von `repo-info` ohne Remote, der Hinweis ohne ProjectTools und ein Tag

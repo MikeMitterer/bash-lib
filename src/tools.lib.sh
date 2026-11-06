@@ -44,6 +44,48 @@ printThemeValue() {
     themeLine "${1}" "${2}" 0 "${THEME_COLOR_VALUE}"
 }
 
+# Option der Hilfe: Kurz- und Langform in fester Spalte („-i | --info“); ohne Kurzform
+# bleibt deren Platz frei, die Langformen stehen bündig. Optionsnamen in der Rolle
+# C_KEY, die Metavariable (etwa DATEI) in C_ACC, die Beschreibung in C_TEXT. Ein zu
+# langer Eintrag steht in eigener Zeile, die Beschreibung darunter.
+#
+# Usage:
+#     printThemeOption -i --info "Einstellungen anzeigen"
+#     printThemeOption "" --restore DATEI "Sicherung zurückspielen"
+#
+# $1 Kurzform (leer: keine), $2 Langform (leer: keine), $3 Metavariable (leer oder
+# weggelassen: keine), $4 Beschreibung; mit drei Argumenten ist $3 die Beschreibung.
+printThemeOption() {
+    local -r _short="${1}" _long="${2}"
+    local _metavar="${3}" _description="${4-}" _label
+    if (( $# == 3 )); then
+        _metavar=""
+        _description="${3}"
+    fi
+    if [[ -n ${_short} && -n ${_long} ]]; then
+        _label="${_short} | ${_long}"
+    elif [[ -n ${_long} ]]; then
+        # Platz der Kurzform („-x | “) freilassen
+        _label="     ${_long}"
+    else
+        _label="${_short}"
+    fi
+    [[ -z ${_metavar} ]] || _label+=" $(themeAccent "${_metavar}" "${THEME_COLOR_TARGET}")"
+    themeLine "${_label}" "${_description}"
+}
+
+# Beispielaufruf der Hilfe: Aufruf in der Rolle C_KEY, Beschreibung in C_TEXT; ein zu
+# langer Aufruf steht in eigener Zeile, die Beschreibung darunter.
+#
+# Usage:
+#     printThemeHeading "Beispiele"
+#     printThemeExample "demo --info" "Einstellungen anzeigen"
+#
+# $1 Aufruf, $2 Beschreibung
+printThemeExample() {
+    themeLine "${1}" "${2}"
+}
+
 # Hinweistext in eigener Zeile: Einrückung I_HINT, Rolle C_HINT.
 # $1 Text
 printThemeHint() {
