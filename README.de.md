@@ -166,7 +166,7 @@ Spalten wie die Hilfe eines Skripts:
   „nicht gesetzt“.
 
 Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
-nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen beide nicht um;
+nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen sie nicht um;
 eine lange Beschreibung bleibt eine Zeile. Ohne BashLib zeigt das Makefile eine
 schlichte Liste:
 

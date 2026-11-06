@@ -165,7 +165,7 @@ columns as the help of a script:
   “nicht gesetzt”.
 
 File names and values reach the recipe through the environment (`$${VAR}`) and
-are only printed, never evaluated. Like all theme helpers, neither wraps; a
+are only printed, never evaluated. Like all theme helpers, none of them wraps; a
 long description stays one line. Without BashLib the Makefile shows a plain
 list:
 

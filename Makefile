@@ -61,7 +61,7 @@ help: ## Alle verfügbaren Befehle anzeigen
 info: ## Umgebungsvariablen anzeigen
 	@echo
 	@source "$${BASH_LIBS}/make.lib.sh"; \
-	 version=$$(readProjectVersion 2>/dev/null) || version='nicht gesetzt'; \
+	 version=$$(readProjectVersion 2>/dev/null); \
 	 showMakeInfo \
 		PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}" BASH_LIBS "$${BASH_LIBS}" \
 		PACKAGE '$(or $(PACKAGE_NAME),$(NO_PACKAGE))' VERSION "$${version}" \
