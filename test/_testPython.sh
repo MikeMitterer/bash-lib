@@ -76,6 +76,8 @@ for option in --python --venv --min; do
 done
 runVenv --python "${CURRENT}" --venv .venv --min drei
 assertEquals "2" "${rc}" "--min keine Version: Aufruffehler Exit 2"
+runVenv --python "${CURRENT}" --venv .venv --min 3.14.0
+assertEquals "2" "${rc}" "--min mit drei Stellen: Aufruffehler Exit 2 (verglichen werden X.Y)"
 runVenv --venv .venv
 assertEquals "2" "${rc}" "ohne --python: Aufruffehler Exit 2"
 

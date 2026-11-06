@@ -55,7 +55,7 @@ ensurePythonVenv() {
         printf 'ensurePythonVenv: --python PYTHON und --venv ORDNER erwartet\n' >&2
         return 2
     fi
-    if [[ -n ${_min} && ! ${_min} =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+    if [[ -n ${_min} && ! ${_min} =~ ^[0-9]+\.[0-9]+$ ]]; then
         printf 'ensurePythonVenv: --min X.Y erwartet, war %s\n' "${_min}" >&2
         return 2
     fi
