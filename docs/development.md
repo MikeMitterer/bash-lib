@@ -116,6 +116,11 @@ reservierte Kurzform-Spalte, bündige Langformen, Metavariable, lange Einträge
 in eigener Zeile, `usageLine` wie bisher, Farben am Pseudoterminal und eine
 Metavariable mit `$(…)`, die nie ausgeführt wird.
 
+`test/_testPython.sh` prüft `ensurePythonVenv` mit `python3.14` und einem
+älteren `python3`: Interpreter fehlt oder ist zu alt, venv anlegen und
+unverändert lassen, vorhandene venv zu alt, pip scheitert (offline mit
+`--no-index`) und Aufruffehler.
+
 `test/_testMakeHints.sh` prüft `make hints` in Wegwerf-Repos: SSH-Remote als
 https-Adresse, der Release-Tag `v…` statt eines neueren deploy-Tags, der
 Ersatz von `repo-info` ohne Remote, der Hinweis ohne ProjectTools und ein Tag
