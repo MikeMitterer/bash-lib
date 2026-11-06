@@ -181,6 +181,22 @@ themeHeading() {
     printf '\n'
 }
 
+# Verdoppelt Backslashes, damit Text von außen (Pfade, Werte, Hinweise) über die
+# Theme-Helfer wörtlich erscheint; die geben mit printf %b aus.
+#
+# Usage:
+#     printThemeValue "Pfad" "$(themeEscape "${path}")"
+#
+# $1 Text
+themeEscape() {
+    local _rest="${1}" _result=""
+    while [[ ${_rest} == *\\* ]]; do
+        _result+="${_rest%%\\*}\\\\"
+        _rest="${_rest#*\\}"
+    done
+    printf '%s' "${_result}${_rest}"
+}
+
 # Theme-Ausgabe für alle Skripte. Farben und Abstände kommen von clitheme (oben).
 # $1 Überschrift; THEME_GROUP_SPACING steuert die Leerzeilen davor.
 printThemeHeading() {

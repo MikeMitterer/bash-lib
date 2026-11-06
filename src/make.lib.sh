@@ -94,7 +94,7 @@ showMakeHelp() {
         while IFS= read -r _line || [[ -n ${_line} ]]; do
             _line="${_line%$'\r'}"
             if [[ ${_line} =~ ${_GROUP} ]]; then
-                printThemeHeading "$(makeEscape "$(trim "${BASH_REMATCH[1]}")")"
+                printThemeHeading "$(themeEscape "$(trim "${BASH_REMATCH[1]}")")"
             elif [[ ${_line} =~ ${_TARGET} && ${BASH_REMATCH[2]} != =* \
                     && ${BASH_REMATCH[2]} == *"## "* ]]; then
                 _target="${BASH_REMATCH[1]}"
@@ -105,7 +105,7 @@ showMakeHelp() {
                     _maintainer=" $(themeMark "[Maintainer]")"
                 fi
                 printThemeRow "${_target}" \
-                    "$(makeEscape "$(makeFill "${_description}" ${_settings[@]+"${_settings[@]}"})")${_maintainer}"
+                    "$(themeEscape "$(makeFill "${_description}" ${_settings[@]+"${_settings[@]}"})")${_maintainer}"
             fi
         done < "${_file}"
     done
@@ -129,7 +129,7 @@ showMakeInfo() {
         return 2
     fi
     while (( $# > 0 )); do
-        printThemeValue "$(makeEscape "${1}")" "$(makeEscape "${2:-nicht gesetzt}")"
+        printThemeValue "$(themeEscape "${1}")" "$(themeEscape "${2:-nicht gesetzt}")"
         shift 2
     done
     echo
@@ -207,12 +207,12 @@ showMakeHints() {
     while IFS= read -r _line || [[ -n ${_line} ]]; do
         _line="${_line%$'\r'}"
         if [[ ${_line} == "## "* ]]; then
-            printThemeHeading "$(makeEscape "$(trim "${_line#"## "}")")"
+            printThemeHeading "$(themeEscape "$(trim "${_line#"## "}")")"
         elif [[ -n ${_line//[[:space:]]/} ]]; then
             _label="${_line%%$'\t'*}"
             _value=""
             [[ ${_line} == *$'\t'* ]] && _value="${_line#*$'\t'}"
-            printThemeValue "$(makeEscape "$(trim "${_label}")")" "$(makeEscape "$(trim "${_value}")")"
+            printThemeValue "$(themeEscape "$(trim "${_label}")")" "$(themeEscape "$(trim "${_value}")")"
         fi
     done
     echo
@@ -251,20 +251,6 @@ makeFill() {
             _result+="{"
             _rest="${_after}"
         fi
-    done
-    printf '%s' "${_result}${_rest}"
-}
-
-# Verdoppelt Backslashes: Die Theme-Helfer geben Text mit printf %b aus, ein
-# Backslash im Text erscheint so wörtlich.
-#
-# Params:
-#     $1 - Text
-makeEscape() {
-    local _rest="${1}" _result=""
-    while [[ ${_rest} == *\\* ]]; do
-        _result+="${_rest%%\\*}\\\\"
-        _rest="${_rest#*\\}"
     done
     printf '%s' "${_result}${_rest}"
 }
