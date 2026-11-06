@@ -133,7 +133,7 @@ statt abzubrechen.
 |---|---|---|
 | `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeOption`, `printThemeExample`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`) | tools |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -161,9 +161,12 @@ Spalten wie die Hilfe eines Skripts:
   ersetzt der Wert aus `--set`, unbekannte Platzhalter bleiben stehen.
 - **`showMakeHints`** liest von stdin: `## Title` wird Überschrift,
   `Label<TAB>Value` eine Zeile, deren Wert nie umbricht.
+- **`showMakeInfo NAME VALUE …`** gibt Paare als Zeilen für `make info` aus,
+  etwa `showMakeInfo WORKSPACE "$${WORKSPACE}"`; ein leerer Wert erscheint als
+  „nicht gesetzt“.
 
 Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
-nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen beide nicht um;
+nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen sie nicht um;
 eine lange Beschreibung bleibt eine Zeile. Ohne BashLib zeigt das Makefile eine
 schlichte Liste:
 

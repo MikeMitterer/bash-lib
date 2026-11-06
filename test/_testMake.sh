@@ -155,6 +155,25 @@ else
 fi
 
 echo
+echo "showMakeInfo"
+echo
+
+runMake showMakeInfo PROJECT_NAME demo LEER "" "Mit Umlaut" "Wert mit Leerzeichen"
+assertEquals "0" "${rc}" "Exit 0"
+expected="       PROJECT_NAME           demo
+       LEER                   nicht gesetzt
+       Mit Umlaut             Wert mit Leerzeichen
+
+"
+assertEquals "${expected}" "${out}" "Paare in den Spalten des Themes, leerer Wert als nicht gesetzt, Leerzeile am Ende"
+runMake showMakeInfo NUR_NAME
+assertEquals "2" "${rc}" "ungerade Anzahl: Exit 2"
+assertContains "NAME WERT" "${err}" "ungerade Anzahl: Meldung auf stderr"
+assertEquals "" "${out}" "ungerade Anzahl: keine halbe Ausgabe"
+runMake showMakeInfo WERT "${hostile}"
+assertContains "${hostile}" "${out}" "Wert mit \$(…), Backtick, Apostroph, &, Backslash und % wörtlich"
+
+echo
 echo "showMakeHints"
 echo
 
@@ -203,7 +222,8 @@ nocolor="$(env PATH="/usr/bin:/bin:$(dirname "$(command -v bash)")" make --no-pr
 assertNotContains "${ESC}" "${nocolor}" "make help ohne clitheme: keine Escape-Folgen"
 assertContains "Project:" "${nocolor}" "make help ohne clitheme: läuft"
 info="$(make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
-assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeilen über showMakeHints"
+assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeilen über showMakeInfo"
+assertContains "showMakeInfo" "$(sed -n '/^info:/,/^$/p' "${ROOT}/Makefile")" "Makefile: info über showMakeInfo"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
 assertContains "pipx install -e '${ROOT}'" "${hints}" "make hints: Arbeitskopie mit absolutem Pfad"

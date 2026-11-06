@@ -110,6 +110,29 @@ showMakeHelp() {
     echo
 }
 
+# Name/Wert-Zeilen für make info: Paare NAME WERT als Argumente, in den Spalten des
+# Themes wie showMakeHints; ein leerer Wert erscheint als „nicht gesetzt“. Die
+# Ausgabe endet mit einer Leerzeile.
+#
+# Usage (im Makefile, Werte über die Umgebung):
+#     showMakeInfo PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}"
+#
+# Exit:
+#     0  ausgegeben
+#     2  ungerade Anzahl Argumente (dann ohne Ausgabe)
+#
+showMakeInfo() {
+    if (( $# % 2 != 0 )); then
+        printf 'showMakeInfo: Paare NAME WERT erwartet, war %d Argumente\n' "$#" >&2
+        return 2
+    fi
+    while (( $# > 0 )); do
+        printThemeValue "$(makeEscape "${1}")" "$(makeEscape "${2:-nicht gesetzt}")"
+        shift 2
+    done
+    echo
+}
+
 # Hinweiszeilen von stdin: `## Titel` wird Überschrift, `Beschriftung<TAB>Wert`
 # eine Zeile mit dem Wert in der Rolle C_VAL, der nie umbricht. Eine Zeile ohne
 # TAB ist eine Beschriftung ohne Wert; leere Zeilen zählen nicht. Die Ausgabe
