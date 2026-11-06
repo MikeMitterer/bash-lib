@@ -47,6 +47,10 @@ steht der Hinweis einmal auf stderr, etwa:
        pipx install git+https://github.com/MikeMitterer/python-clitheme.git
 ```
 
+Ist clitheme installiert, scheitert aber, lautet der Hinweis „clitheme export
+gescheitert, Ausgabe ohne Farben“, und die zweite Zeile nennt
+`clitheme export --bash`; der Aufruf zeigt den Grund.
+
 Bis BashLib 0.5 las `colors.lib.sh` die Datei unter `cli-theme/` selbst und
 setzte die Rollen `C_HEAD` … und Abstände `W_KEY` …; `MAKE_THEME` galt als
 Ersatzname. Diese Variablen gibt es nicht mehr.
