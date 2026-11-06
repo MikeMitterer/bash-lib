@@ -93,9 +93,11 @@ Docstrings seiner Funktion; die Befehle selbst stehen nur in
 `clitheme export --bash` übernimmt, mit dem echten clitheme in eigenem
 `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`: Werte, Auswahl über `CLI_THEME`,
 vorbelegte und geerbte `THEME_*`-Werte, eine fehlende Theme-Datei, ein Befund
-mit `$(…)` im Pfad, der nie ausgeführt wird, und den Fall ohne clitheme im
-`PATH`. Die Farben prüft es an einem Pseudoterminal; dafür braucht es
-`python3`. Ohne installiertes clitheme schlägt der Test fehl.
+mit `$(…)` im Pfad, der nie ausgeführt wird, den Fall ohne clitheme im `PATH`
+und ein scheiterndes `clitheme export` (dafür steht `false` unter dem Namen
+clitheme, weil das echte nicht scheitert). Die Farben prüft es an einem
+Pseudoterminal; dafür braucht es `python3`. Ohne installiertes clitheme schlägt
+der Test fehl.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
 mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem

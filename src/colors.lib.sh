@@ -309,8 +309,9 @@ readonly RESET="${NC}"
 # dazu THEME_NAME, THEME_SOURCE und THEME_ORIGIN. Im Skript vor dem Einbinden gesetzte
 # THEME_*-Werte gewinnen, geerbte (exportierte) nicht.
 #
-# Ohne clitheme: keine Farben, die Abstände unten, ein Hinweis auf stderr bei der ersten
-# Theme-Ausgabe am Terminal.
+# Ohne clitheme oder wenn clitheme export scheitert: keine Farben, die Abstände unten,
+# ein Hinweis auf stderr bei der ersten Theme-Ausgabe am Terminal, je Fall mit dem
+# passenden nächsten Schritt.
 
 # Farben und Abstände, die clitheme export --bash setzt und ein Skript selbst vorgeben darf;
 # dazu setzt export THEME_NAME, THEME_SOURCE, THEME_ORIGIN und THEME_NOTICE.
@@ -355,18 +356,21 @@ themeLoad() {
     THEME_WIDTH_TARGET="${THEME_FALLBACK_WIDTH_TARGET}" THEME_COLUMN_GAP="${THEME_FALLBACK_COLUMN_GAP}"
     THEME_WIDTH_HELP=120 THEME_GROUP_SPACING="${THEME_FALLBACK_GROUP_SPACING}"
 
-    if command -v clitheme >/dev/null 2>&1 && _export="$(clitheme export --bash 2>/dev/null)"; then
+    if ! command -v clitheme >/dev/null 2>&1; then
+        THEME_NOTICE="clitheme fehlt, Ausgabe ohne Farben"$'\n'"${THEME_CLITHEME_INSTALL}"
+    elif _export="$(clitheme export --bash 2>/dev/null)"; then
         # clitheme quotet jeden Wert; die Ausgabe enthält nur Zuweisungen an THEME_*.
         eval "${_export}"
         # Escape-Bytes als Escape-Text wie die Palette: themeStyle setzt sie mit %b um.
-        # Ersatz über eine Variable: ein gequoteter Ersatz bleibt in Bash 3.2 mit Quotes stehen.
+        # Ersatz über eine Variable, damit der Escape-Text wörtlich bleibt.
         for _name in GROUP TARGET DESC VALUE HINT ACCENT SUCCESS WARNING DANGER SERVER; do
             _name="THEME_COLOR_${_name}"
             _value="${!_name}"
             printf -v "${_name}" '%s' "${_value//${_escape}/${_escapeText}}"
         done
     else
-        THEME_NOTICE="clitheme fehlt, Ausgabe ohne Farben"$'\n'"${THEME_CLITHEME_INSTALL}"
+        # Installiert, aber gescheitert: der Aufruf zeigt den Grund.
+        THEME_NOTICE="clitheme export gescheitert, Ausgabe ohne Farben"$'\n'"clitheme export --bash"
     fi
 
     for _name in "${!_own[@]}"; do

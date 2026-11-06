@@ -134,5 +134,17 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     plain = run('printThemeHeading Titel; printThemeRow opt Text', terminal=True, extra=extra)
     assert '\x1b' not in plain and plain.count('pipx install git+https://github.com/MikeMitterer/python-clitheme.git') == 1, plain
 
+    # Installiert, aber export scheitert: eigener Hinweis mit dem Aufruf, der den Grund zeigt.
+    # Das echte clitheme scheitert auch mit kaputter Theme-Datei nicht; den Fehlerfall stellt
+    # deshalb `false` unter dem Namen clitheme her (einziger Nachbau, L-200).
+    broken_bin = base / 'broken-bin'
+    broken_bin.mkdir()
+    (broken_bin / 'clitheme').symlink_to(shutil.which('false'))
+    extra = {'PATH': f'{broken_bin}:{without}'}
+    assert run('printf "%s|%s" "$THEME_COLOR_GROUP" "$THEME_WIDTH_TARGET"', extra=extra) == '|21'
+    broken = run('printThemeHeading Titel; printThemeRow opt Text', terminal=True, extra=extra)
+    assert '\x1b' not in broken and broken.count('clitheme export gescheitert') == 1, broken
+    assert '\n       clitheme export --bash\n' in broken and 'pipx install' not in broken, broken
+
     print('Theme: Übernahme aus clitheme export, eigene Werte, Fehlerfälle und PTY-Ausgabe bestanden')
 PY
