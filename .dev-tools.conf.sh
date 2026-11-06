@@ -20,7 +20,7 @@ PROJECTTOOLS_SOURCE=git+https://github.com/MikeMitterer/bash-ProjectTools.git
 PROJECTTOOLS_EDITABLE=yes
 
 # CLITheme (clitheme: Theme-Dateien, Farben für Makefile und Skripte).
-# colors.lib.sh nimmt Farben und Abstände aus clitheme export; ohne clitheme ohne Farben.
+# Makefile (help, hints, info) und colors.lib.sh nehmen Farben und Abstände aus clitheme export.
 CLITHEME_PACKAGE=mmit-clitheme
 CLITHEME_LABEL=CLITheme
 CLITHEME_TAG=v0.5.0+261106.1232.efc7c

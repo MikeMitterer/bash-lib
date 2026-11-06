@@ -5,15 +5,16 @@ steht im [README](../README.md).
 
 ## Voraussetzungen
 
-- Bash ab 4.3, Git und [pipx](https://pipx.pypa.io).
+- Bash 5, Git und [pipx](https://pipx.pypa.io).
 - [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
   für `make docs-check`, `make test`, `make status` und `make changelog`. Die
   verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
   installierten Stand, `make hints` den Installationsbefehl. Fehlt ProjectTools
   oder ist es zu alt, brechen diese Targets mit dem Befehl ab.
-- Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
-  auf deren `src`: Das Makefile nimmt dann deren Farben und Themes, sonst
-  erscheint die Ausgabe ohne Farben.
+- Optional [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl
+  `clitheme`, ab 0.5.0): Das Makefile nimmt Farben und Abstände aus
+  `clitheme export`, `help`, `hints` und `info` kommen über `make.lib.sh`. Ohne
+  CLITheme erscheint die Ausgabe ohne Farben.
 
 ## Einrichten und Testen
 
@@ -26,7 +27,7 @@ make check
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
-Hooks erscheinen vollständig. Danach legt `make setup` mit `cli-theme install`
+Hooks erscheinen vollständig. Danach legt `make setup` mit `clitheme install`
 fehlende CLI-Theme-Dateien an, die `colors.lib.sh` liest; vorhandene bleiben
 unverändert. Fehlt CLITheme oder ist es zu alt, nennt `make setup` den
 pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
@@ -99,8 +100,13 @@ Pseudoterminal; dafür braucht es `python3`. Ohne installiertes clitheme schläg
 der Test fehl.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
-mit nachgebautem `pipx` und `cli-theme`: vorhanden, zu alt, `install`
-scheitert, fehlt und ohne pipx.
+mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
+echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
+
+`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`) mit
+denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
+`/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
+dem README in einem Ordner `it's $(uname)`.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 
@@ -151,6 +157,12 @@ Eine neue Datei `src/<name>.lib.sh` folgt dem Muster der vorhandenen:
 3. Abhängigkeiten lädt sie über `${BASH_LIBS}` mit derselben Wächterzeile.
 
 Danach die Tabelle der Bibliotheken im README ergänzen.
+
+Ausgaben bauen auf den Theme-Helfern aus `tools.lib.sh` auf
+(`printThemeHeading`, `printThemeRow`, `printThemeValue`, `themeMark`), nicht
+auf eigenen Farben oder Spalten. Namen folgen den vorhandenen: `show<Gegenstand>`
+für einen ganzen Block (`showReleaseTags`, `showMakeHelp`), `printTheme<Teil>`
+für eine Zeile.
 
 ## Farben und Themes
 

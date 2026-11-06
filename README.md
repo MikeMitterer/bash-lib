@@ -22,13 +22,16 @@ Bibliothek lädt die Bibliotheken, die sie selbst braucht, über die Variable
 - [Installation](#installation)
 - [Einbinden](#einbinden)
 - [Bibliotheken](#bibliotheken)
+- [Hilfe und Hinweise in Makefiles](#hilfe-und-hinweise-in-makefiles)
 - [Farben und Themes](#farben-und-themes)
 - [Entwicklung](#entwicklung)
 - [Lizenz](#lizenz)
 
 ## Voraussetzungen
 
-- **Bash ab 4.3.** macOS bringt Bash 3.2 mit; eine aktuelle Bash kommt mit
+- **Bash 5.** Die Bibliotheken setzen Bash 5 voraus; die aktuellen
+  Linux-LTS-Versionen bringen 5.2 oder 5.3 mit. macOS bringt als `/bin/bash`
+  nur 3.2 mit; eine aktuelle Bash kommt mit
   `brew install bash`. Skripte starten mit `#!/usr/bin/env bash`, damit die
   Bash aus dem `PATH` läuft.
 - **`BASH_LIBS`** zeigt auf das Verzeichnis `src` dieses Repos (siehe
@@ -129,6 +132,7 @@ statt abzubrechen.
 |---|---|---|
 | `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -142,6 +146,50 @@ statt abzubrechen.
 | `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
 | `webapp.lib.sh` | Node- und TypeScript-Apps veröffentlichen | colors, fs |
+
+[↑ Übersicht](#übersicht)
+
+## Hilfe und Hinweise in Makefiles
+
+`make.lib.sh` gibt `make help` und `make hints` im CLI-Theme aus, in denselben
+Spalten wie die Hilfe eines Skripts:
+
+- **`showMakeHelp [--set NAME=WERT]… DATEI…`** liest aus den Makefiles
+  `##@ Gruppe` und `target: … ## Beschreibung`. Eine Beschreibung, die auf
+  „— Maintainer“ endet, bekommt die Markierung **[Maintainer]**; `{NAME}`
+  ersetzt der Wert aus `--set`, unbekannte Platzhalter bleiben stehen.
+- **`showMakeHints`** liest von stdin: `## Titel` wird Überschrift,
+  `Beschriftung<TAB>Wert` eine Zeile, deren Wert nie umbricht.
+
+Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
+nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen beide nicht um;
+eine lange Beschreibung bleibt eine Zeile. `make.lib.sh` läuft auch unter
+`/bin/bash` 3.2, damit `make help` auf einem Mac ohne aktuelle Bash geht. Ohne
+BashLib zeigt das Makefile eine schlichte Liste:
+
+```makefile
+SHELL := bash
+
+WORKSPACE    := $(CURDIR)
+WORKSPACE_SQ := '$(subst ','\'',$(WORKSPACE))'
+# Werte von außen nur über die Umgebung in Rezepte geben ("$${VAR}")
+export WORKSPACE_SQ
+export HELP_FILES = $(value MAKEFILE_LIST)
+
+.PHONY: help
+help: ## Hilfe anzeigen
+	@if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
+		source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp $${HELP_FILES}; \
+	else grep -hE '^[a-zA-Z0-9_-]+:.*## ' $${HELP_FILES}; fi
+
+.PHONY: hints
+hints: ## Befehle zum Kopieren
+	@rows() { printf '## %s\n' 'Arbeitskopie'; \
+		printf '%s\t%s\n' 'Installieren' "pipx install -e $${WORKSPACE_SQ}"; }; \
+	if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
+		source "$${BASH_LIBS}/make.lib.sh" && rows | showMakeHints; \
+	else rows | expand -t 24; fi
+```
 
 [↑ Übersicht](#übersicht)
 
