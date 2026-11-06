@@ -16,7 +16,7 @@ if [[ -z ${BASH_LIBS+x} ]]; then echo "Var 'BASH_LIBS' nicht gesetzt!" >&2; exit
 
 set -eou pipefail
 
-# tools.lib.sh bindet colors.lib.sh ein; das holt das Theme einmal von clitheme.
+# tools.lib.sh bindet cli.lib.sh ein; das holt das Theme einmal von clitheme.
 # shellcheck source=/dev/null  # liegt unter BASH_LIBS
 if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 
@@ -52,7 +52,7 @@ showHelp() {
 }
 
 # Info: Werte wie Pfade und Version, eine Zeile je Wert in C_VAL. Theme, Datei und
-# Herkunft kommen aus colors.lib.sh (THEME_NAME, THEME_SOURCE, THEME_ORIGIN); die
+# Herkunft kommen aus cli.lib.sh (THEME_NAME, THEME_SOURCE, THEME_ORIGIN); die
 # Herkunft steht als Markierung in C_MARK, ein Hinweis in C_HINT schließt ab.
 showInfo() {
     colorState

@@ -5,7 +5,8 @@
 [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl `clitheme`,
 ab 0.5.0).** Python-Werkzeuge, Makefiles und Bash-Skripte zeigen damit dasselbe
 Theme; die Theme-Datei liest nur CLITheme. Skripte binden wie bisher
-`colors.lib.sh` oder `tools.lib.sh` ein; ein zusätzliches Modul gibt es nicht.
+`tools.lib.sh` ein, das `cli.lib.sh` mitbringt; wer nur die Ausgabe braucht,
+bindet `cli.lib.sh` allein ein.
 
 ```bash
 if [[ "${__TOOLS_LIB__:=}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
@@ -20,7 +21,7 @@ CLI_THEME=ocean ./mein-skript.sh --help
 
 ## Theme von clitheme
 
-`colors.lib.sh` ruft beim Einbinden einmal `clitheme export --bash` auf.
+`cli.lib.sh` ruft beim Einbinden einmal `clitheme export --bash` auf.
 clitheme liest das gewählte Theme (`CLI_THEME`, Standard `classic`; Datei unter
 `${XDG_CONFIG_HOME:-~/.config}/clitheme/`), prüft es und gibt die aufgelösten
 Werte gequotet aus. `clitheme install` legt die mitgelieferten Vorlagen an,
@@ -81,7 +82,7 @@ Palette. Mit classic beginnt die Beschreibung wie bisher in Spalte 31.
 ## Ausgabehelfer
 
 `printThemeHeading TEXT`, `printThemeRow LABEL TEXT [EINRÜCKUNG]` und
-`printThemeStatus SYMBOL TEXT ROLLE` stehen in `tools.lib.sh`. Als Rolle nimmt
+`printThemeStatus SYMBOL TEXT ROLLE` stehen in `cli.lib.sh`. Als Rolle nimmt
 `printThemeStatus` `OK`, `WARN`, `ERR` oder die bisherigen Namen `SUCCESS`,
 `WARNING`, `DANGER` und jede andere `THEME_COLOR_*`-Endung.
 

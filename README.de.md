@@ -117,8 +117,9 @@ printThemeRow "-h | --help" "Show help"
 printThemeStatus "✓" "Done" SUCCESS
 ```
 
-`tools.lib.sh` bringt `colors.lib.sh`, `apps.lib.sh`, `dtime.lib.sh` und
-`version.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Die Wächterzeile jeder
+`tools.lib.sh` bringt `cli.lib.sh` (Ausgabe im CLI-Theme), `colors.lib.sh`,
+`apps.lib.sh`, `dtime.lib.sh`, `version.lib.sh`, `make.lib.sh` und `net.lib.sh`
+mit; für die meisten Skripte genügt diese eine Zeile. Die Wächterzeile jeder
 Bibliothek steht in ihrem Dateikopf unter „Einbinden“.
 
 **Ein Skript, das auch ohne BashLib laufen soll**, prüft wie oben, ob
@@ -131,15 +132,16 @@ statt abzubrechen.
 
 | Bibliothek | Inhalt | Lädt mit |
 |---|---|---|
-| `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeOption`, `printThemeExample`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
-| `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`) | tools |
+| `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt alle Bibliotheken rechts, Skripte finden so jede Funktion wie bisher | cli, apps, dtime, version, make, net |
+| `cli.lib.sh` | Ausgabe im CLI-Theme: Theme von clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
+| `colors.lib.sh` | Feste ANSI-Farbpalette (`RED`, `GREEN`, `NC` …) | – |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
 | `dtime.lib.sh` | Datum und Uhrzeit | os |
 | `fs.lib.sh` | Datei- und Verzeichnisfunktionen | – |
-| `net.lib.sh` | IP- und Netzfunktionen | os |
+| `net.lib.sh` | IP- und Netzfunktionen, `isLocalPortOpen` | os |
 | `docker.lib.sh` | Docker-Images bauen und pushen (Docker Hub, GHCR, ECR) | colors |
 | `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
