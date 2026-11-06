@@ -2,6 +2,14 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.7.0+261106.2017.0e5e1 — 2026-11-06
+
+Kopfzeilen der Makefile-Hilfe im Theme (showMakeHeader, showMakeHelp --project), Makefile ohne clitheme export --make
+
+### Neue Funktionen
+
+- Kopfzeilen der Makefile-Hilfe im Theme (T-57) (`f3d6b20`)
+
 ## v0.6.0+261106.1941.8649f — 2026-11-06
 
 Theme aus clitheme, neue cli.lib.sh, make.lib.sh und python.lib.sh, einheitliches Hilfeformat
