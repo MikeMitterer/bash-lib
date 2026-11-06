@@ -52,7 +52,6 @@ readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
 #     2  Aufruf falsch: --set ohne NAME=WERT oder keine Datei
 #
 showMakeHelp() {
-    # Indizierte Arrays statt -A: make.lib.sh läuft auch unter /bin/bash 3.2 (macOS)
     local -a _settings=() _files=()
     local _file _line _setting _target _description _maintainer
     local -r _GROUP='^##@[[:space:]]*(.*)$'

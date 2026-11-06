@@ -118,8 +118,7 @@ printThemeStatus "✓" "Done" SUCCESS
 ```
 
 `tools.lib.sh` bringt `cli.lib.sh` (Ausgabe im CLI-Theme), `colors.lib.sh`,
-`apps.lib.sh`, `dtime.lib.sh`, `version.lib.sh`, `make.lib.sh` und `net.lib.sh`
-mit; für die meisten Skripte genügt diese eine Zeile. Die Wächterzeile jeder
+`apps.lib.sh`, `dtime.lib.sh`, `version.lib.sh` und `make.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Die Wächterzeile jeder
 Bibliothek steht in ihrem Dateikopf unter „Einbinden“.
 
 **Ein Skript, das auch ohne BashLib laufen soll**, prüft wie oben, ob
@@ -132,20 +131,19 @@ statt abzubrechen.
 
 | Bibliothek | Inhalt | Lädt mit |
 |---|---|---|
-| `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt alle Bibliotheken rechts, Skripte finden so jede Funktion wie bisher | cli, apps, dtime, version, make, net |
+| `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt alle Bibliotheken rechts, Skripte finden so jede Funktion wie bisher | cli, apps, dtime, version, make |
 | `cli.lib.sh` | Ausgabe im CLI-Theme: Theme von clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Feste ANSI-Farbpalette (`RED`, `GREEN`, `NC` …) | – |
 | `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | tools |
-| `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
+| `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable`, fehlender Befehl mit Hinweis (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
 | `dtime.lib.sh` | Datum und Uhrzeit | os |
 | `fs.lib.sh` | Datei- und Verzeichnisfunktionen | – |
 | `net.lib.sh` | IP- und Netzfunktionen, `isLocalPortOpen` | os |
 | `docker.lib.sh` | Docker-Images bauen und pushen (Docker Hub, GHCR, ECR) | colors |
-| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`) | – |
+| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`), Paketname und Befehle aus `pyproject.toml` (`readPackageName`, `readPackageCommands`; nur einzeilige `key = "value"`, kein vollständiger TOML-Parser) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
-| `styles.lib.sh` | Global definierte Ausgabestile | colors |
 | `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
 | `webapp.lib.sh` | Node- und TypeScript-Apps veröffentlichen | colors, fs |

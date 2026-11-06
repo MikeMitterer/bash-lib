@@ -62,8 +62,6 @@ testImports() {
         # Colors wird von einigen Libs benötigt
         "colors.lib.sh"
 
-        "styles.lib.sh"
-
         "apps.lib.sh"
         
         # dtime pass hier da "build" indirekt "tools" einbindet und die

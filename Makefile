@@ -34,7 +34,6 @@ export DEVTOOLS_SPEC := git+https://github.com/MikeMitterer/python-devtools.git@
 DEV_TOOLS = pipx run --no-path-check --spec "$$DEVTOOLS_SPEC" devtools
 # devtools braucht pipx: eine Meldung, wenn es fehlt, und der Grund, wenn devtools nichts liefert.
 PIPX_URL := https://pipx.pypa.io
-pipx_missing = printf '  $(THEME_COLOR_DANGER)✗$(RESET) pipx fehlt: $(THEME_COLOR_ACCENT)$(PIPX_URL)$(RESET)\n' >&2
 devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools gescheitert' || echo 'pipx fehlt ($(PIPX_URL))')
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
@@ -78,9 +77,9 @@ REPO_URL     = $(or $(shell repo-info --url 2>/dev/null),$(NO_REPO_INFO))
 RELEASE_TAG  = $(or $(shell repo-info --release-tag 2>/dev/null),$(NO_REPO_INFO))
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
 # [project.scripts]); nur erlaubte Zeichen, sonst leer.
-PACKAGE_NAME := $(shell awk -F'"' '/^\[/ { s = $$0 } s == "[project]" && /^name *=/ { print $$2; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+PACKAGE_NAME := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageName)
 # Befehle aus [project.scripts], durch Leerzeichen getrennt; der erste ist PACKAGE_CMD
-PACKAGE_CMDS := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1 }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
+PACKAGE_CMDS := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands)
 PACKAGE_CMD  := $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
 
@@ -123,7 +122,7 @@ precheck:
 # Ohne `##`: verlangt ProjectTools in Mindestversion und nennt sonst den Installationsbefehl.
 .PHONY: require-tools
 require-tools:
-	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
+	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"
 	@$(DEV_TOOLS) check projecttools
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
@@ -145,7 +144,7 @@ setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 # clitheme bleibt die Ausgabe der Skripte farblos.
 .PHONY: setup-themes
 setup-themes:
-	@if command -v pipx >/dev/null; then $(DEV_TOOLS) check clitheme >&2 || true; else $(pipx_missing); fi; \
+	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(DEV_TOOLS) check clitheme >&2 || true; fi; \
 	command -v clitheme >/dev/null || exit 0; \
 	if output=$$(clitheme install 2>&1); then \
 		printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(clitheme path)")"; \
@@ -159,7 +158,7 @@ setup-themes:
 # pipx nur beim Installieren an; nach einem Update deshalb erneut aufrufen.
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
-	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
+	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"
 	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
 		names='$(PACKAGE_CMDS)'; printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
 	else \

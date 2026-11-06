@@ -19,13 +19,11 @@ if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
 if [[ "${__DTIME_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/dtime.lib.sh"; fi
 # shellcheck source=SCRIPTDIR/version.lib.sh
 if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
-# Früher hier, jetzt in eigenen Bibliotheken; eingebunden, damit bestehende Skripte sie
-# weiter über tools.lib.sh finden (showProjectVersion, showReleaseTags, isLocalPortOpen).
+# showProjectVersion und showReleaseTags standen früher hier; make.lib.sh bleibt
+# eingebunden, bis die Makefiles es selbst einbinden (T-55).
 # make.lib.sh bindet seinerseits tools.lib.sh ein; ShellCheck folgt dem Kreis nicht.
 # shellcheck source=/dev/null
 if [[ "${__MAKE_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/make.lib.sh"; fi
-# shellcheck source=SCRIPTDIR/net.lib.sh
-if [[ "${__NET_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/net.lib.sh"; fi
 
 # Öffentliche Konstanten für Skripte, die tools.lib.sh einbinden
 # shellcheck disable=SC2034  # von einbindenden Skripten verwendet

@@ -290,6 +290,38 @@ packageVersion() {
     jq -r '.version' <"package.json"
 }
 
+#------------------------------------------------------------------------------
+# readPackageName [repo=.] / readPackageCommands [repo=.]
+#
+# Paketname ([project] name) bzw. Befehle (Schlüssel von [project.scripts]) aus
+# pyproject.toml, je Zeile einer. Ausgegeben wird nur, was aus [A-Za-z0-9._-]
+# besteht. Kein vollständiger TOML-Parser: nur `schlüssel = "wert"` in einer Zeile,
+# keine Inline-Tabellen, keine mehrzeiligen Strings, keine '…'-Strings.
+#
+# Usage:
+#   name="$(readPackageName)"
+#   readPackageCommands ../app
+#
+# Exit:
+#   0  gefunden (auf stdout)
+#   1  keine pyproject.toml, kein Eintrag oder nur ungültige Namen
+#
+readPackageName() {
+    local -r _file="${1:-.}/pyproject.toml"
+    local _name
+    [[ -r ${_file} ]] || return 1
+    _name="$(awk -F'"' '/^\[/ { s = $0 } s == "[project]" && /^name *=/ { print $2; exit }' "${_file}" \
+        | grep -xE '[A-Za-z0-9._-]+')" || return 1
+    printf '%s\n' "${_name}"
+}
+
+readPackageCommands() {
+    local -r _file="${1:-.}/pyproject.toml"
+    [[ -r ${_file} ]] || return 1
+    awk -F' *= *' '/^\[/ { s = $0; next } s == "[project.scripts]" && NF > 1 { print $1 }' "${_file}" \
+        | grep -xE '[A-Za-z0-9._-]+'
+}
+
 # Liest die aktuelle Projekt-Version framework-korrekt aus der Versionsdatei.
 #
 # Auto-Detect-Kette (erste vorhandene Datei gewinnt):
