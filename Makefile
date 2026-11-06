@@ -18,27 +18,13 @@ export WORKSPACE WORKSPACE_SQ PROJECT_NAME BASH_LIBS
 # Release-Tags der pipx-Werkzeuge (ProjectTools)
 include .dev-tools.conf.sh
 
-# MakeLib ist optional (DEV_MAKE aus der Umgebung)
--include ${DEV_MAKE}/colours.mk
-
-# Fallbacks, wenn DEV_MAKE nicht verfügbar ist
-YELLOW ?= $(shell printf "\033[38;5;3m")
-GREEN  ?= $(shell printf "\033[38;5;2m")
-BLUE   ?= $(shell printf "\033[38;5;6m")
-ORANGE ?= $(shell printf "\033[38;5;214m")
-RED    ?= $(shell printf "\033[38;5;1m")
-WHITE  ?= $(shell printf "\033[38;5;7m")
-RESET  ?= $(shell printf "\033[0m")
-NC     ?= $(shell printf "\033[0m")
-THEME_COLOR_GROUP   ?= $(YELLOW)
-THEME_COLOR_TARGET  ?= $(BLUE)
-THEME_COLOR_DESC    ?= $(GREEN)
-THEME_COLOR_DANGER  ?= $(RED)
-THEME_INDENT_GROUP  ?= $(shell printf '%2s' '')
-THEME_INDENT_TARGET ?= $(shell printf '%7s' '')
-THEME_WIDTH_TARGET  ?= 22
-THEME_COLUMN_GAP    ?= 1
-THEME_GROUP_SPACING ?= 1
+# Farben und Abstände aus dem Theme von CLITheme (clitheme export, ab 0.5.0), dieselben
+# wie in den Skripten. Ohne clitheme bleiben die THEME_*-Farben leer, und die Ausgabe
+# kommt ohne Escape-Folgen. RESET nur, wenn das Theme Farben liefert.
+-include $(shell clitheme export --make 2>/dev/null)
+RESET := $(if $(strip $(THEME_COLOR_GROUP)$(THEME_COLOR_TARGET)$(THEME_COLOR_DESC)),$(shell printf '\033[0m'))
+# Name des gewählten Themes für make info, über die Umgebung ins Rezept
+export THEME_NAME
 
 # ProjectTools und CLITheme: Tag und Quelle stehen nur in .dev-tools.conf.sh; devtools (Paket
 # mmit-devtools) liest sie, prüft die Mindestversion und nennt den Installationsbefehl. pipx run
@@ -48,7 +34,7 @@ export DEVTOOLS_SPEC := git+https://github.com/MikeMitterer/python-devtools.git@
 DEV_TOOLS = pipx run --no-path-check --spec "$$DEVTOOLS_SPEC" devtools
 # devtools braucht pipx: eine Meldung, wenn es fehlt, und der Grund, wenn devtools nichts liefert.
 PIPX_URL := https://pipx.pypa.io
-pipx_missing = printf '  $(RED)✗$(RESET) pipx fehlt: $(YELLOW)$(PIPX_URL)$(RESET)\n' >&2
+pipx_missing = printf '  $(THEME_COLOR_DANGER)✗$(RESET) pipx fehlt: $(THEME_COLOR_ACCENT)$(PIPX_URL)$(RESET)\n' >&2
 devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools gescheitert' || echo 'pipx fehlt ($(PIPX_URL))')
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
@@ -74,14 +60,14 @@ help: ## Alle verfügbaren Befehle anzeigen
 .PHONY: info
 info: ## Umgebungsvariablen anzeigen
 	@echo
-	@echo "    $(YELLOW)PROJECT_NAME$(RESET)  = $(BLUE)$${PROJECT_NAME}$(RESET)"
-	@echo "    $(YELLOW)WORKSPACE$(RESET)     = $(BLUE)$${WORKSPACE}$(RESET)"
-	@echo "    $(YELLOW)BASH_LIBS$(RESET)     = $(BLUE)$${BASH_LIBS}$(RESET)"
-	@echo "    $(YELLOW)DEV_MAKE$(RESET)      = $(BLUE)$${DEV_MAKE:-nicht gesetzt}$(RESET)"
-	@echo "    $(YELLOW)PACKAGE$(RESET)       = $(BLUE)$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(RESET)"
-	@echo "    $(YELLOW)VERSION$(RESET)       = $(BLUE)$$(source "$${BASH_LIBS}/version.lib.sh" 2>/dev/null && readProjectVersion 2>/dev/null || echo 'nicht gesetzt')$(RESET)"
-	@# devtools rückt um zwei Zeichen ein; zwei mehr stellen die Zeilen unter die Variablen.
-	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/  /' || echo "    Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
+	@source "$${BASH_LIBS}/make.lib.sh"; \
+	 version=$$(readProjectVersion 2>/dev/null) || version='nicht gesetzt'; \
+	 printf '%s\t%s\n' \
+		PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}" BASH_LIBS "$${BASH_LIBS}" \
+		PACKAGE '$(or $(PACKAGE_NAME),$(NO_PACKAGE))' VERSION "$${version}" \
+		THEME "$${THEME_NAME:-ohne clitheme (clitheme export)}" | showMakeHints
+	@# devtools rückt um zwei Zeichen ein; fünf mehr stellen die Zeilen unter die Werte oben.
+	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
 # Repo-Adresse aus git remote origin (SSH oder HTTPS) als https-URL; leer ohne Remote.
@@ -119,7 +105,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	   printf '%s\t%s\n' 'Installieren' "$$projecttools"; \
 	   printf '## %s\n' 'CLITheme (Farben und Abstände der Ausgabe)'; \
 	   printf '%s\t%s\n' 'Installieren' "$$clitheme" \
-		'Themes anlegen' 'cli-theme install (macht make setup)' 'Auswahl' 'export CLI_THEME=ocean'; \
+		'Themes anlegen' 'clitheme install (macht make setup)' 'Auswahl' 'export CLI_THEME=ocean'; \
 	   printf '## %s\n' 'Links'; \
 	   printf '%s\t%s\n' 'Repository' '$(or $(REPO_URL),$(NO_REMOTE))'; \
 	 } | showMakeHints
@@ -131,7 +117,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 precheck:
 	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
 		echo ""; \
-		echo "$(RED)Achtung: '$(YELLOW)BASH_LIBS$(RED)' fehlt oder enthält keine lesbare version.lib.sh!$(RESET)"; \
+		echo "$(THEME_COLOR_DANGER)Achtung: '$(THEME_COLOR_ACCENT)BASH_LIBS$(THEME_COLOR_DANGER)' fehlt oder enthält keine lesbare version.lib.sh!$(RESET)"; \
 		echo ""; \
 		exit 1; \
 	fi
@@ -147,27 +133,27 @@ require-tools:
 ##@ Setup
 
 # Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die
-# versionierten Git-Hooks und legt mit cli-theme install fehlende Theme-Dateien
-# an. Fehlt cli-theme, nennt setup den Installationsbefehl und läuft weiter.
+# versionierten Git-Hooks und legt mit clitheme install fehlende Theme-Dateien
+# an. Fehlt clitheme, nennt setup den Installationsbefehl und läuft weiter.
 # Wiederholbar und ohne Rückfrage.
 .PHONY: setup
 setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@git config core.hooksPath .githooks
-	@echo -e "  $(GREEN)✓$(RESET) Git-Hooks aus .githooks aktiv"
+	@echo -e "  $(THEME_COLOR_SUCCESS)✓$(RESET) Git-Hooks aus .githooks aktiv"
 	@$(MAKE) --no-print-directory setup-themes
 
-# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne cli-theme durchläuft.
+# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne clitheme durchläuft.
 # devtools meldet fehlendes oder zu altes CLITheme samt Installationsbefehl; ohne
-# cli-theme bleibt die Ausgabe der Skripte farblos.
+# clitheme bleibt die Ausgabe der Skripte farblos.
 .PHONY: setup-themes
 setup-themes:
 	@if command -v pipx >/dev/null; then $(DEV_TOOLS) check clitheme >&2 || true; else $(pipx_missing); fi; \
-	command -v cli-theme >/dev/null || exit 0; \
-	if output=$$(cli-theme install 2>&1); then \
-		printf '  $(GREEN)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(cli-theme path)")"; \
+	command -v clitheme >/dev/null || exit 0; \
+	if output=$$(clitheme install 2>&1); then \
+		printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(clitheme path)")"; \
 	else \
 		printf '%s\n' "$$output" >&2; \
-		printf '  $(RED)✗$(RESET) cli-theme install fehlgeschlagen; Ausgabe ohne Farben: $(YELLOW)cli-theme show$(RESET)\n' >&2; \
+		printf '  $(THEME_COLOR_DANGER)✗$(RESET) clitheme install fehlgeschlagen; Ausgabe ohne Farben: $(THEME_COLOR_ACCENT)clitheme show$(RESET)\n' >&2; \
 	fi
 
 # Installiert diese Arbeitskopie editierbar mit pipx: die Befehle aus
@@ -177,17 +163,17 @@ setup-themes:
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
 	@command -v pipx >/dev/null || { $(pipx_missing); exit 1; }
 	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
-		names='$(PACKAGE_CMDS)'; printf '  $(GREEN)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
+		names='$(PACKAGE_CMDS)'; printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
 	else \
 		printf '%s\n' "$$output" >&2; \
-		printf '  $(RED)✗$(RESET) pipx install fehlgeschlagen\n' >&2; exit 1; \
+		printf '  $(THEME_COLOR_DANGER)✗$(RESET) pipx install fehlgeschlagen\n' >&2; exit 1; \
 	fi
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
 require-setup:
 	@[[ "$$(git config core.hooksPath)" == ".githooks" ]] || { \
-		echo -e "  $(RED)✗$(RESET) Nicht eingerichtet: $(YELLOW)make setup$(RESET)" >&2; \
+		echo -e "  $(THEME_COLOR_DANGER)✗$(RESET) Nicht eingerichtet: $(THEME_COLOR_ACCENT)make setup$(RESET)" >&2; \
 		exit 1; }
 
 # ─── Status ──────────────────────────────────────────────────────────────────
@@ -242,7 +228,7 @@ tags: precheck ## Letzte 10 Release-Tags mit Nachricht anzeigen
 
 # Eine Statuszeile für tag-*: Häkchen, Beschriftung, Wert.
 # Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
-release_row = printf '  $(GREEN)✓$(RESET) %-10s $(BLUE)%s$(RESET)\n' "$(1)" "$(2)"
+release_row = printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) %-10s $(THEME_COLOR_VALUE)%s$(RESET)\n' "$(1)" "$(2)"
 
 # Sprache von CHANGELOG.md, unabhängig von der Locale der Shell (changelog folgt
 # sonst LANG; unter C.UTF-8 käme Englisch). Überschreiben: make … CHANGELOG_LANGUAGE=en
@@ -264,11 +250,11 @@ export CHANGELOG_LANGUAGE
 define release
 	@branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
 	 if [[ "$$branch" != master ]]; then \
-		printf '  $(RED)✗$(RESET) Release nur auf master, nicht auf %s; nach der Abnahme auf master:\n       $(YELLOW)make %s$(RESET)\n' "$$branch" '$@' >&2; \
+		printf '  $(THEME_COLOR_DANGER)✗$(RESET) Release nur auf master, nicht auf %s; nach der Abnahme auf master:\n       $(THEME_COLOR_ACCENT)make %s$(RESET)\n' "$$branch" '$@' >&2; \
 		exit 1; \
 	 fi; \
 	 if git rev-parse -q --verify refs/heads/develop >/dev/null && ! git merge-base --is-ancestor develop HEAD; then \
-		printf '  $(RED)✗$(RESET) develop ist weiter als master; erst die Tickets abnehmen:\n       $(YELLOW)al ticket accept$(RESET)\n' >&2; \
+		printf '  $(THEME_COLOR_DANGER)✗$(RESET) develop ist weiter als master; erst die Tickets abnehmen:\n       $(THEME_COLOR_ACCENT)al ticket accept$(RESET)\n' >&2; \
 		exit 1; \
 	 fi
 	@source "$${BASH_LIBS}/version.lib.sh"; \

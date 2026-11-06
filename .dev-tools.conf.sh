@@ -19,10 +19,10 @@ PROJECTTOOLS_TAG=v0.4.0+261103.1343.9d0a8
 PROJECTTOOLS_SOURCE=git+https://github.com/MikeMitterer/bash-ProjectTools.git
 PROJECTTOOLS_EDITABLE=yes
 
-# CLITheme (cli-theme install legt die Theme-Dateien an, die colors.lib.sh liest).
-# Nur make setup, make info und make hints brauchen es; die Bibliotheken nicht.
-CLITHEME_PACKAGE=mmit-cli-theme
+# CLITheme (clitheme: Theme-Dateien, Farben für Makefile und Skripte).
+# Make setup, info, help und hints nutzen es; die Bibliotheken lesen die Theme-Datei.
+CLITHEME_PACKAGE=mmit-clitheme
 CLITHEME_LABEL=CLITheme
-CLITHEME_TAG=v0.4.0+261102.1800.5c1a8
+CLITHEME_TAG=v0.5.0+261106.1232.efc7c
 CLITHEME_SOURCE=git+https://github.com/MikeMitterer/python-clitheme.git
 CLITHEME_EDITABLE=yes

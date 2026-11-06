@@ -11,9 +11,10 @@ steht im [README](../README.md).
   verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
   installierten Stand, `make hints` den Installationsbefehl. Fehlt ProjectTools
   oder ist es zu alt, brechen diese Targets mit dem Befehl ab.
-- Optional [MakeLib](https://github.com/MikeMitterer/make-lib) mit `DEV_MAKE`
-  auf deren `src`: Das Makefile nimmt dann deren Farben und Themes, sonst
-  erscheint die Ausgabe ohne Farben.
+- Optional [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl
+  `clitheme`, ab 0.5.0): Das Makefile nimmt Farben und Abstände aus
+  `clitheme export`, `help`, `hints` und `info` kommen über `make.lib.sh`. Ohne
+  CLITheme erscheint die Ausgabe ohne Farben.
 
 ## Einrichten und Testen
 
@@ -26,7 +27,7 @@ make check
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
-Hooks erscheinen vollständig. Danach legt `make setup` mit `cli-theme install`
+Hooks erscheinen vollständig. Danach legt `make setup` mit `clitheme install`
 fehlende CLI-Theme-Dateien an, die `colors.lib.sh` liest; vorhandene bleiben
 unverändert. Fehlt CLITheme oder ist es zu alt, nennt `make setup` den
 pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
@@ -98,8 +99,13 @@ classic-Abstände in `colors.lib.sh` mit der Vorlage. Ändert CLITheme sein
 Format, wird der Test dort rot.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
-mit nachgebautem `pipx` und `cli-theme`: vorhanden, zu alt, `install`
+mit nachgebautem `pipx` und `clitheme`: vorhanden, zu alt, `install`
 scheitert, fehlt und ohne pipx.
+
+`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`) mit
+denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`,
+`make hints` und das Minimal-Makefile aus dem README in einem Ordner
+`it's $(uname)`.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 
