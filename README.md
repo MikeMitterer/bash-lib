@@ -147,14 +147,16 @@ statt abzubrechen.
 
 ## Farben und Themes
 
-Die Ausgabehelfer lesen Farben und Abstände aus der Theme-Datei von
-[CLITheme](https://github.com/MikeMitterer/python-clitheme), dieselbe Datei
-wie Python-Werkzeuge und Makefiles. `CLI_THEME` wählt sie (Standard
-`classic`); `cli-theme install` legt die Vorlagen an. Ohne Datei gibt es
-keine Farben, bei `NO_COLOR`, in Pipes und bei `TERM=dumb` ebenfalls nicht.
+Die Ausgabehelfer nehmen Farben und Abstände von
+[CLITheme](https://github.com/MikeMitterer/python-clitheme) (`clitheme export`),
+wie Python-Werkzeuge und Makefiles; die Theme-Datei liest nur CLITheme.
+`CLI_THEME` wählt das Theme (Standard `classic`); `clitheme install` legt die
+Vorlagen an. Ohne clitheme oder Theme-Datei gibt es keine Farben, bei
+`NO_COLOR`, in Pipes und bei `TERM=dumb` ebenfalls nicht.
 Rollen, Abstände und Rückfallverhalten stehen in [docs/themes.md](docs/themes.md).
 Das Theme gibt es ab BashLib 0.4.0; ältere Releases haben die fest
-eingebauten Themes mit `MAKE_THEME`.
+eingebauten Themes mit `MAKE_THEME`. Heute kommt es über
+`clitheme export` (CLITheme ab 0.5.0).
 
 Ein lauffähiges Beispiel mit Hilfe, Info, Hinweisen, Statuszeilen und
 Fehlermeldungen liegt in [examples/](examples/README.md):

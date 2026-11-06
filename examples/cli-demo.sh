@@ -3,9 +3,9 @@
 # cli-demo.sh — Beispiel für ein Kommandozeilen-Skript mit dem CLI-Theme
 #
 # Zeigt, wie ein Skript mit BashLib Hilfe, Info, Hinweise, Statuszeilen und
-# Fehlermeldungen ausgibt. Farben und Abstände kommen aus der Theme-Datei von
-# cli-theme (CLI_THEME wählt sie); ohne Datei, mit NO_COLOR und in einer Pipe
-# erscheint dieselbe Ausgabe ohne Farben in denselben Spalten.
+# Fehlermeldungen ausgibt. Farben und Abstände kommen von clitheme (CLI_THEME
+# wählt das Theme); ohne clitheme oder Theme-Datei, mit NO_COLOR und in einer
+# Pipe erscheint dieselbe Ausgabe ohne Farben in denselben Spalten.
 #
 # Das Skript ändert nichts; es gibt nur aus. Beschreibung in examples/README.md.
 #
@@ -16,7 +16,7 @@ if [[ -z ${BASH_LIBS+x} ]]; then echo "Var 'BASH_LIBS' nicht gesetzt!" >&2; exit
 
 set -eou pipefail
 
-# tools.lib.sh bindet colors.lib.sh ein; das liest die Theme-Datei einmal.
+# tools.lib.sh bindet colors.lib.sh ein; das holt das Theme einmal von clitheme.
 # shellcheck source=/dev/null  # liegt unter BASH_LIBS
 if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 
@@ -61,9 +61,12 @@ showInfo() {
     printThemeValue "Skript" "${BASH_SOURCE[0]}"
     printThemeValue "BASH_LIBS" "${BASH_LIBS}"
     local _origin="(aus ${THEME_ORIGIN})"
-    [[ ${THEME_ORIGIN} != Standard ]] || _origin="(Standard)"
+    case "${THEME_ORIGIN}" in
+        "") _origin="(ohne clitheme)" ;;
+        default) _origin="(Standard)" ;;
+    esac
     printThemeValue "Theme" "${THEME_NAME} $(themeMark "${_origin}" "${THEME_COLOR_VALUE}")"
-    printThemeValue "Theme-Datei" "${THEME_SOURCE}"
+    printThemeValue "Theme-Datei" "${THEME_SOURCE:-keine}"
     printThemeValue "Farben" "${COLOR_STATE}"
     printThemeHint "Farben gibt es nur am Terminal; NO_COLOR schaltet sie ab."
     echo
@@ -73,8 +76,8 @@ showInfo() {
 # kopieren; erklärender Text in C_HINT.
 showHints() {
     printThemeHeading "Nächste Schritte"
-    printThemeValue "Themes anlegen" "cli-theme install"
-    printThemeValue "Theme ansehen" "cli-theme show"
+    printThemeValue "Themes anlegen" "clitheme install"
+    printThemeValue "Theme ansehen" "clitheme show"
     printThemeValue "Theme wechseln" "export CLI_THEME=ocean"
     printThemeValue "Ohne Farben" "NO_COLOR=1 ${APPNAME} info"
     printThemeHint "Jeder Befehl steht für sich und lässt sich kopieren."
@@ -85,12 +88,12 @@ showHints() {
 showStatus() {
     printThemeHeading "Status"
     printThemeStatus "✓" "Erfolg: alles erledigt" OK
-    printThemeStatus "!" "Warnung: Theme-Datei fehlt, Ausgabe ohne Farben" WARN
+    printThemeStatus "!" "Warnung: kein Theme, Ausgabe ohne Farben" WARN
     printThemeStatus "✗" "Fehler: Datei nicht lesbar" ERR
     echo
 }
 
-# Theme: jede Farbrolle in ihrer Farbe, dazu die Abstände aus der Theme-Datei.
+# Theme: jede Farbrolle in ihrer Farbe, dazu die Abstände von clitheme.
 showTheme() {
     local _entry _role _variable
 
@@ -101,15 +104,19 @@ showTheme() {
         _variable="THEME_COLOR_${_entry#*=}"
         printf '%s' "${THEME_INDENT_TARGET}"
         themeStyle "$(printf '%-*s' "$((THEME_WIDTH_TARGET + THEME_COLUMN_GAP))" "${_role}")" "${!_variable}"
-        themeStyle "${!_role:-(leer)}" "${!_variable}"
+        themeStyle "${_variable}" "${!_variable}"
         printf '\n'
     done
 
     printThemeHeading "Abstände"
-    for _role in I_HEAD I_ROW I_HINT W_KEY GAP WIDTH SPACE; do
-        printThemeValue "${_role}" "${!_role}"
-    done
-    printThemeHint "WIDTH gilt für Python-Werkzeuge; BashLib bricht Zeilen nicht um."
+    printThemeValue "THEME_INDENT_GROUP" "${#THEME_INDENT_GROUP}"
+    printThemeValue "THEME_INDENT_TARGET" "${#THEME_INDENT_TARGET}"
+    printThemeValue "THEME_INDENT_HINT" "${#THEME_INDENT_HINT}"
+    printThemeValue "THEME_WIDTH_TARGET" "${THEME_WIDTH_TARGET}"
+    printThemeValue "THEME_COLUMN_GAP" "${THEME_COLUMN_GAP}"
+    printThemeValue "THEME_WIDTH_HELP" "${THEME_WIDTH_HELP}"
+    printThemeValue "THEME_GROUP_SPACING" "${THEME_GROUP_SPACING}"
+    printThemeHint "THEME_WIDTH_HELP gilt für Python-Werkzeuge; BashLib bricht Zeilen nicht um."
     echo
 }
 
@@ -129,7 +136,7 @@ colorState() {
     if [[ -n ${NO_COLOR+x} ]]; then COLOR_STATE="aus (NO_COLOR gesetzt)"
     elif [[ ! -t 1 ]]; then COLOR_STATE="aus (keine Ausgabe an ein Terminal)"
     elif [[ ${TERM:-} == dumb ]]; then COLOR_STATE="aus (TERM=dumb)"
-    elif [[ -z ${C_HEAD} && -z ${C_KEY} ]]; then COLOR_STATE="aus (keine gültige Theme-Datei)"
+    elif [[ -z ${THEME_COLOR_GROUP} && -z ${THEME_COLOR_TARGET} ]]; then COLOR_STATE="aus (kein Theme von clitheme)"
     else COLOR_STATE="an"
     fi
 }

@@ -130,7 +130,7 @@ def overview() -> list[tuple[str, str, str]]:
         ("r", "     --version", "Zeigt die installierte Version."),
         ("r", "-h | --help", "Zeigt diese Hilfe."),
         ("h", "Umgebung", ""),
-        ("r", "CLI_THEME", "Theme der Ausgabe (Standard classic; anlegen mit cli-theme install)"),
+        ("r", "CLI_THEME", "Theme der Ausgabe (Standard classic; anlegen mit clitheme install)"),
         ("r", "NO_COLOR", "Ausgabe ohne Farben"),
     ]
 

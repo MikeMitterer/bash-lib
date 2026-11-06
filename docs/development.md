@@ -88,14 +88,13 @@ weitere Pflegestelle. Die Beschreibung je Befehl ist die erste Zeile des
 Docstrings seiner Funktion; die Befehle selbst stehen nur in
 `[project.scripts]`.
 
-`test/_testTheme.sh` prüft das Lesen der CLI-Theme-Datei in `colors.lib.sh`
-mit eigenem `XDG_CONFIG_HOME`: gültige Themes, fehlende und ungültige Dateien,
-Links, `MAKE_THEME`, vorbelegte `THEME_*`-Werte und `NO_COLOR`. Die Farben
-prüft es an einem Pseudoterminal; dafür braucht es `python3`. Ist `cli-theme`
-installiert, liest es zusätzlich alle Vorlagen von CLITheme mit
-`colors.lib.sh` und vergleicht das Ergebnis mit CLITheme selbst sowie die
-classic-Abstände in `colors.lib.sh` mit der Vorlage. Ändert CLITheme sein
-Format, wird der Test dort rot.
+`test/_testTheme.sh` prüft, wie `colors.lib.sh` das Theme aus
+`clitheme export --bash` übernimmt: mit einem nachgebauten clitheme
+(`test/clitheme-fake`) die Werte, vorbelegte und geerbte `THEME_*`-Werte,
+Befunde von clitheme, ein Hinweis, der nie ausgeführt wird, und den Fall ohne
+clitheme. Die Farben prüft es an einem Pseudoterminal; dafür braucht es
+`python3`. Ist clitheme installiert, prüft ein Vertragstest es mit eigenem
+`XDG_CONFIG_HOME` und `XDG_CACHE_HOME`.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
 mit nachgebautem `pipx` und `cli-theme`: vorhanden, zu alt, `install`

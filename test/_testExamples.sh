@@ -24,8 +24,8 @@ trap cleanup EXIT
 # Setzt rc, out (stdout) und err (stderr). Argumente gehen an cli-demo.sh.
 runDemo() {
     rc=0
-    env -i PATH="${PATH}" HOME="${work}" XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" \
-        "${DEMO}" "$@" > "${work}/out" 2> "${work}/err" || rc=$?
+    env -i PATH="${PATH}" HOME="${work}" XDG_CONFIG_HOME="${work}/config" XDG_CACHE_HOME="${work}/cache" \
+        BASH_LIBS="${ROOT}/src" "${DEMO}" "$@" > "${work}/out" 2> "${work}/err" || rc=$?
     out="$(cat "${work}/out")"
     err="$(cat "${work}/err")"
 }
@@ -52,19 +52,24 @@ assertEquals "" "${err}" "Hilfe: stderr leer in der Pipe"
 
 runDemo info
 assertEquals "0" "${rc}" "info: Exit 0"
-assertContains "${work}/config/cli-theme/classic.theme" "${out}" "info: Pfad der Theme-Datei"
-assertContains "classic (Standard)" "${out}" "info: Theme mit Herkunft Standard"
-# info zeigt, was colors.lib.sh geladen hat, auch mit dem Ersatznamen MAKE_THEME
-out="$(env -i PATH="${PATH}" HOME="${work}" XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" MAKE_THEME=ocean "${DEMO}" info)"
-assertContains "${work}/config/cli-theme/ocean.theme" "${out}" "info mit MAKE_THEME=ocean: Pfad von ocean"
-assertEquals "ocean" "$(awk '$1 == "Theme" { print $2 }' <<< "${out}")" "info mit MAKE_THEME=ocean: Theme ocean"
-assertContains "ocean (aus MAKE_THEME)" "${out}" "info mit MAKE_THEME=ocean: Herkunft MAKE_THEME"
 assertContains "aus (keine Ausgabe an ein Terminal)" "${out}" "info: Farben aus in der Pipe"
+# Theme, Datei und Herkunft kommen von clitheme export; ohne clitheme nur ein Hinweis
+if command -v clitheme >/dev/null; then
+    assertContains "${work}/config/clitheme/classic.theme" "${out}" "info: Pfad der Theme-Datei"
+    assertContains "classic (Standard)" "${out}" "info: Theme mit Herkunft Standard"
+    out="$(env -i PATH="${PATH}" HOME="${work}" XDG_CONFIG_HOME="${work}/config" XDG_CACHE_HOME="${work}/cache" \
+        BASH_LIBS="${ROOT}/src" CLI_THEME=ocean "${DEMO}" info)"
+    assertContains "${work}/config/clitheme/ocean.theme" "${out}" "info mit CLI_THEME=ocean: Pfad von ocean"
+    assertEquals "ocean" "$(awk '$1 == "Theme" { print $2 }' <<< "${out}")" "info mit CLI_THEME=ocean: Theme ocean"
+    assertContains "ocean (aus CLI_THEME)" "${out}" "info mit CLI_THEME=ocean: Herkunft CLI_THEME"
+else
+    echo "  – clitheme nicht installiert, Theme-Fälle übersprungen"
+fi
 
 runDemo hints
 assertEquals "0" "${rc}" "hints: Exit 0"
 assertContains $'\n       Jeder Befehl steht für sich' "${out}" "hints: Hinweistext mit I_HINT in der Pipe ohne Farben"
-assertEquals "cli-theme install" "$(awk '/Themes anlegen/ { sub(/^ *Themes anlegen +/, ""); print }' <<< "${out}")" "hints: Befehl steht für sich"
+assertEquals "clitheme install" "$(awk '/Themes anlegen/ { sub(/^ *Themes anlegen +/, ""); print }' <<< "${out}")" "hints: Befehl steht für sich"
 
 runDemo status
 assertEquals "0" "${rc}" "status: Exit 0"
@@ -74,7 +79,7 @@ assertContains "✗ Fehler" "${out}" "status: Fehler"
 
 runDemo theme
 assertEquals "0" "${rc}" "theme: Exit 0"
-assertEquals "21" "$(awk '$1 == "W_KEY" { print $2 }' <<< "${out}")" "theme: Abstände von classic ohne Theme-Datei"
+assertEquals "21" "$(awk '$1 == "THEME_WIDTH_TARGET" { print $2 }' <<< "${out}")" "theme: Abstände von classic ohne Theme-Datei"
 
 runDemo greet Mike
 assertEquals "0" "${rc}" "greet Mike: Exit 0"
@@ -100,9 +105,13 @@ err="$(env -i PATH="${PATH}" "${DEMO}" info 2>&1)" || rc=$?
 assertEquals "1" "${rc}" "ohne BASH_LIBS: Exit 1"
 assertContains "BASH_LIBS" "${err}" "ohne BASH_LIBS: Meldung nennt BASH_LIBS"
 
-# Am Terminal: Farben und Abstände aus einem eigenen Theme, NO_COLOR schaltet ab.
-mkdir -p "${work}/config/cli-theme"
-cat > "${work}/config/cli-theme/probe.theme" <<'EOF'
+# Am Terminal: Farben und Abstände aus einem eigenen Theme über clitheme, NO_COLOR schaltet ab.
+if ! command -v clitheme >/dev/null; then
+    echo "  – clitheme nicht installiert, Terminal-Fälle übersprungen"
+    finishTests
+fi
+mkdir -p "${work}/config/clitheme"
+cat > "${work}/config/clitheme/probe.theme" <<'EOF'
 C_HEAD=bold+5
 C_KEY=6
 C_TEXT=7
@@ -128,7 +137,7 @@ onTerminal() {
 import os, pty, subprocess, sys
 extra, command = sys.argv[1], sys.argv[2:]
 env = {'PATH': os.environ['PATH'], 'HOME': os.environ['WORK'], 'XDG_CONFIG_HOME': os.environ['WORK'] + '/config',
-       'BASH_LIBS': os.environ['LIBS'], 'TERM': 'xterm-256color'}
+       'XDG_CACHE_HOME': os.environ['WORK'] + '/cache', 'BASH_LIBS': os.environ['LIBS'], 'TERM': 'xterm-256color'}
 env.update(item.split('=', 1) for item in extra.split() if item)
 master, slave = pty.openpty()
 child = subprocess.Popen(command, env=env, stdout=slave, stderr=slave)
@@ -164,9 +173,9 @@ helpColored="$(onTerminal "CLI_THEME=probe" --help)"
 assertContains $'\033[38;5;7mBegrüßt \033[38;5;9mNAME\033[0m\033[38;5;7m; ohne ' "${helpColored}" "Terminal, Theme probe: Hervorhebung in C_ACC, Reset, danach wieder C_TEXT"
 plain="$(onTerminal "CLI_THEME=probe NO_COLOR=1" hints)"
 assertNotContains $'\033' "${plain}" "Terminal mit NO_COLOR: keine Farben"
-assertContains $'\n   Themes anlegen   cli-theme install' "${plain}" "Terminal mit NO_COLOR: dieselben Spalten (W_KEY=14, GAP=3)"
+assertContains $'\n   Themes anlegen   clitheme install' "${plain}" "Terminal mit NO_COLOR: dieselben Spalten (W_KEY=14, GAP=3)"
 missing="$(onTerminal "" status)"
 assertNotContains $'\033' "${missing}" "Terminal ohne Theme-Datei: keine Farben"
-assertContains "cli-theme install" "${missing}" "Terminal ohne Theme-Datei: Hinweis mit nächstem Schritt"
+assertContains "clitheme install" "${missing}" "Terminal ohne Theme-Datei: Hinweis mit nächstem Schritt"
 
 finishTests

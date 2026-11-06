@@ -51,8 +51,8 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     (info / 'METADATA').write_text('Metadata-Version: 2.1\nName: mmit-bashlib\nVersion: 9.8.7\nSummary: Testpaket\n')
     (info / 'entry_points.txt').write_text('[console_scripts]\n' + '\n'.join(entries) + '\nbashlib-demo = demo:run\n')
     (base / 'site' / 'demo.py').write_text('def run():\n    """Nur im Test vorhanden.\n\n    Zweite Zeile zählt nicht."""\n')
-    (base / 'cli-theme').mkdir()
-    (base / 'cli-theme' / 'probe.theme').write_text(theme)
+    (base / 'clitheme').mkdir()
+    (base / 'clitheme' / 'probe.theme').write_text(theme)
     # bashlib aus einer Spiegelung des Checkouts laden: nur das Paket, src/ und pyproject.toml,
     # ohne Build-Reste wie python/*.egg-info, die sonst als Metadaten gelten.
     mirror = base / 'repo'
@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     (mirror / 'src').symlink_to(root / 'src', target_is_directory=True)
     shutil.copy(root / 'pyproject.toml', mirror / 'pyproject.toml')
     env = {'PATH': os.environ['PATH'], 'HOME': str(base), 'XDG_CONFIG_HOME': str(base),
-           'PYTHONPATH': f"{base / 'site'}:{mirror / 'python'}", 'TERM': 'xterm-256color'}
+           'XDG_CACHE_HOME': str(base / 'cache'), 'PYTHONPATH': f"{base / 'site'}:{mirror / 'python'}", 'TERM': 'xterm-256color'}
     command = [sys.executable, '-S', '-c', 'import sys; from bashlib import cli; sys.exit(cli())']
 
     def run(*args, terminal=False, extra=None, code=0):
