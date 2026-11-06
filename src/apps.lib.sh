@@ -147,7 +147,7 @@ requireCommand() {
     command -v "${1}" >/dev/null 2>&1 && return 0
     {
         printThemeStatus "✗" "${1} fehlt" ERR
-        printThemeHint "$(printf '%s' "${2}" | sed 's/\\/\\\\/g')"
+        printThemeHint "$(themeEscape "${2}")"
     } >&2
     return 1
 }

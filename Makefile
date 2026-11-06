@@ -110,6 +110,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 # ─── Precheck ────────────────────────────────────────────────────────────────
 
 # Ohne `##`: nicht in der Hilfe, läuft als Abhängigkeit von version und tag-*.
+# Bewusst ohne printThemeStatus: precheck meldet gerade, dass BashLib fehlt.
 .PHONY: precheck
 precheck:
 	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
@@ -136,7 +137,7 @@ require-tools:
 .PHONY: setup
 setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@git config core.hooksPath .githooks
-	@echo -e "  $(THEME_COLOR_SUCCESS)✓$(RESET) Git-Hooks aus .githooks aktiv"
+	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
 	@$(MAKE) --no-print-directory setup-themes
 
 # Ohne `##`: Teil von setup; scheitert nie, damit setup ohne clitheme durchläuft.
@@ -147,10 +148,10 @@ setup-themes:
 	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(DEV_TOOLS) check clitheme >&2 || true; fi; \
 	command -v clitheme >/dev/null || exit 0; \
 	if output=$$(clitheme install 2>&1); then \
-		printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) CLI-Themes in %s\n' "$$(dirname -- "$$(clitheme path)")"; \
+		printThemeStatus "✓" "CLI-Themes in $$(themeEscape "$$(dirname -- "$$(clitheme path)")")" OK; \
 	else \
 		printf '%s\n' "$$output" >&2; \
-		printf '  $(THEME_COLOR_DANGER)✗$(RESET) clitheme install fehlgeschlagen; Ausgabe ohne Farben: $(THEME_COLOR_ACCENT)clitheme show$(RESET)\n' >&2; \
+		{ printThemeStatus "✗" "clitheme install fehlgeschlagen, Ausgabe ohne Farben" ERR; printThemeHint "clitheme show"; } >&2; \
 	fi
 
 # Installiert diese Arbeitskopie editierbar mit pipx: die Befehle aus
@@ -159,11 +160,12 @@ setup-themes:
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
 	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"
-	@if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
-		names='$(PACKAGE_CMDS)'; printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) %s aus %s\n' "$${names// /, }" "$${WORKSPACE}"; \
+	@source "$${BASH_LIBS}/cli.lib.sh"; \
+	if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
+		names='$(PACKAGE_CMDS)'; printThemeStatus "✓" "$${names// /, } aus $$(themeEscape "$${WORKSPACE}")" OK; \
 	else \
 		printf '%s\n' "$$output" >&2; \
-		printf '  $(THEME_COLOR_DANGER)✗$(RESET) pipx install fehlgeschlagen\n' >&2; exit 1; \
+		printThemeStatus "✗" "pipx install fehlgeschlagen" ERR >&2; exit 1; \
 	fi
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
@@ -212,18 +214,18 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 .PHONY: version
 version: precheck ## Version aus pyproject.toml und Release-Tag anzeigen — Maintainer
 	@echo
-	@source "$${BASH_LIBS}/tools.lib.sh" && showProjectVersion
+	@source "$${BASH_LIBS}/make.lib.sh" && showProjectVersion
 	@echo
 
 .PHONY: tags
 tags: precheck ## Letzte 10 Release-Tags mit Nachricht anzeigen
 	@echo
-	@source "$${BASH_LIBS}/tools.lib.sh" && showReleaseTags 10
+	@source "$${BASH_LIBS}/make.lib.sh" && showReleaseTags 10
 	@echo
 
-# Eine Statuszeile für tag-*: Häkchen, Beschriftung, Wert.
-# Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
-release_row = printf '  $(THEME_COLOR_SUCCESS)✓$(RESET) %-10s $(THEME_COLOR_VALUE)%s$(RESET)\n' "$(1)" "$(2)"
+# Eine Statuszeile für tag-* über printThemeStatus (cli.lib.sh): Häkchen, Beschriftung
+# auf 10 Zeichen, Wert. Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
+release_row = printThemeStatus "✓" "$$(printf '%-10s %s' "$(1)" "$(2)")" OK
 
 # Sprache von CHANGELOG.md, unabhängig von der Locale der Shell (changelog folgt
 # sonst LANG; unter C.UTF-8 käme Englisch). Überschreiben: make … CHANGELOG_LANGUAGE=en
@@ -243,30 +245,34 @@ export CHANGELOG_LANGUAGE
 # Erfolgszeile (mit absolutem Pfad) ersetzt die Changelog-Zeile, Fehler gehen
 # nach stderr. Ob committet wurde, zeigt ein neuer HEAD.
 define release
-	@branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
+	@source "$${BASH_LIBS}/cli.lib.sh"; \
+	 branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
 	 if [[ "$$branch" != master ]]; then \
-		printf '  $(THEME_COLOR_DANGER)✗$(RESET) Release nur auf master, nicht auf %s; nach der Abnahme auf master:\n       $(THEME_COLOR_ACCENT)make %s$(RESET)\n' "$$branch" '$@' >&2; \
+		{ printThemeStatus "✗" "Release nur auf master, nicht auf $$(themeEscape "$$branch"); nach der Abnahme auf master:" ERR; \
+		  printThemeHint "make $@"; } >&2; \
 		exit 1; \
 	 fi; \
 	 if git rev-parse -q --verify refs/heads/develop >/dev/null && ! git merge-base --is-ancestor develop HEAD; then \
-		printf '  $(THEME_COLOR_DANGER)✗$(RESET) develop ist weiter als master; erst die Tickets abnehmen:\n       $(THEME_COLOR_ACCENT)al ticket accept$(RESET)\n' >&2; \
+		{ printThemeStatus "✗" "develop ist weiter als master; erst die Tickets abnehmen:" ERR; \
+		  printThemeHint "al ticket accept"; } >&2; \
 		exit 1; \
 	 fi
-	@source "$${BASH_LIBS}/version.lib.sh"; \
+	@source "$${BASH_LIBS}/cli.lib.sh"; source "$${BASH_LIBS}/version.lib.sh"; \
 	 err=$$(mktemp); trap 'command rm -f -- "$$err"' EXIT; \
 	 old=$$(readProjectVersion); \
 	 tag=$$(semVerBump $(1) auto "" "$${MSG:-}" 2>"$$err") || { rc=$$?; cat "$$err" >&2; exit $$rc; }; \
 	 grep -v '^Hinweis: ' "$$err" >&2 || true; \
 	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
 	 $(call release_row,Tag,$${tag##*$$'\n'} (nur lokal))
-	@head=$$(git rev-parse HEAD); \
+	@source "$${BASH_LIBS}/cli.lib.sh"; head=$$(git rev-parse HEAD); \
 	 LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --commit >/dev/null || exit $$?; \
 	 if [[ "$$(git rev-parse HEAD)" == "$$head" ]]; then \
 		$(call release_row,Changelog,CHANGELOG.md unverändert); \
 	 else \
 		$(call release_row,Changelog,CHANGELOG.md committet); \
 	 fi
-	@if old=$$(git rev-parse -q --verify refs/heads/develop); then \
+	@source "$${BASH_LIBS}/cli.lib.sh"; \
+	 if old=$$(git rev-parse -q --verify refs/heads/develop); then \
 		holder=$$(git worktree list --porcelain | awk '/^worktree /{ w = substr($$0, 10) } $$0 == "branch refs/heads/develop" { print w }'); \
 		if [[ -n "$$holder" ]]; then git -C "$$holder" merge -q --ff-only master || exit $$?; \
 		else git update-ref refs/heads/develop HEAD "$$old" || exit $$?; fi; \
