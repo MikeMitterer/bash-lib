@@ -108,7 +108,9 @@ assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --for
 assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
 assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"
 
-# hints und version nennen den Release-Tag, nicht einen näheren deploy-Tag
+# hints und version nennen den Release-Tag, nicht einen näheren deploy-Tag. repo-info
+# nimmt nur http(s)-Adressen; das lokale Remote ist oben schon geprüft.
+git -C "${work}/ok" remote set-url origin https://example.org/ok.git
 git -C "${work}/ok" commit -q --no-verify --allow-empty -m "deploy"
 git -C "${work}/ok" tag -a deploy-2026-11 -m "deploy"
 runMake ok hints

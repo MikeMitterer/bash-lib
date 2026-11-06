@@ -70,16 +70,14 @@ info: ## Umgebungsvariablen anzeigen
 	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
-# Repo-Adresse aus git remote origin (SSH oder HTTPS) als https-URL; leer ohne Remote.
-# Trennzeichen | statt #: Make läse # in $(shell …) als Kommentar.
-# Werte von außen landen im Rezept; Ref-Namen dürfen $, ( und ) enthalten. Nur
-# erlaubte Zeichen übernehmen, sonst leer – ein Tag wie v1$(touch x) liefe sonst.
-REPO_URL    := $(shell git remote get-url origin 2>/dev/null | sed -E 's|^git@([^:]+):|https://\1/|; s|\.git$$||' | grep -xE '[A-Za-z0-9._:/@+~-]+')
-# Release-Tag (v…) über gitReleaseTag dieses Checkouts; ein deploy-Tag zählt nicht.
-RELEASE_TAG := $(or $(shell source "$(BASH_LIBS)/version.lib.sh" 2>/dev/null && gitReleaseTag | grep -xE '[A-Za-z0-9._+-]+'),vX.Y.Z)
-NO_REMOTE   := kein Remote origin (git remote add origin …)
+# Repo-Adresse (origin als https) und letzter Release-Tag (v…, kein deploy-Tag) aus
+# repo-info (ProjectTools). Die Ausgabe enthält nur erlaubte Zeichen, auch der Ersatz
+# ohne Remote oder Tag. Mit = läuft repo-info nur, wenn hints die Werte braucht.
+NO_REPO_INFO := repo-info fehlt (ProjectTools, siehe make hints)
+REPO_URL     = $(or $(shell repo-info --url 2>/dev/null),$(NO_REPO_INFO))
+RELEASE_TAG  = $(or $(shell repo-info --release-tag 2>/dev/null),$(NO_REPO_INFO))
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
-# [project.scripts]); nur erlaubte Zeichen, sonst leer wie bei REPO_URL.
+# [project.scripts]); nur erlaubte Zeichen, sonst leer.
 PACKAGE_NAME := $(shell awk -F'"' '/^\[/ { s = $$0 } s == "[project]" && /^name *=/ { print $$2; exit }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
 # Befehle aus [project.scripts], durch Leerzeichen getrennt; der erste ist PACKAGE_CMD
 PACKAGE_CMDS := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1 }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
@@ -98,7 +96,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	   printf '## %s\n' 'BashLib in anderen Projekten'; \
 	   printf '%s\t%s\n' \
 		'Paket' '$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))' \
-		'Installieren' "$(if $(REPO_URL),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(NO_REMOTE))" \
+		'Installieren' "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))" \
 		'Arbeitskopie' "pipx install -e $${WORKSPACE_SQ}" \
 		'Umgebung' 'export BASH_LIBS=$$(bashlib-path)'; \
 	   printf '## %s\n' 'ProjectTools (docs-check, status, changelog)'; \
@@ -107,7 +105,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	   printf '%s\t%s\n' 'Installieren' "$$clitheme" \
 		'Themes anlegen' 'clitheme install (macht make setup)' 'Auswahl' 'export CLI_THEME=ocean'; \
 	   printf '## %s\n' 'Links'; \
-	   printf '%s\t%s\n' 'Repository' '$(or $(REPO_URL),$(NO_REMOTE))'; \
+	   printf '%s\t%s\n' 'Repository' '$(REPO_URL)'; \
 	 } | showMakeHints
 
 # ─── Precheck ────────────────────────────────────────────────────────────────

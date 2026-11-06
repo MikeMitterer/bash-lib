@@ -10,7 +10,9 @@ steht im [README](../README.md).
   für `make docs-check`, `make test`, `make status` und `make changelog`. Die
   verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
   installierten Stand, `make hints` den Installationsbefehl. Fehlt ProjectTools
-  oder ist es zu alt, brechen diese Targets mit dem Befehl ab.
+  oder ist es zu alt, brechen diese Targets mit dem Befehl ab. `make hints`
+  nimmt Repo-Adresse und letzten Release-Tag aus `repo-info` (ab 0.5.0); ohne
+  ProjectTools nennt es den Grund statt der Werte.
 - Optional [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl
   `clitheme`, ab 0.5.0): Das Makefile nimmt Farben und Abstände aus
   `clitheme export`, `help`, `hints` und `info` kommen über `make.lib.sh`. Ohne
@@ -107,6 +109,11 @@ echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
 `/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
+
+`test/_testMakeHints.sh` prüft `make hints` in Wegwerf-Repos: SSH-Remote als
+https-Adresse, der Release-Tag `v…` statt eines neueren deploy-Tags, der
+Ersatz von `repo-info` ohne Remote, der Hinweis ohne ProjectTools und ein Tag
+mit Shell-Text, der nie ausgeführt wird.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 
