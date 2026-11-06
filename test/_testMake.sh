@@ -165,7 +165,7 @@ expected="       PROJECT_NAME           demo
        Mit Umlaut             Wert mit Leerzeichen
 
 "
-assertEquals "${expected}" "${out}" "Paare in den Spalten des Themes, leerer Wert als „nicht gesetzt“, Leerzeile am Ende"
+assertEquals "${expected}" "${out}" "Paare in den Spalten des Themes, leerer Wert als nicht gesetzt, Leerzeile am Ende"
 runMake showMakeInfo NUR_NAME
 assertEquals "2" "${rc}" "ungerade Anzahl: Exit 2"
 assertContains "NAME WERT" "${err}" "ungerade Anzahl: Meldung auf stderr"
