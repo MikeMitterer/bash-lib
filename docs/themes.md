@@ -91,6 +91,8 @@ der Text in denselben Spalten:
 | Helfer | Rolle | Wofür |
 |---|---|---|
 | `printThemeValue LABEL WERT` | `C_VAL` | Zeile mit Wert, Befehl oder Pfad rechts |
+| `printThemeOption KURZ LANG [METAVARIABLE] TEXT` | `C_KEY`, Metavariable `C_ACC` | Option der Hilfe; Kurzform-Spalte reserviert, Langformen bündig |
+| `printThemeExample AUFRUF TEXT` | `C_KEY` | Beispielaufruf; ein langer Aufruf steht in eigener Zeile, der Text darunter |
 | `printThemeHint TEXT` | `C_HINT`, Einrückung `I_HINT` | Hinweistext in eigener Zeile |
 | `themeAccent TEXT [FARBE]` | `C_ACC` | Hervorhebung in einer Beschreibung: Platzhalter, zulässige Werte |
 | `themeMark TEXT [FARBE]` | `C_MARK` | Markierung: Maintainer, Server, Herkunft eines Werts |
@@ -113,6 +115,27 @@ Pipe färbt. Für eine eigene Zeile außerhalb der Helfer:
 
 ```bash
 themeStyle "Fertig: $(themeAccent 3) Dateien" "${THEME_COLOR_DESC}"; echo
+```
+
+Eine Hilfe mit Optionen und Beispielen; ohne Kurzform bleibt ihr Platz frei,
+die Langformen stehen bündig untereinander:
+
+```bash
+printThemeHeading "Optionen"
+printThemeOption -i --info "Einstellungen anzeigen"
+printThemeOption "" --restore DATEI "Sicherung zurückspielen"
+printThemeHeading "Beispiele"
+printThemeExample "demo --restore backup.tar" "Sicherung zurückspielen"
+```
+
+```text
+  Optionen
+       -i | --info            Einstellungen anzeigen
+            --restore DATEI   Sicherung zurückspielen
+
+  Beispiele
+       demo --restore backup.tar
+                              Sicherung zurückspielen
 ```
 
 `usageLine LABEL TEXT [no|yes|intend|ZAHL]` bleibt gültig. `yes`/`intend`
