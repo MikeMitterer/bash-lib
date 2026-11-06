@@ -131,7 +131,7 @@ statt abzubrechen.
 
 | Bibliothek | Inhalt | Lädt mit |
 |---|---|---|
-| `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
+| `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeOption`, `printThemeExample`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
 | `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |

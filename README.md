@@ -130,7 +130,7 @@ instead of aborting.
 
 | Library | Content | Loads |
 |---|---|---|
-| `tools.lib.sh` | Output helpers (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), version and release tags (`showProjectVersion`, `showReleaseTags`), ports, strings | colors, apps, dtime, version |
+| `tools.lib.sh` | Output helpers (`printThemeHeading`, `printThemeRow`, `printThemeOption`, `printThemeExample`, `printThemeStatus`, `usageLine`), version and release tags (`showProjectVersion`, `showReleaseTags`), ports, strings | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI colors, CLI theme and column layout | – |
 | `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`) | tools |
 | `apps.lib.sh` | Paths of the tools used, `checkIfToolIsAvailable` | logging, os |
