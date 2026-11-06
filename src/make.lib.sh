@@ -152,8 +152,16 @@ requireMakeSetup() {
     local -a _stamps=()
     while (( $# > 0 )); do
         case "${1}" in
-            --hooks) _hooks="${2-}"; shift 2 ;;
-            --make) _make="${2-}"; shift 2 ;;
+            --hooks|--make)
+                # Ohne Wert (etwa aus einer leeren Make-Variable) würde shift 2 scheitern
+                # und die Schleife dieselbe Option endlos wieder sehen.
+                if (( $# < 2 )) || [[ -z ${2} ]]; then
+                    printf 'requireMakeSetup: %s %s erwartet\n' "${1}" "$([[ ${1} == --hooks ]] && echo DIR || echo MAKE)" >&2
+                    return 2
+                fi
+                if [[ ${1} == --hooks ]]; then _hooks="${2}"; else _make="${2}"; fi
+                shift 2
+                ;;
             --) shift; _stamps+=("$@"); break ;;
             -*) printf 'requireMakeSetup: unbekannte Option %s\n' "${1}" >&2; return 2 ;;
             *) _stamps+=("${1}"); shift ;;

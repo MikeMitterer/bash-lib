@@ -215,6 +215,14 @@ readSetup .stamp
 assertEquals "2" "${rc}" "Stempel ohne --make: Aufruffehler Exit 2"
 readSetup
 assertEquals "2" "${rc}" "ohne Prüfung: Aufruffehler Exit 2"
+# Option ohne Wert am Ende (etwa aus einer leeren Make-Variable): Exit 2, keine Endlosschleife
+for option in --hooks --make; do
+    readSetup "${option}"
+    assertEquals "2" "${rc}" "${option} ohne Wert: Aufruffehler Exit 2"
+    assertContains "${option} " "${err}" "${option} ohne Wert: Meldung nennt die Option"
+done
+readSetup --hooks "" --make make .stamp
+assertEquals "2" "${rc}" "--hooks mit leerem Wert: Aufruffehler Exit 2"
 
 echo
 echo "showMakeHints"
