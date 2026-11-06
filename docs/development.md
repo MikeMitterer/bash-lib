@@ -151,6 +151,12 @@ Eine neue Datei `src/<name>.lib.sh` folgt dem Muster der vorhandenen:
 
 Danach die Tabelle der Bibliotheken im README ergänzen.
 
+Ausgaben bauen auf den Theme-Helfern aus `tools.lib.sh` auf
+(`printThemeHeading`, `printThemeRow`, `printThemeValue`, `themeMark`), nicht
+auf eigenen Farben oder Spalten. Namen folgen den vorhandenen: `show<Gegenstand>`
+für einen ganzen Block (`showReleaseTags`, `showMakeHelp`), `printTheme<Teil>`
+für eine Zeile.
+
 ## Farben und Themes
 
 Die Palette (`RED`, `GREEN`, `NC`, …) in `colors.lib.sh` ist fest. Farben und

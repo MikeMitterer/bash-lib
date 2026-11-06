@@ -40,11 +40,6 @@ THEME_WIDTH_TARGET  ?= 22
 THEME_COLUMN_GAP    ?= 1
 THEME_GROUP_SPACING ?= 1
 
-# Kennzeichnet in der Hilfe die Maintainer-Targets nach makefile-conventions
-# (status, version, tag-*). In der Target-Beschreibung steht dafür am Ende
-# „— Maintainer“.
-MAINTAINER_MARK = $(THEME_COLOR_DANGER)[Maintainer]$(THEME_COLOR_DESC)
-
 # ProjectTools und CLITheme: Tag und Quelle stehen nur in .dev-tools.conf.sh; devtools (Paket
 # mmit-devtools) liest sie, prüft die Mindestversion und nennt den Installationsbefehl. pipx run
 # holt devtools am Tag aus DEVTOOLS_TAG; der Tag geht über die Umgebung in den Befehl.
@@ -61,29 +56,20 @@ devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools 
 # Liste der Makefiles unausgewertet über die Umgebung (siehe Standard-Header)
 export HELP_FILES = $(value MAKEFILE_LIST)
 
+# Gruppen, Targets und [Maintainer] (Beschreibung endet auf „— Maintainer“) gibt
+# showMakeHelp aus make.lib.sh im CLI-Theme aus; {major}, {minor} und {patch}
+# zeigen die Version vorher und nachher (semVerNext).
 .PHONY: help
 help: ## Alle verfügbaren Befehle anzeigen
 	@echo
 	@echo "Please use \`make <$(THEME_COLOR_GROUP)target$(RESET)>' where <target> is one of"
 	@echo
 	@echo "Project: $(THEME_COLOR_GROUP)$${PROJECT_NAME}$(RESET)"
-	@echo
-	@set -o pipefail; source "$${BASH_LIBS}/version.lib.sh"; \
+	@source "$${BASH_LIBS}/make.lib.sh"; \
 	 ver=$$(readProjectVersion 2>/dev/null) || ver='x.y.z'; \
-	 bump() { local next; next=$$(semVerNext "$$1" 2>/dev/null) || next="$$2"; printf '%s → %s' "$$ver" "$$next"; }; \
-	 grep -hE '^(##@|[a-zA-Z0-9_-]+:.*?## )' $${HELP_FILES} | \
-	  awk -v major="$$(bump major X+1.0.0)" -v minor="$$(bump minor x.Y+1.0)" -v patch="$$(bump patch x.y.Z+1)" \
-	    'function row(label, description) { \
-	      sub(/ — Maintainer$$/, " $(MAINTAINER_MARK)", description); \
-	      gsub(/\{major\}/, major, description); gsub(/\{minor\}/, minor, description); gsub(/\{patch\}/, patch, description); \
-	      printf "$(THEME_INDENT_TARGET)$(THEME_COLOR_TARGET)%s$(RESET)", label; \
-	      padding = $(THEME_WIDTH_TARGET) - length(label) + $(THEME_COLUMN_GAP); \
-	      if (length(label) > $(THEME_WIDTH_TARGET)) { printf "\n$(THEME_INDENT_TARGET)"; padding = $(THEME_WIDTH_TARGET) + $(THEME_COLUMN_GAP) }; \
-	      printf "%*s$(THEME_COLOR_DESC)%s$(RESET)\n", padding, "", description \
-	    }; BEGIN {FS = ":.*## "}; \
-	    /^##@/ { for (i=0; i<$(THEME_GROUP_SPACING); i++) printf "\n"; heading=substr($$0, 4); sub(/^[[:space:]]+/, "", heading); printf "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)%s$(RESET)\n", heading; next }; \
-	    /## / { row($$1, $$2) }'
-	@echo
+	 bump() { local next; next=$$(semVerNext "$$1" 2>/dev/null) || next="$$2"; printf '%s=%s → %s' "$$1" "$$ver" "$$next"; }; \
+	 showMakeHelp --set "$$(bump major X+1.0.0)" --set "$$(bump minor x.Y+1.0)" --set "$$(bump patch x.y.Z+1)" \
+		$${HELP_FILES}
 
 .PHONY: info
 info: ## Umgebungsvariablen anzeigen
@@ -113,41 +99,30 @@ PACKAGE_NAME := $(shell awk -F'"' '/^\[/ { s = $$0 } s == "[project]" && /^name 
 PACKAGE_CMDS := $(shell awk -F' *= *' '/^\[/ { s = $$0; next } s == "[project.scripts]" && NF > 1 { print $$1 }' pyproject.toml 2>/dev/null | grep -xE '[A-Za-z0-9._-]+')
 PACKAGE_CMD  := $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
-COMMA       := ,
 
-# Eine Zeile für hints: Beschriftung, auf THEME_WIDTH_TARGET Zeichen aufgefüllt,
-# dann der Wert. printf füllt nach Bytes auf; die Breite zählt deshalb Zeichen
-# (UTF-8-Folgebytes zählen nicht). Aufruf: $(call hint_row,Beschriftung,Wert),
-# ohne Komma in den Werten.
-hint_row = label="$(1)"; \
-	chars=$$(printf '%s' "$$label" | LC_ALL=C tr -d '\200-\277' | wc -c); \
-	printf "$(THEME_INDENT_TARGET)$(THEME_COLOR_TARGET)%s$(RESET)%*s$(THEME_COLOR_DESC)%s$(RESET)\n" \
-		"$$label" $$(( $(THEME_WIDTH_TARGET) - chars + $(THEME_COLUMN_GAP) )) "" "$(2)"
-
+# Zeilen „## Titel“ und „Beschriftung<TAB>Wert“ für showMakeHints aus make.lib.sh;
+# die Make-Werte darin sind oben auf erlaubte Zeichen geprüft.
 .PHONY: hints
 hints: ## Nützliche Links und Hinweise anzeigen
-	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
-	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)Erster Start$(RESET)"
-	@$(call hint_row,1. Setup,make setup)
-	@$(call hint_row,2. Prüfen,make check)
-	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
-	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)BashLib in anderen Projekten$(RESET)"
-	@$(call hint_row,Paket,$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD))))
-	@$(call hint_row,Installieren,$(if $(REPO_URL),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(NO_REMOTE)))
-	@$(call hint_row,Arbeitskopie,pipx install -e $${WORKSPACE_SQ})
-	@$(call hint_row,Umgebung,export BASH_LIBS=\$$(bashlib-path))
-	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
-	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)ProjectTools (docs-check$(COMMA) status$(COMMA) changelog)$(RESET)"
-	@cmd=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
-	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
-	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)CLITheme (Farben und Abstände der Ausgabe)$(RESET)"
-	@cmd=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || cmd="nicht abrufbar: $(devtools_unavailable)"; $(call hint_row,Installieren,$$cmd)
-	@$(call hint_row,Themes anlegen,cli-theme install (macht make setup))
-	@$(call hint_row,Auswahl,export CLI_THEME=ocean)
-	@for ((i=0; i<$(THEME_GROUP_SPACING); i++)); do echo; done
-	@echo "$(THEME_INDENT_GROUP)$(THEME_COLOR_GROUP)Links$(RESET)"
-	@$(call hint_row,Repository,$(or $(REPO_URL),$(NO_REMOTE)))
-	@echo
+	@source "$${BASH_LIBS}/make.lib.sh"; \
+	 projecttools=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || projecttools="nicht abrufbar: $(devtools_unavailable)"; \
+	 clitheme=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || clitheme="nicht abrufbar: $(devtools_unavailable)"; \
+	 { printf '## %s\n' 'Erster Start'; \
+	   printf '%s\t%s\n' '1. Setup' 'make setup' '2. Prüfen' 'make check'; \
+	   printf '## %s\n' 'BashLib in anderen Projekten'; \
+	   printf '%s\t%s\n' \
+		'Paket' '$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))' \
+		'Installieren' "$(if $(REPO_URL),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(NO_REMOTE))" \
+		'Arbeitskopie' "pipx install -e $${WORKSPACE_SQ}" \
+		'Umgebung' 'export BASH_LIBS=$$(bashlib-path)'; \
+	   printf '## %s\n' 'ProjectTools (docs-check, status, changelog)'; \
+	   printf '%s\t%s\n' 'Installieren' "$$projecttools"; \
+	   printf '## %s\n' 'CLITheme (Farben und Abstände der Ausgabe)'; \
+	   printf '%s\t%s\n' 'Installieren' "$$clitheme" \
+		'Themes anlegen' 'cli-theme install (macht make setup)' 'Auswahl' 'export CLI_THEME=ocean'; \
+	   printf '## %s\n' 'Links'; \
+	   printf '%s\t%s\n' 'Repository' '$(or $(REPO_URL),$(NO_REMOTE))'; \
+	 } | showMakeHints
 
 # ─── Precheck ────────────────────────────────────────────────────────────────
 

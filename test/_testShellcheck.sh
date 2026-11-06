@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 . "${ROOT}/src/assert.lib.sh"
 
 # Bibliotheken, die ShellCheck ohne Meldung bestehen müssen
-readonly FILES=(src/tools.lib.sh)
+readonly FILES=(src/tools.lib.sh src/make.lib.sh test/_testMake.sh)
 
 echo
 echo "ShellCheck"
