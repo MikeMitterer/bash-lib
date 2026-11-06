@@ -29,7 +29,9 @@ Bibliothek lädt die Bibliotheken, die sie selbst braucht, über die Variable
 
 ## Voraussetzungen
 
-- **Bash ab 4.3.** macOS bringt Bash 3.2 mit; eine aktuelle Bash kommt mit
+- **Bash 5.** Die Bibliotheken setzen Bash 5 voraus; die aktuellen
+  Linux-LTS-Versionen bringen 5.2 oder 5.3 mit. macOS bringt als `/bin/bash`
+  nur 3.2 mit; eine aktuelle Bash kommt mit
   `brew install bash`. Skripte starten mit `#!/usr/bin/env bash`, damit die
   Bash aus dem `PATH` läuft.
 - **`BASH_LIBS`** zeigt auf das Verzeichnis `src` dieses Repos (siehe

@@ -5,7 +5,7 @@ steht im [README](../README.md).
 
 ## Voraussetzungen
 
-- Bash ab 4.3, Git und [pipx](https://pipx.pypa.io).
+- Bash 5, Git und [pipx](https://pipx.pypa.io).
 - [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
   für `make docs-check`, `make test`, `make status` und `make changelog`. Die
   verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
