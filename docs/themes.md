@@ -1,11 +1,11 @@
 <!-- Teil der BashLib-Doku; Überblick im README -->
 # CLI-Themes und Abstände
 
-**Die Theme-Helfer lesen Farben und Abstände aus der Theme-Datei von
-[CLITheme](https://github.com/MikeMitterer/python-clitheme).** Python-Werkzeuge
-und Makefiles verwenden dieselbe Datei. Skripte binden wie bisher
+**Die Theme-Helfer nehmen Farben und Abstände von
+[CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl `clitheme`,
+ab 0.5.0).** Python-Werkzeuge, Makefiles und Bash-Skripte zeigen damit dasselbe
+Theme; die Theme-Datei liest nur CLITheme. Skripte binden wie bisher
 `colors.lib.sh` oder `tools.lib.sh` ein; ein zusätzliches Modul gibt es nicht.
-Das Theme gibt es ab BashLib 0.4.0.
 
 ```bash
 if [[ "${__TOOLS_LIB__:=}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
@@ -18,46 +18,47 @@ printThemeStatus "✓" "Fertig" OK
 CLI_THEME=ocean ./mein-skript.sh --help
 ```
 
-## Theme-Datei
+## Theme von clitheme
 
-**Ort:** `${XDG_CONFIG_HOME:-~/.config}/cli-theme/<name>.theme`. `CLI_THEME`
-wählt den Namen (Standard `classic`; Buchstaben, Ziffern, `-` und `_`).
-`MAKE_THEME` gilt als veralteter Ersatzname, wenn `CLI_THEME` fehlt.
-`cli-theme install` legt die mitgelieferten Vorlagen an, `cli-theme show` zeigt
-das gewählte Theme. Format und Rollen beschreibt das README von CLITheme.
+`colors.lib.sh` ruft beim Einbinden einmal `clitheme export --bash` auf.
+clitheme liest das gewählte Theme (`CLI_THEME`, Standard `classic`; Datei unter
+`${XDG_CONFIG_HOME:-~/.config}/clitheme/`), prüft es und gibt die aufgelösten
+Werte gequotet aus. `clitheme install` legt die mitgelieferten Vorlagen an,
+`clitheme show` zeigt das gewählte Theme. Format, Rollen und Fehlerfälle der
+Theme-Datei beschreibt das README von CLITheme.
 
-`colors.lib.sh` liest die Datei beim Einbinden einmal, Zeile für Zeile nach
-den Regeln von CLITheme, und bindet sie nie mit `source` ein. Danach stehen
-bereit:
+Danach stehen bereit:
 
-- **Rollen** `C_HEAD`, `C_KEY`, `C_TEXT`, `C_VAL`, `C_HINT`, `C_ACC`, `C_OK`,
-  `C_WARN`, `C_ERR`, `C_MARK` mit dem Wert aus der Datei, etwa `bold+11`;
-  `C_OFF` beendet eine Farbe.
-- **Abstände** `I_HEAD`, `I_ROW`, `I_HINT`, `W_KEY`, `GAP`, `WIDTH`, `SPACE`
-  als Zahl.
+- **Farben** `THEME_COLOR_*` als Escape-Text (`\x1B[…m`) wie die Palette, für
+  die Theme-Helfer; `C_OFF` beendet eine Farbe.
+- **Abstände** `THEME_INDENT_*` als Leerzeichen, `THEME_WIDTH_TARGET`,
+  `THEME_COLUMN_GAP`, `THEME_WIDTH_HELP` und `THEME_GROUP_SPACING` als Zahl.
 - **`THEME_NAME`**, **`THEME_SOURCE`** und **`THEME_ORIGIN`**: Name des gewählten
-  Themes, Pfad seiner Datei und woher die Wahl kommt (`CLI_THEME`, `MAKE_THEME`
-  oder `Standard`), etwa für eine Info-Ausgabe.
+  Themes, Pfad seiner Datei und woher die Wahl kommt (`CLI_THEME` oder
+  `default`), etwa für eine Info-Ausgabe.
 
-**Ohne gültige Datei:** keine Farben, die Abstände der classic-Vorlage. Das
-gilt für eine fehlende Datei, einen ungültigen Eintrag, fehlende Einträge,
-einen ungültigen `CLI_THEME` und für Links oder Nicht-Dateien. Bei der ersten
-Theme-Ausgabe am Terminal steht einmal ein Hinweis auf stderr, etwa:
+**Ohne clitheme** (nicht installiert oder Aufruf gescheitert): keine Farben,
+die Abstände von classic. Findet clitheme keine gültige Theme-Datei, liefert es
+selbst keine Farben und einen Befund. Bei der ersten Theme-Ausgabe am Terminal
+steht der Hinweis einmal auf stderr, etwa:
 
 ```text
-  ⚠ CLI-Theme fehlt (/home/mike/.config/cli-theme/classic.theme)
-       cli-theme install
+  ⚠ clitheme fehlt, Ausgabe ohne Farben
+       pipx install git+https://github.com/MikeMitterer/python-clitheme.git
 ```
+
+Bis BashLib 0.5 las `colors.lib.sh` die Datei unter `cli-theme/` selbst und
+setzte die Rollen `C_HEAD` … und Abstände `W_KEY` …; `MAKE_THEME` galt als
+Ersatzname. Diese Variablen gibt es nicht mehr.
 
 ## THEME_*-Variablen
 
-Die bisherigen Variablen bleiben und werden aus den Rollen gesetzt. Werte, die
-das Skript selbst vor dem Einbinden setzt, gewinnen. Geerbte, exportierte Werte
-zählen nicht: MakeLib exportiert seine `THEME_*`-Werte an jedes Rezept, und ein
-Skript, das aus make startet, zeigt trotzdem das gewählte Theme. Ein anderes
-Theme für einen Aufruf wählt `CLI_THEME`.
+Werte, die das Skript selbst vor dem Einbinden setzt, gewinnen. Geerbte,
+exportierte Werte zählen nicht: Ein Makefile, das seine `THEME_*`-Werte an jedes
+Rezept exportiert, ändert das Theme eines Skripts nicht. Ein anderes Theme für
+einen Aufruf wählt `CLI_THEME`.
 
-| Variable | Rolle | Variable | Abstand |
+| Variable | Rolle in CLITheme | Variable | Abstand |
 |---|---|---|---|
 | `THEME_COLOR_GROUP` | `C_HEAD` | `THEME_INDENT_GROUP` | `I_HEAD` Leerzeichen |
 | `THEME_COLOR_TARGET` | `C_KEY` | `THEME_INDENT_TARGET` | `I_ROW` Leerzeichen |
@@ -115,7 +116,7 @@ rücken die Beschreibung um vier weitere Leerzeichen ein. Eingebettete
 Farbcodes in bestehenden Texten bleiben am Terminal erhalten.
 
 Bewusst wie bisher: eine Leerzeile auch vor der ersten Überschrift und keine
-Zeilenumbrüche bei `WIDTH`.
+Zeilenumbrüche bei `THEME_WIDTH_HELP`.
 
 ## Farben am Terminal
 
