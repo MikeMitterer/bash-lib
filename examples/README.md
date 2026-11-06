@@ -47,4 +47,4 @@ NO_COLOR=1 ./examples/cli-demo.sh hints         # ohne Farben, gleiche Spalten
 Kernzeilen, Spalten und die Farben am Pseudoterminal; so bleibt das Beispiel
 aktuell.
 
-Zurück zum [README](../README.md).
+Zurück zum [README](../README.de.md).

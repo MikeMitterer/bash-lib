@@ -18,6 +18,7 @@
 # Muster. Ein Muster ohne Treffer ist ein Problem.
 DOCS=(
     "README.md"
+    "README.de.md"
     "LICENSING.md"
     "docs"
     "examples"
@@ -67,6 +68,8 @@ FORBIDDEN=(
     # "/\bP(U|G)ID\b/i|interne Variablen, nicht in Nutzerdoku"
     # Standardnutzer als Zahl und als Name
     # "/\b99:100\b|\bnobody:users\b/i|Standard-IDs, nicht in Nutzerdoku"
+    # EUPL-Pflichten nur mit Bedingung (Weitergabe, Netzwerkdienst), wie im Lizenz-Baustein
+    "/if you change or redistribute|wer \S+ ändert oder weitergibt|preserve the required notices/i|EUPL-Pflichten ohne Bedingung: Satz aus dem Lizenz-Baustein verwenden"
 )
 
 # Optional: höchstens so viele farbige Hinweisboxen (> [!WARNING] usw.) je
@@ -171,4 +174,5 @@ DEPENDS_HINT=(
 # Anzahl), Hinweisboxen und Absätze. Fehlt in einer Fassung ein Teil, ist das
 # ein Problem. Den übersetzten Text selbst prüft das nicht.
 TRANSLATIONS=(
+    "README.md|README.de.md|deutsche Fassung des README"
 )
