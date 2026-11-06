@@ -81,6 +81,7 @@ testImports() {
         "version.lib.sh"
         "fs.lib.sh"
         "webapp.lib.sh"
+        "python.lib.sh"
 
     )
 

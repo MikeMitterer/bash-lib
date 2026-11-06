@@ -147,6 +147,7 @@ statt abzubrechen.
 | `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
 | `webapp.lib.sh` | Node- und TypeScript-Apps veröffentlichen | colors, fs |
+| `python.lib.sh` | Python-venv mit Mindestversion und Paketen (`ensurePythonVenv`) | tools |
 
 [↑ Übersicht](#übersicht)
 
