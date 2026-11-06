@@ -105,7 +105,7 @@ der Test fehl.
 mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
 echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 
-`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`,
+`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeHelp`, `showMakeHints`,
 `showMakeInfo`, `requireMakeSetup` in einem Wegwerf-Repo) mit
 denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
@@ -159,7 +159,7 @@ make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
 git push --follow-tags origin master
 ```
 
-`make tag-*` erhöht die Version mit `semVerBump`, committet, setzt den Tag
+Jedes `tag-*`-Target erhöht die Version mit `semVerBump`, committet, setzt den Tag
 `vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
 (`changelog --commit`), alles nur lokal, und meldet je Schritt eine
 Statuszeile. Veröffentlicht wird erst mit `git push --follow-tags`.

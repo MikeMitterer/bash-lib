@@ -32,6 +32,33 @@ if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 # Endet eine Beschreibung so, steht dafür die Markierung [Maintainer] in der Rolle C_MARK.
 readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
 
+# Kopfzeilen der Makefile-Hilfe: Leerzeile, „Please use `make <target>' where <target>
+# is one of“, Leerzeile, „Project: NAME“; target und NAME in der Gruppenfarbe des
+# Themes. Ohne Theme-Farben, mit NO_COLOR oder ohne Terminal ohne Escape-Folgen. Der
+# Name wird nur ausgegeben, nie ausgewertet.
+#
+# Usage:
+#     showMakeHeader "$${PROJECT_NAME}"
+#
+# Exit:
+#     0  ausgegeben
+#     2  Aufruf falsch: kein NAME
+#
+showMakeHeader() {
+    if (( $# != 1 )) || [[ -z ${1} ]]; then
+        printf 'showMakeHeader: NAME erwartet\n' >&2
+        return 2
+    fi
+    # Mit NC als Farbe behält themeStyle die eingebetteten Farben; ohne Theme-Farben bleibt
+    # sie leer, und themeStyle gibt nur den Text aus.
+    local -r _plain="${THEME_COLOR_GROUP:+${NC}}"
+    echo
+    themeStyle "Please use \`make <$(themeInline "${THEME_COLOR_GROUP}" target "")>' where <target> is one of" "${_plain}"
+    printf '\n\n'
+    themeStyle "Project: $(themeInline "${THEME_COLOR_GROUP}" "$(themeEscape "${1}")" "")" "${_plain}"
+    printf '\n'
+}
+
 # Hilfe aus Makefiles: Gruppen (`##@ Gruppe`) als Überschrift, Targets mit
 # `## Beschreibung` als Zeile. Zuweisungen (NAME := …) und Targets ohne `##`
 # zählen nicht. Eine Beschreibung, die auf „ — Maintainer“ endet, bekommt die
@@ -41,19 +68,21 @@ readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
 # Usage:
 #     showMakeHelp Makefile
 #     showMakeHelp --set "minor=0.4.0 → 0.5.0" Makefile extra.mk
+#     showMakeHelp --project "$${PROJECT_NAME}" Makefile
 #
 # Params:
 #     --set NAME=WERT   Wert für den Platzhalter {NAME}; NAME aus A-Z, a-z, 0-9, _
+#     --project NAME    vor der Hilfe die Kopfzeilen von showMakeHeader ausgeben
 #     $@                Makefiles in der Reihenfolge der Ausgabe (etwa MAKEFILE_LIST)
 #
 # Exit:
 #     0  Hilfe ausgegeben
 #     1  eine Datei ist nicht lesbar (dann ohne Ausgabe)
-#     2  Aufruf falsch: --set ohne NAME=WERT oder keine Datei
+#     2  Aufruf falsch: --set ohne NAME=WERT, --project ohne NAME oder keine Datei
 #
 showMakeHelp() {
     local -a _settings=() _files=()
-    local _file _line _setting _target _description _maintainer
+    local _file _line _setting _target _description _maintainer _project=""
     local -r _GROUP='^##@[[:space:]]*(.*)$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
 
@@ -66,6 +95,14 @@ showMakeHelp() {
                     return 2
                 fi
                 _settings+=("${_setting}")
+                shift 2
+                ;;
+            --project)
+                if (( $# < 2 )) || [[ -z ${2} ]]; then
+                    printf 'showMakeHelp: --project NAME erwartet\n' >&2
+                    return 2
+                fi
+                _project="${2}"
                 shift 2
                 ;;
             --)
@@ -89,6 +126,7 @@ showMakeHelp() {
             return 1
         fi
     done
+    [[ -z ${_project} ]] || showMakeHeader "${_project}"
 
     for _file in "${_files[@]}"; do
         while IFS= read -r _line || [[ -n ${_line} ]]; do
