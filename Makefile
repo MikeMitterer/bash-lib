@@ -62,10 +62,10 @@ info: ## Umgebungsvariablen anzeigen
 	@echo
 	@source "$${BASH_LIBS}/make.lib.sh"; \
 	 version=$$(readProjectVersion 2>/dev/null) || version='nicht gesetzt'; \
-	 printf '%s\t%s\n' \
+	 showMakeInfo \
 		PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}" BASH_LIBS "$${BASH_LIBS}" \
 		PACKAGE '$(or $(PACKAGE_NAME),$(NO_PACKAGE))' VERSION "$${version}" \
-		THEME "$${THEME_NAME:-ohne clitheme (clitheme export)}" | showMakeHints
+		THEME "$${THEME_NAME:-ohne clitheme (clitheme export)}"
 	@# devtools rückt um zwei Zeichen ein; fünf mehr stellen die Zeilen unter die Werte oben.
 	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo

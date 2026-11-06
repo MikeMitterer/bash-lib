@@ -105,7 +105,8 @@ der Test fehl.
 mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
 echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 
-`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`) mit
+`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`,
+`showMakeInfo`) mit
 denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
 `/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.

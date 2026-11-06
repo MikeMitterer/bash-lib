@@ -132,7 +132,7 @@ instead of aborting.
 |---|---|---|
 | `tools.lib.sh` | Output helpers (`printThemeHeading`, `printThemeRow`, `printThemeStatus`, `usageLine`), version and release tags (`showProjectVersion`, `showReleaseTags`), ports, strings | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI colors, CLI theme and column layout | – |
-| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHelp`, `showMakeHints`) | tools |
+| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`) | tools |
 | `apps.lib.sh` | Paths of the tools used, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging for scripts | – |
 | `os.lib.sh` | Detect the operating system | – |
@@ -160,6 +160,9 @@ columns as the help of a script:
   value from `--set`, unknown placeholders stay as they are.
 - **`showMakeHints`** reads from stdin: `## Title` becomes a heading,
   `Label<TAB>Value` a row whose value never wraps.
+- **`showMakeInfo NAME VALUE …`** prints pairs as rows for `make info`, for
+  example `showMakeInfo WORKSPACE "$${WORKSPACE}"`; an empty value shows as
+  “nicht gesetzt”.
 
 File names and values reach the recipe through the environment (`$${VAR}`) and
 are only printed, never evaluated. Like all theme helpers, neither wraps; a
