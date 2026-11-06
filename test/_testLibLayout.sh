@@ -42,8 +42,11 @@ for name in "${NET[@]}"; do assertEquals "net.lib.sh" "$(definedIn "${name}")" "
 for name in "${TOOLS[@]}"; do assertEquals "tools.lib.sh" "$(definedIn "${name}")" "${name} in tools.lib.sh"; done
 for name in "${PALETTE[@]}"; do assertEquals "colors.lib.sh" "$(definedIn "${name}")" "${name} in colors.lib.sh"; done
 
-assertEquals "" "$(missingAfter tools.lib.sh "${CLI[@]}" "${MAKE[@]}" "${NET[@]}" "${TOOLS[@]}" "${PALETTE[@]}")" \
-    "nur tools.lib.sh eingebunden: alle bisherigen Funktionen da"
+assertEquals "" "$(missingAfter tools.lib.sh "${CLI[@]}" "${MAKE[@]}" "${TOOLS[@]}" "${PALETTE[@]}")" \
+    "nur tools.lib.sh eingebunden: Ausgabe, Versionsanzeige, Allzweck-Helfer und Palette da"
+assertEquals "${NET[*]} " "$(missingAfter tools.lib.sh "${NET[@]}")" \
+    "nur tools.lib.sh eingebunden: isLocalPortOpen nicht (net.lib.sh selbst einbinden)"
+assertEquals "" "$(missingAfter net.lib.sh "${NET[@]}")" "net.lib.sh eingebunden: isLocalPortOpen da"
 assertEquals "" "$(missingAfter cli.lib.sh "${CLI[@]}" "${PALETTE[@]}")" "nur cli.lib.sh eingebunden: Ausgabe und Palette da"
 assertEquals "" "$(missingAfter colors.lib.sh "${PALETTE[@]}")" "nur colors.lib.sh eingebunden: Palette da"
 assertEquals '\x1B[38;5;196m' "$(BASH_LIBS="${ROOT}/src" bash -c '. "${BASH_LIBS}/colors.lib.sh"; printf "%s" "${RED}"')" \
@@ -54,7 +57,7 @@ assertEquals "       opt                    Text" \
 assertEquals "" "$(BASH_LIBS="${ROOT}/src" bash -c 'declare -a o=("- Eins | erste" "x Ende | raus"); . "${BASH_LIBS}/cli.lib.sh"; showMenu "Titel" o >/dev/null' 2>&1)" \
     "nur cli.lib.sh eingebunden: showMenu ohne Fehler (ohne trim/repeat aus tools.lib.sh)"
 
-# tools.lib.sh bindet cli, make und net ein; ein zweites Einbinden ohne Guard darf nicht abbrechen
+# Nach tools.lib.sh darf ein zweites Einbinden ohne Guard nicht abbrechen
 assertEquals "weiter" "$(BASH_LIBS="${ROOT}/src" bash -c 'set -e; . "${BASH_LIBS}/tools.lib.sh"
     . "${BASH_LIBS}/cli.lib.sh"; . "${BASH_LIBS}/make.lib.sh"; . "${BASH_LIBS}/net.lib.sh"; echo weiter' 2>&1)" \
     "cli, make und net nach tools.lib.sh erneut eingebunden: Skript läuft weiter"

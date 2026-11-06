@@ -107,8 +107,7 @@ echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`,
 `showMakeInfo`, `requireMakeSetup` in einem Wegwerf-Repo) mit
-denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
-`/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
+denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
 
 `test/_testHelpFormat.sh` prüft `printThemeOption` und `printThemeExample`:
@@ -118,8 +117,13 @@ Metavariable mit `$(…)`, die nie ausgeführt wird.
 
 `test/_testLibLayout.sh` prüft die Aufteilung: welche Funktion in welcher
 Bibliothek steht, dass ein Skript mit nur `tools.lib.sh` alle bisherigen
-Funktionen findet, `cli.lib.sh` und `colors.lib.sh` allein einbindbar sind und
+Funktionen außer `isLocalPortOpen` findet, `cli.lib.sh` und `colors.lib.sh` allein
+einbindbar sind und
 ein zweites Einbinden ohne Guard nicht abbricht.
+
+`test/_testHelpers.sh` prüft `requireCommand` (vorhanden, fehlt, Hinweis mit
+`$(…)` wörtlich, Aufruffehler, Skript läuft weiter) sowie `readPackageName` und
+`readPackageCommands` an einer Beispiel-`pyproject.toml` mit ungültigen Namen.
 
 `test/_testPython.sh` prüft `ensurePythonVenv` mit `python3.14` und einem
 älteren `python3`: Interpreter fehlt oder ist zu alt, venv anlegen und

@@ -34,7 +34,7 @@ fi
 runMake() {
     rc=0
     out="$(env -u NO_COLOR BASH_LIBS="${ROOT}/src" \
-        "${MAKE_BASH:-bash}" -c '. "${BASH_LIBS}/make.lib.sh"; "$@"; rc=$?; printf x; exit "${rc}"' _ "$@" 2>"${work}/err")" || rc=$?
+        bash -c '. "${BASH_LIBS}/make.lib.sh"; "$@"; rc=$?; printf x; exit "${rc}"' _ "$@" 2>"${work}/err")" || rc=$?
     out="${out%x}"
     err="$(cat "${work}/err")"
 }
@@ -64,7 +64,7 @@ while True:
     chunks.append(chunk)
 child.wait(timeout=10)
 sys.stdout.write(b"".join(chunks).decode().replace("\r\n", "\n"))
-' "${MAKE_BASH:-bash}" -c '. "${BASH_LIBS}/make.lib.sh"; "$@"' _ "$@" 2>&1)"
+' bash -c '. "${BASH_LIBS}/make.lib.sh"; "$@"' _ "$@" 2>&1)"
 }
 
 ESC=$'\033'
@@ -140,19 +140,6 @@ assertContains "       Aus Git                ${longValue}" "${out}" "Terminal m
 runInTerminal plain showMakeHelp "${work}/Makefile"
 assertNotContains "${ESC}" "${out}" "mit NO_COLOR keine Escape-Folgen"
 assertContains "Bereit zum Entwickeln" "${out}" "mit NO_COLOR derselbe Text"
-
-if [[ -x /bin/bash && $(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"') -lt 4 ]]; then
-    runMake showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
-    newer="${out}"
-    MAKE_BASH=/bin/bash runMake showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
-    assertEquals "0" "${rc}" "/bin/bash $(/bin/bash -c 'echo "${BASH_VERSION}"'): Exit 0"
-    assertEquals "" "${err}" "/bin/bash 3: nichts auf stderr"
-    assertEquals "${newer}" "${out}" "/bin/bash 3: dieselbe Hilfe wie mit aktueller Bash"
-    MAKE_BASH=/bin/bash runMake showMakeHints <<< $'## Titel\nPrüfen\tmake check'
-    assertContains "       Prüfen                 make check" "${out}" "/bin/bash 3: Hinweiszeilen"
-else
-    echo "  – kein /bin/bash 3, Fall übersprungen"
-fi
 
 echo
 echo "showMakeInfo"

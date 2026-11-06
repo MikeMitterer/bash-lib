@@ -14,6 +14,8 @@ readonly __APPS_LIB__="apps.lib.sh";
 
 if [[ "${__OS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/os.lib.sh"; fi
 if [[ "${__LOGGING_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/logging.lib.sh"; fi
+# shellcheck source=SCRIPTDIR/cli.lib.sh
+if [[ "${__CLI_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/cli.lib.sh"; fi
 
 # Commandline-Tools die in den Scripts Verwendung finden
 #
@@ -125,3 +127,27 @@ readonly TXTS=$(searchToolInPath "txts" "${TXTS_LOCATIONS[@]}")
 
 #set -e
 
+# Prüft, ob der Befehl $1 im PATH ist; fehlt er, steht „✗ BEFEHL fehlt“ und darunter der
+# Hinweis $2 (etwa Installationsbefehl oder URL) auf stderr. Das Skript endet nicht;
+# anders als checkIfToolIsAvailable, das einen Dateipfad prüft und mit exit 255 endet.
+#
+# Usage:
+#     requireCommand pipx "https://pipx.pypa.io" || exit 1
+#
+# Exit:
+#     0  vorhanden (keine Ausgabe)
+#     1  fehlt (Meldung auf stderr)
+#     2  Aufruf falsch: BEFEHL oder HINWEIS fehlt
+#
+requireCommand() {
+    if (( $# != 2 )) || [[ -z ${1} || -z ${2} ]]; then
+        printf 'requireCommand: BEFEHL HINWEIS erwartet\n' >&2
+        return 2
+    fi
+    command -v "${1}" >/dev/null 2>&1 && return 0
+    {
+        printThemeStatus "✗" "${1} fehlt" ERR
+        printThemeHint "$(printf '%s' "${2}" | sed 's/\\/\\\\/g')"
+    } >&2
+    return 1
+}
