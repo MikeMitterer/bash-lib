@@ -54,10 +54,13 @@ runMake() {
     err="$(cat "${work}/err")"
 }
 
-# Wie runMake, aber mit einem Terminal als stdout (pty); stdout und stderr zusammen
+# Wie runMake, aber mit einem Terminal als stdout (pty); stdout und stderr zusammen.
+# NO_COLOR aus der Umgebung gilt nicht; $1 "plain" setzt es für diesen Aufruf.
 # shellcheck disable=SC2016  # der Ausdruck läuft erst in der inneren Bash
 runInTerminal() {
-    out="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" TERM=xterm-256color \
+    local -a color=(-u NO_COLOR)
+    if [[ ${1} == plain ]]; then color=(NO_COLOR=1); shift; fi
+    out="$(env "${color[@]}" XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" TERM=xterm-256color \
         python3 -c '
 import errno, os, pty, subprocess, sys
 master, slave = pty.openpty()
@@ -143,7 +146,7 @@ assertContains "Wert ${hostile}" "${out}" "Wert aus --set wörtlich, auch \$(…
 runInTerminal showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
 assertContains "${ESC}[" "${out}" "im Terminal die Farben des Themes"
 assertContains "[Maintainer]" "${out}" "im Terminal mit [Maintainer]"
-NO_COLOR=1 runInTerminal showMakeHelp "${work}/Makefile"
+runInTerminal plain showMakeHelp "${work}/Makefile"
 assertNotContains "${ESC}" "${out}" "mit NO_COLOR keine Escape-Folgen"
 assertContains "Bereit zum Entwickeln" "${out}" "mit NO_COLOR derselbe Text"
 
