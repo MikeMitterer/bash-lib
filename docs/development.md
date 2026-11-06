@@ -90,21 +90,21 @@ Docstrings seiner Funktion; die Befehle selbst stehen nur in
 `[project.scripts]`.
 
 `test/_testTheme.sh` prüft, wie `colors.lib.sh` das Theme aus
-`clitheme export --bash` übernimmt: mit einem nachgebauten clitheme
-(`test/clitheme-fake`) die Werte, vorbelegte und geerbte `THEME_*`-Werte,
-Befunde von clitheme, ein Hinweis, der nie ausgeführt wird, und den Fall ohne
-clitheme. Die Farben prüft es an einem Pseudoterminal; dafür braucht es
-`python3`. Ist clitheme installiert, prüft ein Vertragstest es mit eigenem
-`XDG_CONFIG_HOME` und `XDG_CACHE_HOME`.
+`clitheme export --bash` übernimmt, mit dem echten clitheme in eigenem
+`XDG_CONFIG_HOME` und `XDG_CACHE_HOME`: Werte, Auswahl über `CLI_THEME`,
+vorbelegte und geerbte `THEME_*`-Werte, eine fehlende Theme-Datei, ein Befund
+mit `$(…)` im Pfad, der nie ausgeführt wird, und den Fall ohne clitheme im
+`PATH`. Die Farben prüft es an einem Pseudoterminal; dafür braucht es
+`python3`. Ohne installiertes clitheme schlägt der Test fehl.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
-mit nachgebautem `pipx` und `clitheme`: vorhanden, zu alt, `install`
-scheitert, fehlt und ohne pipx.
+mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
+echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHelp`, `showMakeHints`) mit
-denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`,
-`make hints` und das Minimal-Makefile aus dem README in einem Ordner
-`it's $(uname)`.
+denselben Fällen wie `make-help` und `rows` in CLITheme, auch unter
+`/bin/bash` 3.2, dazu `make help`, `make hints` und das Minimal-Makefile aus
+dem README in einem Ordner `it's $(uname)`.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 

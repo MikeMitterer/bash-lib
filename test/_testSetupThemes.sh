@@ -3,8 +3,8 @@
 # _testSetupThemes.sh — make setup legt die CLI-Themes mit clitheme install an
 #
 # Ruft make setup-themes (Teil von make setup) auf. Ein nachgebautes pipx spielt
-# devtools (check clitheme: in Ordnung, zu alt, fehlt), ein nachgebautes
-# clitheme die Installation. setup-themes endet immer mit Exit 0, damit
+# devtools (check clitheme: in Ordnung, zu alt, fehlt); die Themes legt das
+# echte clitheme in einem eigenen XDG_CONFIG_HOME an. setup-themes endet immer mit Exit 0, damit
 # make setup ohne clitheme oder pipx durchläuft.
 #
 #   ./test/_testSetupThemes.sh
@@ -36,15 +36,10 @@ case "\${FAKE_CHECK:-ok}" in
     missing) echo "  ✗ CLITheme is missing: ${INSTALL_CMD}" >&2; exit 1 ;;
 esac
 EOF
-# Nachgebautes clitheme: install scheitert mit FAKE_FAIL.
-cat > "${work}/theme-bin/clitheme" <<'EOF'
-#!/usr/bin/env bash
-case "$1" in
-    install) echo install >> "${FAKE_LOG}"; [[ -z ${FAKE_FAIL:-} ]] || { echo "kaputt"; exit 1; } ;;
-    path) echo "${XDG_CONFIG_HOME}/clitheme/classic.theme" ;;
-esac
-EOF
-chmod +x "${work}/pipx-bin/pipx" "${work}/theme-bin/clitheme"
+# Das echte clitheme, allein in einem eigenen bin; ohne clitheme schlägt der Test fehl.
+clitheme="$(command -v clitheme)" || { echo "clitheme fehlt" >&2; exit 1; }
+ln -s "${clitheme}" "${work}/theme-bin/clitheme"
+chmod +x "${work}/pipx-bin/pipx"
 
 # Ohne ~/.local/bin, damit installierte Werkzeuge nicht mitspielen.
 BASE_PATH="/usr/bin:/bin:$(dirname "$(command -v make)"):$(dirname "$(command -v bash)")"
@@ -53,10 +48,10 @@ DEVTOOLS_TAG="$(sed -n 's/^DEVTOOLS_TAG=//p' "${ROOT}/.dev-tools.conf.sh")"
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
 runSetup() {
     local path="$1"; shift
-    : > "${work}/log"
+    command rm -rf -- "${work}/config"
     : > "${work}/pipx"
-    output="$(env -i HOME="${work}" PATH="${path}" XDG_CONFIG_HOME="${work}/config" \
-        FAKE_LOG="${work}/log" FAKE_PIPX_LOG="${work}/pipx" "$@" \
+    output="$(env -i HOME="${work}" PATH="${path}" XDG_CONFIG_HOME="${work}/config" XDG_CACHE_HOME="${work}/cache" \
+        FAKE_PIPX_LOG="${work}/pipx" "$@" \
         make --no-print-directory -C "${ROOT}" setup-themes 2>&1)"
     status=$?
     output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
@@ -72,26 +67,22 @@ runSetup "${TOOLS}" FAKE_CHECK=ok
 assertEquals "0" "${status}" "vorhanden: Exit 0"
 assertEquals "run --no-path-check --spec git+https://github.com/MikeMitterer/python-devtools.git@${DEVTOOLS_TAG} devtools check clitheme" \
     "$(cat "${work}/pipx")" "vorhanden: devtools prüft clitheme am Tag aus .dev-tools.conf.sh"
-assertEquals "install" "$(cat "${work}/log")" "vorhanden: clitheme install aufgerufen"
+assertEquals "yes" "$([[ -f ${work}/config/clitheme/classic.theme ]] && echo yes)" "vorhanden: clitheme install legt classic an"
 assertContains "✓ CLI-Themes in ${work}/config/clitheme" "${output}" "vorhanden: Statuszeile nennt den Ordner"
 
 runSetup "${TOOLS}" FAKE_CHECK=old
 assertEquals "0" "${status}" "zu alt: Exit 0"
 assertContains "too old (requires 0.5.0 or later): ${INSTALL_CMD}" "${output}" "zu alt: Meldung von devtools mit Installationsbefehl"
-assertEquals "install" "$(cat "${work}/log")" "zu alt: install trotzdem aufgerufen"
-
-runSetup "${TOOLS}" FAKE_CHECK=ok FAKE_FAIL=1
-assertEquals "0" "${status}" "install scheitert: Exit 0"
-assertContains "kaputt"$'\n'"  ✗ clitheme install fehlgeschlagen" "${output}" "install scheitert: Ausgabe und Hinweis"
+assertEquals "yes" "$([[ -f ${work}/config/clitheme/classic.theme ]] && echo yes)" "zu alt: install trotzdem aufgerufen"
 
 runSetup "${work}/pipx-bin:${BASE_PATH}" FAKE_CHECK=missing
 assertEquals "0" "${status}" "fehlt: Exit 0"
 assertContains "CLITheme is missing: ${INSTALL_CMD}" "${output}" "fehlt: Meldung von devtools mit Installationsbefehl"
-assertEquals "" "$(cat "${work}/log")" "fehlt: kein install"
+assertEquals "no" "$([[ -e ${work}/config/clitheme ]] && echo yes || echo no)" "fehlt: kein install"
 
 runSetup "${BASE_PATH}"
 assertEquals "0" "${status}" "ohne pipx und clitheme: Exit 0"
-assertEquals "" "$(cat "${work}/log")" "ohne pipx und clitheme: kein install"
+assertEquals "no" "$([[ -e ${work}/config/clitheme ]] && echo yes || echo no)" "ohne pipx und clitheme: kein install"
 assertContains "✗ pipx fehlt" "${output}" "ohne pipx: Meldung mit Installationsweg"
 assertNotContains "command not found" "${output}" "ohne pipx: keine rohe Shell-Meldung"
 

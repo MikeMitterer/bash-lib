@@ -162,8 +162,10 @@ Spalten wie die Hilfe eines Skripts:
   `Beschriftung<TAB>Wert` eine Zeile, deren Wert nie umbricht.
 
 Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
-nur ausgegeben, nie ausgewertet. Ohne BashLib zeigt das Makefile eine schlichte
-Liste:
+nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen beide nicht um;
+eine lange Beschreibung bleibt eine Zeile. `make.lib.sh` läuft auch unter
+`/bin/bash` 3.2, damit `make help` auf einem Mac ohne aktuelle Bash geht. Ohne
+BashLib zeigt das Makefile eine schlichte Liste:
 
 ```makefile
 SHELL := bash

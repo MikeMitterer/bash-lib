@@ -375,7 +375,8 @@ trim() {
     # Entfernt führende und nachfolgende Leerzeichen
     str="${str#"${str%%[![:space:]]*}"}"  # Entfernt führende Leerzeichen
     str="${str%"${str##*[![:space:]]}"}"  # Entfernt nachfolgende Leerzeichen
-    echo "$str"
+    # printf statt echo: ein Text wie „-n“ bleibt erhalten
+    printf '%s' "$str"
 }
 
 # Zeigt ein Menü an

@@ -49,8 +49,8 @@ readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
 #     2  Aufruf falsch: --set ohne NAME=WERT oder keine Datei
 #
 showMakeHelp() {
-    local -A _values=()
-    local -a _files=()
+    # Indizierte Arrays statt -A: make.lib.sh läuft auch unter /bin/bash 3.2 (macOS)
+    local -a _settings=() _files=()
     local _file _line _setting _target _description _maintainer
     local -r _GROUP='^##@[[:space:]]*(.*)$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
@@ -63,7 +63,7 @@ showMakeHelp() {
                     printf 'showMakeHelp: NAME=WERT erwartet, war %s\n' "${_setting}" >&2
                     return 2
                 fi
-                _values["${_setting%%=*}"]="${_setting#*=}"
+                _settings+=("${_setting}")
                 shift 2
                 ;;
             --)
@@ -92,17 +92,18 @@ showMakeHelp() {
         while IFS= read -r _line || [[ -n ${_line} ]]; do
             _line="${_line%$'\r'}"
             if [[ ${_line} =~ ${_GROUP} ]]; then
-                printThemeHeading "$(makeEscape "$(makeTrim "${BASH_REMATCH[1]}")")"
+                printThemeHeading "$(makeEscape "$(trim "${BASH_REMATCH[1]}")")"
             elif [[ ${_line} =~ ${_TARGET} && ${BASH_REMATCH[2]} != =* \
                     && ${BASH_REMATCH[2]} == *"## "* ]]; then
                 _target="${BASH_REMATCH[1]}"
-                _description="$(makeTrim "${BASH_REMATCH[2]#*"## "}")"
+                _description="$(trim "${BASH_REMATCH[2]#*"## "}")"
                 _maintainer=""
                 if [[ ${_description} == *"${MAKE_MAINTAINER_SUFFIX}" ]]; then
                     _description="${_description%"${MAKE_MAINTAINER_SUFFIX}"}"
                     _maintainer=" $(themeMark "[Maintainer]")"
                 fi
-                printThemeRow "${_target}" "$(makeEscape "$(makeFill _values "${_description}")")${_maintainer}"
+                printThemeRow "${_target}" \
+                    "$(makeEscape "$(makeFill "${_description}" ${_settings[@]+"${_settings[@]}"})")${_maintainer}"
             fi
         done < "${_file}"
     done
@@ -123,37 +124,46 @@ showMakeHints() {
     while IFS= read -r _line || [[ -n ${_line} ]]; do
         _line="${_line%$'\r'}"
         if [[ ${_line} == "## "* ]]; then
-            printThemeHeading "$(makeEscape "$(makeTrim "${_line#"## "}")")"
+            printThemeHeading "$(makeEscape "$(trim "${_line#"## "}")")"
         elif [[ -n ${_line//[[:space:]]/} ]]; then
             _label="${_line%%$'\t'*}"
             _value=""
             [[ ${_line} == *$'\t'* ]] && _value="${_line#*$'\t'}"
-            printThemeValue "$(makeEscape "$(makeTrim "${_label}")")" "$(makeEscape "$(makeTrim "${_value}")")"
+            printThemeValue "$(makeEscape "$(trim "${_label}")")" "$(makeEscape "$(trim "${_value}")")"
         fi
     done
     echo
 }
 
-# Ersetzt {NAME} durch den Wert aus dem assoziativen Array $1; unbekannte
-# Platzhalter bleiben, wie sie sind. Werte werden nicht erneut durchsucht.
+# Ersetzt {NAME} durch den Wert aus NAME=WERT; unbekannte Platzhalter bleiben,
+# wie sie sind. Werte werden nicht erneut durchsucht. Gilt ein NAME mehrfach,
+# zählt der letzte.
 #
 # Params:
-#     $1 - Name eines assoziativen Arrays NAME → WERT
-#     $2 - Text mit Platzhaltern
+#     $1 - Text mit Platzhaltern
+#     $2… - Werte als NAME=WERT
 makeFill() {
-    local -n _fillValues="${1}"
-    local _rest="${2}" _result="" _after
+    local _rest="${1}" _result="" _after _name _value _setting _found
     local -r _NAME='^([A-Za-z0-9_]+)\}(.*)$'
+    shift
     while [[ ${_rest} == *"{"* ]]; do
         _result+="${_rest%%"{"*}"
         _after="${_rest#*"{"}"
         if [[ ${_after} =~ ${_NAME} ]]; then
-            if [[ -v "_fillValues[${BASH_REMATCH[1]}]" ]]; then
-                _result+="${_fillValues[${BASH_REMATCH[1]}]}"
-            else
-                _result+="{${BASH_REMATCH[1]}}"
-            fi
+            _name="${BASH_REMATCH[1]}"
             _rest="${BASH_REMATCH[2]}"
+            _found=no
+            for _setting in "$@"; do
+                if [[ ${_setting%%=*} == "${_name}" ]]; then
+                    _value="${_setting#*=}"
+                    _found=yes
+                fi
+            done
+            if [[ ${_found} == yes ]]; then
+                _result+="${_value}"
+            else
+                _result+="{${_name}}"
+            fi
         else
             _result+="{"
             _rest="${_after}"
@@ -174,14 +184,4 @@ makeEscape() {
         _rest="${_rest#*\\}"
     done
     printf '%s' "${_result}${_rest}"
-}
-
-# Entfernt Leerraum am Anfang und Ende.
-#
-# Params:
-#     $1 - Text
-makeTrim() {
-    local _text="${1}"
-    _text="${_text#"${_text%%[![:space:]]*}"}"
-    printf '%s' "${_text%"${_text##*[![:space:]]}"}"
 }

@@ -21,35 +21,20 @@ work="$(mktemp -d)"
 cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
-# Theme-Datei wie die classic-Vorlage von CLITheme; ohne sie gäbe es keine Farben
-mkdir -p "${work}/config/cli-theme"
-cat > "${work}/config/cli-theme/classic.theme" <<'EOF'
-C_HEAD=bold+11
-C_KEY=33
-C_TEXT=10
-C_VAL=10
-C_HINT=dim
-C_ACC=14
-C_OK=10
-C_WARN=208
-C_ERR=bold+196
-C_MARK=13
-I_HEAD=2
-I_ROW=7
-I_HINT=7
-W_KEY=21
-GAP=2
-WIDTH=120
-SPACE=1
-EOF
+# Theme über das echte clitheme mit eigenem XDG_CONFIG_HOME und XDG_CACHE_HOME
+export XDG_CONFIG_HOME="${work}/config" XDG_CACHE_HOME="${work}/cache"
+if ! clitheme install >/dev/null 2>&1; then
+    echo "clitheme fehlt oder scheitert: pipx install git+https://github.com/MikeMitterer/python-clitheme.git" >&2
+    exit 1
+fi
 
 # Führt "$@" nach dem Einbinden von make.lib.sh aus; stdin bleibt erhalten.
 # Setzt rc, out (stdout samt abschließender Leerzeilen) und err (stderr).
 # shellcheck disable=SC2016  # der Ausdruck läuft erst in der inneren Bash
 runMake() {
     rc=0
-    out="$(env -u NO_COLOR XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" \
-        bash -c '. "${BASH_LIBS}/make.lib.sh"; "$@"; rc=$?; printf x; exit "${rc}"' _ "$@" 2>"${work}/err")" || rc=$?
+    out="$(env -u NO_COLOR BASH_LIBS="${ROOT}/src" \
+        "${MAKE_BASH:-bash}" -c '. "${BASH_LIBS}/make.lib.sh"; "$@"; rc=$?; printf x; exit "${rc}"' _ "$@" 2>"${work}/err")" || rc=$?
     out="${out%x}"
     err="$(cat "${work}/err")"
 }
@@ -60,11 +45,11 @@ runMake() {
 runInTerminal() {
     local -a color=(-u NO_COLOR)
     if [[ ${1} == plain ]]; then color=(NO_COLOR=1); shift; fi
-    out="$(env "${color[@]}" XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" TERM=xterm-256color \
+    out="$(env "${color[@]}" BASH_LIBS="${ROOT}/src" TERM=xterm-256color \
         python3 -c '
 import errno, os, pty, subprocess, sys
 master, slave = pty.openpty()
-child = subprocess.Popen(sys.argv[1:], stdin=subprocess.DEVNULL, stdout=slave, stderr=slave)
+child = subprocess.Popen(sys.argv[1:], stdout=slave, stderr=slave)
 os.close(slave)
 chunks = []
 while True:
@@ -79,7 +64,7 @@ while True:
     chunks.append(chunk)
 child.wait(timeout=10)
 sys.stdout.write(b"".join(chunks).decode().replace("\r\n", "\n"))
-' bash -c '. "${BASH_LIBS}/make.lib.sh"; "$@"' _ "$@" 2>&1)"
+' "${MAKE_BASH:-bash}" -c '. "${BASH_LIBS}/make.lib.sh"; "$@"' _ "$@" 2>&1)"
 }
 
 ESC=$'\033'
@@ -146,9 +131,28 @@ assertContains "Wert ${hostile}" "${out}" "Wert aus --set wörtlich, auch \$(…
 runInTerminal showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
 assertContains "${ESC}[" "${out}" "im Terminal die Farben des Themes"
 assertContains "[Maintainer]" "${out}" "im Terminal mit [Maintainer]"
+printf 'x: ## %s\n' "$(printf 'Wort %.0s' {1..30})" > "${work}/long.mk"
+COLUMNS=60 runInTerminal plain showMakeHelp "${work}/long.mk"
+assertEquals "1" "$(grep -c . <<< "${out}")" "Terminal mit 60 Spalten: lange Beschreibung bleibt in einer Zeile (wie printThemeRow)"
+longValue="pipx install $(printf 'x%.0s' {1..100})"
+COLUMNS=60 runInTerminal plain showMakeHints <<< "Aus Git	${longValue}"
+assertContains "       Aus Git                ${longValue}" "${out}" "Terminal mit 60 Spalten: Wert bricht nie um"
 runInTerminal plain showMakeHelp "${work}/Makefile"
 assertNotContains "${ESC}" "${out}" "mit NO_COLOR keine Escape-Folgen"
 assertContains "Bereit zum Entwickeln" "${out}" "mit NO_COLOR derselbe Text"
+
+if [[ -x /bin/bash && $(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"') -lt 4 ]]; then
+    runMake showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
+    newer="${out}"
+    MAKE_BASH=/bin/bash runMake showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
+    assertEquals "0" "${rc}" "/bin/bash $(/bin/bash -c 'echo "${BASH_VERSION}"'): Exit 0"
+    assertEquals "" "${err}" "/bin/bash 3: nichts auf stderr"
+    assertEquals "${newer}" "${out}" "/bin/bash 3: dieselbe Hilfe wie mit aktueller Bash"
+    MAKE_BASH=/bin/bash runMake showMakeHints <<< $'## Titel\nPrüfen\tmake check'
+    assertContains "       Prüfen                 make check" "${out}" "/bin/bash 3: Hinweiszeilen"
+else
+    echo "  – kein /bin/bash 3, Fall übersprungen"
+fi
 
 echo
 echo "showMakeHints"
@@ -227,7 +231,7 @@ physical="$(cd "${folder}" && pwd -P)"
 assertContains "pipx install -e '${physical//\'/\'\\\'\'}'" "${hints}" "Beispiel: Pfad mit Apostroph und \$(…) wörtlich"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|err|"it's"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|"it's"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 help="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" help 2>&1)"

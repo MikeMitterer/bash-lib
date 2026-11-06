@@ -336,7 +336,8 @@ themeOwn() {
 # ohne clitheme gibt es keine Farben und die Ersatzabstände.
 # shellcheck disable=SC2034  # THEME_* liest der Aufrufer
 themeLoad() {
-    local _name _export _own=() _values=()
+    local _name _export _value _own=() _values=()
+    local -r _escape=$'\033' _escapeText='\x1B'
     for _name in ${THEME_EXPORTED}; do
         if themeOwn "${_name}"; then
             _own+=("${_name}")
@@ -358,9 +359,11 @@ themeLoad() {
         # clitheme quotet jeden Wert; die Ausgabe enthält nur Zuweisungen an THEME_*.
         eval "${_export}"
         # Escape-Bytes als Escape-Text wie die Palette: themeStyle setzt sie mit %b um.
+        # Ersatz über eine Variable: ein gequoteter Ersatz bleibt in Bash 3.2 mit Quotes stehen.
         for _name in GROUP TARGET DESC VALUE HINT ACCENT SUCCESS WARNING DANGER SERVER; do
             _name="THEME_COLOR_${_name}"
-            printf -v "${_name}" '%s' "${!_name//$'\033'/'\x1B'}"
+            _value="${!_name}"
+            printf -v "${_name}" '%s' "${_value//${_escape}/${_escapeText}}"
         done
     else
         THEME_NOTICE="clitheme fehlt, Ausgabe ohne Farben"$'\n'"${THEME_CLITHEME_INSTALL}"

@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 #------------------------------------------------------------------------------
 # Prüft, wie colors.lib.sh das Theme von clitheme übernimmt, und die echte
-# Terminalausgabe in einer isolierten Umgebung.
-#
-# Die meisten Fälle laufen mit einem nachgebauten clitheme (test/clitheme-fake),
-# das eine vorgegebene Ausgabe von `clitheme export --bash` liefert. Ist das echte
-# clitheme installiert, prüft ein Vertragstest es mit eigenem XDG_CONFIG_HOME.
+# Terminalausgabe in einer isolierten Umgebung: echtes clitheme mit eigenem
+# XDG_CONFIG_HOME und XDG_CACHE_HOME; ohne clitheme schlägt der Test fehl.
 # Aufruf: bash test/_testTheme.sh (auch über testAll.sh).
 # Python wird nur für den Testtreiber und dessen Pseudoterminal benötigt.
 #------------------------------------------------------------------------------
@@ -17,46 +14,28 @@ import errno
 import os
 from pathlib import Path
 import pty
-import shlex
 import shutil
 import subprocess
 import tempfile
 
 root = Path(os.environ['THEME_TEST_ROOT'])
-ESC = '\x1b'
-# Ausgabe von clitheme export --bash für classic, wie clitheme 0.5.0 sie liefert
-CLASSIC = {
-    'THEME_NAME': 'classic', 'THEME_ORIGIN': 'default', 'THEME_NOTICE': '',
-    'THEME_COLOR_GROUP': ESC + '[1;38;5;11m', 'THEME_COLOR_TARGET': ESC + '[38;5;33m',
-    'THEME_COLOR_DESC': ESC + '[38;5;10m', 'THEME_COLOR_VALUE': ESC + '[38;5;10m',
-    'THEME_COLOR_HINT': ESC + '[2m', 'THEME_COLOR_ACCENT': ESC + '[38;5;14m',
-    'THEME_COLOR_SUCCESS': ESC + '[38;5;10m', 'THEME_COLOR_WARNING': ESC + '[38;5;208m',
-    'THEME_COLOR_DANGER': ESC + '[1;38;5;196m', 'THEME_COLOR_SERVER': ESC + '[38;5;13m',
-    'THEME_INDENT_GROUP': '  ', 'THEME_INDENT_TARGET': '       ', 'THEME_INDENT_HINT': '       ',
-    'THEME_WIDTH_TARGET': '21', 'THEME_COLUMN_GAP': '2', 'THEME_WIDTH_HELP': '120',
-    'THEME_GROUP_SPACING': '1',
-}
 bash_dir = os.path.dirname(shutil.which('bash'))
-real_clitheme = shutil.which('clitheme')
+clitheme = shutil.which('clitheme')
+assert clitheme, 'clitheme fehlt: pipx install git+https://github.com/MikeMitterer/python-clitheme.git'
 
 with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     base = Path(scratch)
-    fake_bin = base / 'bin'
-    fake_bin.mkdir()
-    (fake_bin / 'clitheme').symlink_to(root / 'test' / 'clitheme-fake')
-    export = base / 'export.sh'
-
-    def write_export(**changes):
-        values = dict(CLASSIC, THEME_SOURCE=str(base / 'clitheme' / 'classic.theme'), **changes)
-        export.write_text('# clitheme export --bash\n' + ''.join(
-            f'{name}={shlex.quote(value)}\n' for name, value in values.items()))
-
-    # Ohne ~/.local/bin: nur das nachgebaute clitheme; die Bash aus dem PATH vor /bin/bash
-    with_fake = f'{fake_bin}:{bash_dir}:/usr/bin:/bin'
+    # Eigenes bin nur mit clitheme; die Bash aus dem PATH vor /bin/bash
+    tool_bin = base / 'bin'
+    tool_bin.mkdir()
+    (tool_bin / 'clitheme').symlink_to(clitheme)
+    with_clitheme = f'{tool_bin}:{bash_dir}:/usr/bin:/bin'
     without = f'{bash_dir}:/usr/bin:/bin'
-    env = {'PATH': with_fake, 'HOME': str(base), 'XDG_CONFIG_HOME': str(base),
+    env = {'PATH': with_clitheme, 'HOME': str(base), 'XDG_CONFIG_HOME': str(base),
            'XDG_CACHE_HOME': str(base / 'cache'), 'BASH_LIBS': str(root / 'src'),
-           'TERM': 'xterm-256color', 'FAKE_CLITHEME_EXPORT': str(export)}
+           'TERM': 'xterm-256color'}
+    subprocess.run(['clitheme', 'install'], env=env, capture_output=True, check=True, timeout=30)
+    theme = base / 'clitheme' / 'classic.theme'
 
     def run(code, *, terminal=False, extra=None, setup='', stderr_ok=False):
         command = ['bash', '-euo', 'pipefail', '-c', setup + '\nsource "$BASH_LIBS/tools.lib.sh"\n' + code]
@@ -86,14 +65,14 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
         assert child.wait(timeout=10) == 0
         return b''.join(chunks).decode().replace('\r\n', '\n')
 
-    write_export()
-
     # Werte aus clitheme export; Farben als Escape-Text wie die Palette
     assert run('printf "%s|%s|%s|%s" "$THEME_NAME" "$THEME_ORIGIN" "$THEME_WIDTH_TARGET" "${#THEME_INDENT_TARGET}"') \
         == 'classic|default|21|7'
     assert run('printf "%s|%s|%s" "$THEME_COLOR_GROUP" "$THEME_COLOR_SERVER" "$C_OFF"') \
         == r'\x1B[1;38;5;11m|\x1B[38;5;13m|\x1B[0m'
-    assert run('printf "%s" "$THEME_SOURCE"') == str(base / 'clitheme' / 'classic.theme')
+    assert run('printf "%s" "$THEME_SOURCE"') == str(theme)
+    assert '\x1b[1;38;5;15mTitel' in run('printThemeHeading Titel', terminal=True, extra={'CLI_THEME': 'mono'})
+    assert run('printf "%s|%s" "$THEME_NAME" "$THEME_ORIGIN"', extra={'CLI_THEME': 'mono'}) == 'mono|CLI_THEME'
     assert run('printThemeRow opt Text') == '       opt                    Text\n'
     assert run('printThemeHeading Titel') == '\n  Titel\n'
     colored = run('printThemeHeading Titel; printThemeRow opt Text; printThemeStatus + Gut OK; '
@@ -130,42 +109,30 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     assert run('printf "%s" "${C_HEAD-unset}|${W_KEY-unset}|${THEME_CLASSIC_SPACING-unset}"') == 'unset|unset|unset'
     assert run('printf "%s" "$THEME_COLOR_GROUP"', extra={'MAKE_THEME': 'mono'}) == r'\x1B[1;38;5;11m'
 
-    # Befund von clitheme (etwa fehlende Theme-Datei): einmal am Terminal, nicht in der Pipe.
-    write_export(THEME_NOTICE='Theme file missing: /x/classic.theme\nclitheme install',
-                 **{name: '' for name in CLASSIC if name.startswith('THEME_COLOR_')})
+    # Befund von clitheme (fehlende Theme-Datei): einmal am Terminal, nicht in der Pipe.
+    classic = theme.read_text()
+    theme.unlink()
     missing = run('printThemeHeading Titel; printThemeRow opt Text', terminal=True)
     assert missing.count('clitheme install') == 1 and '\x1b' not in missing, missing
     assert run('printThemeRow opt Text') == '       opt                    Text\n'
+    theme.write_text(classic)
 
-    # Werte von clitheme werden nie ausgeführt, auch nicht im Hinweis.
-    write_export(THEME_NOTICE=f'$(touch {base}/executed) `touch {base}/executed`\nclitheme show')
-    assert '$(touch' in run('printThemeRow opt Text', terminal=True)
-    assert not (base / 'executed').exists()
-    write_export()
+    # Werte von clitheme werden nie ausgeführt: ein Pfad mit $(…) und Backticks im Befund.
+    hostile = base / '$(touch executed) `touch executed`'
+    hostile.mkdir()
+    result = run('printThemeRow opt Text', terminal=True,
+                 extra={'XDG_CONFIG_HOME': str(hostile), 'XDG_CACHE_HOME': str(hostile / 'cache')})
+    assert '$(touch executed)' in result, result
+    assert not (base / 'executed').exists() and not Path('executed').exists()
 
-    # Ohne clitheme im PATH oder wenn clitheme scheitert: keine Farben, Ersatzabstände,
-    # einmal ein Hinweis mit Installationsbefehl am Terminal, in der Pipe nichts auf stderr.
-    for extra in ({'PATH': without}, {'FAKE_CLITHEME_FAIL': '1'}):
-        assert run('printf "%s|%s|%s" "$THEME_COLOR_GROUP" "$THEME_WIDTH_TARGET" "$THEME_COLUMN_GAP"', extra=extra) \
-            == '|21|2'
-        assert run('printThemeRow opt Text', extra=extra) == '       opt                    Text\n'
-        plain = run('printThemeHeading Titel; printThemeRow opt Text', terminal=True, extra=extra)
-        assert '\x1b' not in plain and plain.count('pipx install git+https://github.com/MikeMitterer/python-clitheme.git') == 1, plain
+    # Ohne clitheme im PATH: keine Farben, Ersatzabstände, einmal ein Hinweis mit
+    # Installationsbefehl am Terminal, in der Pipe nichts auf stderr.
+    extra = {'PATH': without}
+    assert run('printf "%s|%s|%s" "$THEME_COLOR_GROUP" "$THEME_WIDTH_TARGET" "$THEME_COLUMN_GAP"', extra=extra) \
+        == '|21|2'
+    assert run('printThemeRow opt Text', extra=extra) == '       opt                    Text\n'
+    plain = run('printThemeHeading Titel; printThemeRow opt Text', terminal=True, extra=extra)
+    assert '\x1b' not in plain and plain.count('pipx install git+https://github.com/MikeMitterer/python-clitheme.git') == 1, plain
 
-    # Vertrag mit dem echten clitheme: gleiche Werte wie oben, Auswahl über CLI_THEME.
-    if real_clitheme is None:
-        print('Theme: clitheme nicht installiert, Vertragstest übersprungen')
-    else:
-        real_bin = base / 'real-bin'
-        real_bin.mkdir()
-        (real_bin / 'clitheme').symlink_to(real_clitheme)
-        real = {'PATH': f'{real_bin}:{bash_dir}:/usr/bin:/bin'}
-        subprocess.run([real_clitheme, 'install'], env=dict(env, **real), capture_output=True, check=True, timeout=30)
-        assert run('printf "%s|%s" "$THEME_COLOR_GROUP" "$THEME_SOURCE"', extra=real) \
-            == r'\x1B[1;38;5;11m|' + str(base / 'clitheme' / 'classic.theme')
-        assert run('printThemeRow opt Text', extra=real) == '       opt                    Text\n'
-        assert '\x1b[1;38;5;15mTitel' in run('printThemeHeading Titel', terminal=True, extra=dict(real, CLI_THEME='mono'))
-        assert run('printf "%s|%s" "$THEME_NAME" "$THEME_ORIGIN"', extra=dict(real, CLI_THEME='mono')) == 'mono|CLI_THEME'
-        print('Theme: Vertrag mit clitheme bestanden')
     print('Theme: Übernahme aus clitheme export, eigene Werte, Fehlerfälle und PTY-Ausgabe bestanden')
 PY
