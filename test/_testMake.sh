@@ -142,6 +142,30 @@ assertNotContains "${ESC}" "${out}" "mit NO_COLOR keine Escape-Folgen"
 assertContains "Bereit zum Entwickeln" "${out}" "mit NO_COLOR derselbe Text"
 
 echo
+echo "showMakeHeader und showMakeHelp --project"
+echo
+
+runMake showMakeHeader "demo"
+assertEquals "0" "${rc}" "Exit 0"
+assertEquals $'\nPlease use `make <target>\' where <target> is one of\n\nProject: demo\n' "${out}" \
+    "Leerzeile, Aufrufzeile, Leerzeile, Projektzeile; in der Pipe ohne Escape-Folgen"
+runMake showMakeHeader "${hostile}"
+assertContains "Project: ${hostile}" "${out}" "Projektname mit \$(…), Backtick, Apostroph, &, Backslash und % wörtlich"
+runMake showMakeHeader
+assertEquals "2" "${rc}" "ohne Projektname: Aufruffehler Exit 2"
+runInTerminal showMakeHeader "demo"
+assertContains "<${ESC}[1;38;5;11mtarget${ESC}[0m>" "${out}" "Terminal: target in der Gruppenfarbe"
+assertContains "Project: ${ESC}[1;38;5;11mdemo${ESC}[0m" "${out}" "Terminal: Projektname in der Gruppenfarbe"
+runInTerminal plain showMakeHeader "demo"
+assertNotContains "${ESC}" "${out}" "Terminal mit NO_COLOR: keine Escape-Folgen"
+
+runMake showMakeHelp --project demo "${work}/first.mk"
+assertEquals $'\nPlease use `make <target>\' where <target> is one of\n\nProject: demo\n       one                    erstes\n\n' "${out}" \
+    "showMakeHelp --project: Kopfzeilen vor der Hilfe"
+runMake showMakeHelp "${work}/first.mk" --project
+assertEquals "2" "${rc}" "--project ohne Wert: Aufruffehler Exit 2"
+
+echo
 echo "showMakeInfo"
 echo
 
@@ -254,7 +278,8 @@ assertNotContains "— Maintainer" "${help}" "make help: Endung durch [Maintaine
 assertNotContains "awk" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefile: help ohne awk"
 assertNotContains "hint_row" "$(cat "${ROOT}/Makefile")" "Makefile: hints ohne hint_row"
 assertNotContains "DEV_MAKE" "$(cat "${ROOT}/Makefile")" "Makefile: ohne MakeLib (DEV_MAKE)"
-assertContains "clitheme export --make" "$(cat "${ROOT}/Makefile")" "Makefile: Farben aus clitheme export"
+assertNotContains "clitheme export --make" "$(cat "${ROOT}/Makefile")" "Makefile: kein Theme-Include, die Farben kommen über make.lib.sh"
+assertContains "--project" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefile: Kopfzeilen über showMakeHelp --project"
 # Ohne clitheme im PATH: keine Farben, auch nicht in den Zeilen, die Make selbst ausgibt
 nocolor="$(env PATH="/usr/bin:/bin:$(dirname "$(command -v bash)")" make --no-print-directory -C "${ROOT}" help 2>&1)"
 assertNotContains "${ESC}" "${nocolor}" "make help ohne clitheme: keine Escape-Folgen"
@@ -284,6 +309,7 @@ help="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C 
 assertEquals "0" "${rc}" "Beispiel: make help Exit 0"
 assertEquals "" "$(cat "${work}/err")" "Beispiel: make help ohne stderr"
 assertContains "Show this help" "${help}" "Beispiel: help über showMakeHelp"
+assertContains "Project: it's \$(uname)" "${help}" "Beispiel: Projektname aus dem Ordner, wörtlich"
 hints="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" hints 2>&1)"
 # make -C liefert den physischen Pfad; WORKSPACE_SQ quotet den Apostroph als '\''
 physical="$(cd "${folder}" && pwd -P)"

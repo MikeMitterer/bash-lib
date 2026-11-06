@@ -18,14 +18,6 @@ export WORKSPACE WORKSPACE_SQ PROJECT_NAME BASH_LIBS
 # Release-Tags der pipx-Werkzeuge (ProjectTools)
 include .dev-tools.conf.sh
 
-# Farben und Abstände aus dem Theme von CLITheme (clitheme export, ab 0.5.0), dieselben
-# wie in den Skripten. Ohne clitheme bleiben die THEME_*-Farben leer, und die Ausgabe
-# kommt ohne Escape-Folgen. RESET nur, wenn das Theme Farben liefert.
--include $(shell clitheme export --make 2>/dev/null)
-RESET := $(if $(strip $(THEME_COLOR_GROUP)$(THEME_COLOR_TARGET)$(THEME_COLOR_DESC)),$(shell printf '\033[0m'))
-# Name des gewählten Themes für make info, über die Umgebung ins Rezept
-export THEME_NAME
-
 # ProjectTools und CLITheme: Tag und Quelle stehen nur in .dev-tools.conf.sh; devtools (Paket
 # mmit-devtools) liest sie, prüft die Mindestversion und nennt den Installationsbefehl. pipx run
 # holt devtools am Tag aus DEVTOOLS_TAG; der Tag geht über die Umgebung in den Befehl.
@@ -41,19 +33,16 @@ devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools 
 # Liste der Makefiles unausgewertet über die Umgebung (siehe Standard-Header)
 export HELP_FILES = $(value MAKEFILE_LIST)
 
-# Gruppen, Targets und [Maintainer] (Beschreibung endet auf „— Maintainer“) gibt
-# showMakeHelp aus make.lib.sh im CLI-Theme aus; {major}, {minor} und {patch}
+# Kopfzeilen, Gruppen, Targets und [Maintainer] (Beschreibung endet auf „— Maintainer“)
+# gibt showMakeHelp aus make.lib.sh im CLI-Theme aus; {major}, {minor} und {patch}
 # zeigen die Version vorher und nachher (semVerNext).
 .PHONY: help
 help: ## Alle verfügbaren Befehle anzeigen
-	@echo
-	@echo "Please use \`make <$(THEME_COLOR_GROUP)target$(RESET)>' where <target> is one of"
-	@echo
-	@echo "Project: $(THEME_COLOR_GROUP)$${PROJECT_NAME}$(RESET)"
 	@source "$${BASH_LIBS}/make.lib.sh"; \
 	 ver=$$(readProjectVersion 2>/dev/null) || ver='x.y.z'; \
 	 bump() { local next; next=$$(semVerNext "$$1" 2>/dev/null) || next="$$2"; printf '%s=%s → %s' "$$1" "$$ver" "$$next"; }; \
-	 showMakeHelp --set "$$(bump major X+1.0.0)" --set "$$(bump minor x.Y+1.0)" --set "$$(bump patch x.y.Z+1)" \
+	 showMakeHelp --project "$${PROJECT_NAME}" \
+		--set "$$(bump major X+1.0.0)" --set "$$(bump minor x.Y+1.0)" --set "$$(bump patch x.y.Z+1)" \
 		$${HELP_FILES}
 
 .PHONY: info
@@ -115,7 +104,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 precheck:
 	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
 		echo ""; \
-		echo "$(THEME_COLOR_DANGER)Achtung: '$(THEME_COLOR_ACCENT)BASH_LIBS$(THEME_COLOR_DANGER)' fehlt oder enthält keine lesbare version.lib.sh!$(RESET)"; \
+		echo "Achtung: 'BASH_LIBS' fehlt oder enthält keine lesbare version.lib.sh!"; \
 		echo ""; \
 		exit 1; \
 	fi

@@ -133,7 +133,7 @@ instead of aborting.
 | `tools.lib.sh` | General helpers (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); loads all of the libraries on the right, so scripts find every function as before | cli, apps, dtime, version, make |
 | `cli.lib.sh` | Output in the CLI theme: theme from clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Fixed ANSI color palette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`), setup check for test targets (`requireMakeSetup`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
+| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHeader`, `showMakeHelp`, `showMakeHints`, `showMakeInfo`), setup check for test targets (`requireMakeSetup`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
 | `apps.lib.sh` | Paths of the tools used, `checkIfToolIsAvailable`, missing command with hint (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging for scripts | – |
 | `os.lib.sh` | Detect the operating system | – |
@@ -155,10 +155,14 @@ instead of aborting.
 `make.lib.sh` prints `make help` and `make hints` in the CLI theme, in the same
 columns as the help of a script:
 
-- **`showMakeHelp [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
-  `target: … ## Description` from the Makefiles. A description that ends in
-  “— Maintainer” gets the mark **[Maintainer]**; `{NAME}` is replaced by the
-  value from `--set`, unknown placeholders stay as they are.
+- **`showMakeHeader NAME`** prints the header of the help, “Please use make
+  &lt;target&gt; …” and “Project: NAME”, with target and name in the theme's
+  group color.
+- **`showMakeHelp [--project NAME] [--set NAME=VALUE]… FILE…`** reads
+  `##@ Group` and `target: … ## Description` from the Makefiles; with
+  `--project` it starts with the header of `showMakeHeader`. A description
+  that ends in “— Maintainer” gets the mark **[Maintainer]**; `{NAME}` is
+  replaced by the value from `--set`, unknown placeholders stay as they are.
 - **`showMakeHints`** reads from stdin: `## Title` becomes a heading,
   `Label<TAB>Value` a row whose value never wraps.
 - **`showMakeInfo NAME VALUE …`** prints pairs as rows for `make info`, for
@@ -186,7 +190,7 @@ export HELP_FILES = $(value MAKEFILE_LIST)
 .PHONY: help
 help: ## Show this help
 	@if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
-		source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp $${HELP_FILES}; \
+		source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp --project "$$(basename "$$PWD")" $${HELP_FILES}; \
 	else grep -hE '^[a-zA-Z0-9_-]+:.*## ' $${HELP_FILES}; fi
 
 .PHONY: hints
