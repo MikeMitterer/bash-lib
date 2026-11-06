@@ -28,7 +28,7 @@ readonly DASH80="---------------------------------------------------------------
 
 # Theme-Ausgabe für alle Skripte. Farben und Abstände kommen aus colors.lib.sh,
 # das die Theme-Datei von CLITheme liest.
-# $1 Überschrift; THEME_GROUP_SPACING (SPACE) steuert die Leerzeilen davor.
+# $1 Überschrift; THEME_GROUP_SPACING steuert die Leerzeilen davor.
 printThemeHeading() {
     themeHeading "${1}"
 }
@@ -147,7 +147,7 @@ showReleaseTags() {
     while IFS=$'\t' read -r _tag _message; do
         (( ${#_tag} > _longest )) && _longest=${#_tag}
     done <<< "${_list}"
-    _extra=$(( _longest - $(themeNumber "${THEME_WIDTH_TARGET}" "${W_KEY}") ))
+    _extra=$(( _longest - $(themeNumber "${THEME_WIDTH_TARGET}" "${THEME_FALLBACK_WIDTH_TARGET}") ))
     (( _extra > 0 )) || _extra=0
     while IFS=$'\t' read -r _tag _message; do
         printThemeRow "${_tag}" "${_message}" "${_extra}"
@@ -194,7 +194,7 @@ logFileStatus() {
 
 # Helper zum Anzeigen der "Usage"
 #
-# Die Breite kommt aus THEME_WIDTH_TARGET (W_KEY der Theme-Datei).
+# Die Breite kommt aus THEME_WIDTH_TARGET (CLI-Theme).
 #
 # Usage:
 #       usageLine "info | -i                " "Show App-Settings"

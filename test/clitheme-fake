@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------------------
+# clitheme-fake — nachgebautes clitheme für die Tests
+#
+# Die Tests verlinken die Datei als „clitheme“ in einen eigenen PATH-Ordner.
+# `export --bash` gibt die Datei aus FAKE_CLITHEME_EXPORT aus (Zuweisungen wie
+# beim echten clitheme), mit FAKE_CLITHEME_FAIL endet es mit Exit 1. Andere
+# Befehle sind nicht nachgebaut.
+# ------------------------------------------------------------------------------
+case "${1:-} ${2:-}" in
+    "export --bash")
+        [[ -z ${FAKE_CLITHEME_FAIL:-} ]] || { echo "clitheme-fake: kaputt" >&2; exit 1; }
+        cat -- "${FAKE_CLITHEME_EXPORT:?}"
+        ;;
+    *)
+        printf 'clitheme-fake: %s nicht nachgebaut\n' "$*" >&2
+        exit 2
+        ;;
+esac

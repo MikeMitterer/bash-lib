@@ -2,8 +2,8 @@
 # Beispiel: Kommandozeile mit CLI-Theme
 
 **`cli-demo.sh` zeigt, wie ein Skript mit BashLib Hilfe, Info, Hinweise,
-Statuszeilen und Fehlermeldungen ausgibt.** Farben und Abstände kommen aus der
-Theme-Datei von cli-theme ([CLI-Themes und Abstände](../docs/themes.md)). Das
+Statuszeilen und Fehlermeldungen ausgibt.** Farben und Abstände kommen von
+clitheme ([CLI-Themes und Abstände](../docs/themes.md)). Das
 Skript ändert nichts, es gibt nur aus. Es eignet sich als Vorlage und als
 schneller Test, ob Theme und Bibliotheken zusammenspielen.
 
@@ -20,7 +20,7 @@ export BASH_LIBS=/pfad/zu/BashLib/src
 | `cli-demo.sh info` | Version, Pfade, gewähltes Theme mit Herkunft (`themeMark`, Rolle `C_MARK`), Ort der Theme-Datei und ob Farben an sind; Werte in `C_VAL` (`printThemeValue`), darunter ein Hinweis in `C_HINT` (`printThemeHint`) |
 | `cli-demo.sh hints` | Nächste Schritte; jeder Befehl steht in `C_VAL` für sich und lässt sich kopieren |
 | `cli-demo.sh status` | Je eine Statuszeile für Erfolg (`C_OK`), Warnung (`C_WARN`) und Fehler (`C_ERR`) |
-| `cli-demo.sh theme` | Jede Farbrolle in ihrer Farbe mit dem Wert aus der Theme-Datei, dazu die Abstände; `WIDTH` gilt nur für Python-Werkzeuge, BashLib bricht nicht um |
+| `cli-demo.sh theme` | Jede Farbrolle in ihrer Farbe mit ihrer `THEME_COLOR_*`-Variable, dazu die Abstände; `THEME_WIDTH_HELP` gilt nur für Python-Werkzeuge, BashLib bricht nicht um |
 | `cli-demo.sh greet NAME` | Statuszeile „Hallo NAME“ |
 | `cli-demo.sh greet` | Fehler auf stderr: „Fehlende Angabe: NAME“, darunter der Befehl `cli-demo.sh greet NAME`; Exit 2 |
 | `cli-demo.sh --foo`, `cli-demo.sh bla` | Fehler auf stderr: unbekannte Option bzw. unbekannter Befehl, darunter `cli-demo.sh --help`; Exit 2 |
@@ -37,11 +37,11 @@ NO_COLOR=1 ./examples/cli-demo.sh hints         # ohne Farben, gleiche Spalten
 
 - **Farben** erscheinen nur am Terminal, nicht in einer Pipe, mit `NO_COLOR`
   oder bei `TERM=dumb`. `info` nennt den Grund in der Zeile „Farben“.
-- **Fehlt die Theme-Datei**, ist die Ausgabe farblos mit den Abständen von
-  classic; am Terminal steht einmal ein Hinweis mit `cli-theme install`.
+- **Fehlen clitheme oder die Theme-Datei**, ist die Ausgabe farblos mit den
+  Abständen von classic; am Terminal steht einmal ein Hinweis mit dem nächsten
+  Schritt, etwa `clitheme install`.
 - **Spalten**: Mit classic beginnt die Beschreibung in Spalte 31. Ein Theme
-  mit anderen Werten für `I_ROW`, `W_KEY` und `GAP` verschiebt sie; `theme`
-  zeigt die Werte.
+  mit anderen Abständen verschiebt sie; `theme` zeigt die Werte.
 
 `test/_testExamples.sh` ruft jeden Befehl auf und prüft Exit-Codes,
 Kernzeilen, Spalten und die Farben am Pseudoterminal; so bleibt das Beispiel
