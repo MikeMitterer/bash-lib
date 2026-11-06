@@ -12,10 +12,10 @@
 # DevTools selbst (devtools status|check|command), aufgerufen mit pipx run.
 DEVTOOLS_TAG=v0.3.0+261102.1831.3723d
 
-# ProjectTools (docs-check, repo-status, changelog).
+# ProjectTools (docs-check, repo-status, changelog, repo-info ab 0.5.0).
 PROJECTTOOLS_PACKAGE=mmit-projecttools
 PROJECTTOOLS_LABEL=ProjectTools
-PROJECTTOOLS_TAG=v0.4.0+261103.1343.9d0a8
+PROJECTTOOLS_TAG=v0.5.0+261105.2229.00c8b
 PROJECTTOOLS_SOURCE=git+https://github.com/MikeMitterer/bash-ProjectTools.git
 PROJECTTOOLS_EDITABLE=yes
 
