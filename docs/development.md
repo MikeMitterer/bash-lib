@@ -30,7 +30,7 @@ Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` mit `clitheme install`
-fehlende CLI-Theme-Dateien an, die `colors.lib.sh` liest; vorhandene bleiben
+fehlende CLI-Theme-Dateien an, aus denen `cli.lib.sh` das Theme nimmt; vorhandene bleiben
 unverändert. Fehlt CLITheme oder ist es zu alt, nennt `make setup` den
 pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
 Farben.
@@ -51,7 +51,7 @@ jede Bibliothek und rufen ausgewählte Funktionen auf. Das Makefile setzt
 direkt startet, setzt es selbst, sonst bricht es mit „Var 'BASH_LIBS' nicht
 gesetzt!“ ab. Änderungen an Skripten zusätzlich mit `bash -n` und ShellCheck
 prüfen.
-`test/_testShellcheck.sh` lässt ShellCheck über `src/tools.lib.sh` laufen und
+`test/_testShellcheck.sh` lässt ShellCheck über `src/cli.lib.sh`, `src/tools.lib.sh` und weitere Bibliotheken laufen und
 schlägt bei jeder Meldung fehl; ohne installiertes `shellcheck` wird er
 übersprungen. Bewusst stehen gelassene Stellen tragen ein
 `# shellcheck disable=…` mit Begründung.
@@ -91,7 +91,7 @@ weitere Pflegestelle. Die Beschreibung je Befehl ist die erste Zeile des
 Docstrings seiner Funktion; die Befehle selbst stehen nur in
 `[project.scripts]`.
 
-`test/_testTheme.sh` prüft, wie `colors.lib.sh` das Theme aus
+`test/_testTheme.sh` prüft, wie `cli.lib.sh` das Theme aus
 `clitheme export --bash` übernimmt, mit dem echten clitheme in eigenem
 `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`: Werte, Auswahl über `CLI_THEME`,
 vorbelegte und geerbte `THEME_*`-Werte, eine fehlende Theme-Datei, ein Befund
@@ -115,6 +115,11 @@ dem README in einem Ordner `it's $(uname)`.
 reservierte Kurzform-Spalte, bündige Langformen, Metavariable, lange Einträge
 in eigener Zeile, `usageLine` wie bisher, Farben am Pseudoterminal und eine
 Metavariable mit `$(…)`, die nie ausgeführt wird.
+
+`test/_testLibLayout.sh` prüft die Aufteilung: welche Funktion in welcher
+Bibliothek steht, dass ein Skript mit nur `tools.lib.sh` alle bisherigen
+Funktionen findet, `cli.lib.sh` und `colors.lib.sh` allein einbindbar sind und
+ein zweites Einbinden ohne Guard nicht abbricht.
 
 `test/_testPython.sh` prüft `ensurePythonVenv` mit `python3.14` und einem
 älteren `python3`: Interpreter fehlt oder ist zu alt, venv anlegen und
@@ -176,7 +181,7 @@ Eine neue Datei `src/<name>.lib.sh` folgt dem Muster der vorhandenen:
 
 Danach die Tabelle der Bibliotheken im README ergänzen.
 
-Ausgaben bauen auf den Theme-Helfern aus `tools.lib.sh` auf
+Ausgaben bauen auf den Theme-Helfern aus `cli.lib.sh` auf
 (`printThemeHeading`, `printThemeRow`, `printThemeValue`, `themeMark`), nicht
 auf eigenen Farben oder Spalten. Namen folgen den vorhandenen: `show<Gegenstand>`
 für einen ganzen Block (`showReleaseTags`, `showMakeHelp`), `printTheme<Teil>`

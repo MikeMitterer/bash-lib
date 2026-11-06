@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# tools.lib.sh bindet make.lib.sh ein; ein zweites . make.lib.sh ohne
+# Guard bricht sonst an readonly ab.
+[[ -z "${__MAKE_LIB__:-}" ]] || return 0
 readonly __MAKE_LIB__="make.lib.sh";
 
 #------------------------------------------------------------------------------
@@ -6,7 +9,7 @@ readonly __MAKE_LIB__="make.lib.sh";
 #
 # showMakeHelp liest aus Makefiles `##@ Gruppe` und `target: … ## Beschreibung`,
 # showMakeHints liest `## Titel` und `Beschriftung<TAB>Wert` von stdin. Beide geben
-# über die Theme-Helfer aus tools.lib.sh aus (printThemeHeading, printThemeRow,
+# über die Theme-Helfer aus cli.lib.sh aus (printThemeHeading, printThemeRow,
 # printThemeValue, themeMark), also in denselben Spalten wie die Hilfe eines
 # Skripts. Am Terminal mit Farben, in einer Pipe und mit NO_COLOR ohne.
 #
@@ -265,4 +268,47 @@ makeEscape() {
         _rest="${_rest#*\\}"
     done
     printf '%s' "${_result}${_rest}"
+}
+
+# Version aus der Versionsdatei und Release-Tag (gitReleaseTag) als zwei Zeilen
+# im CLI-Theme, für make version. Fehlt eines, steht der Grund als Wert da.
+#
+# Usage:
+#   showProjectVersion
+#   showProjectVersion pyproject.toml ../app
+#
+# $1 Quelle wie readProjectVersion (Standard auto), $2 Verzeichnis (Standard .)
+showProjectVersion() {
+    local -r _SOURCE="${1:-auto}" _REPO="${2:-.}"
+    local _version _tag
+    _version="$(readProjectVersion "${_SOURCE}" "${_REPO}")" || _version="keine Versionsdatei"
+    _tag="$(gitReleaseTag HEAD "${_REPO}")" || _tag="kein Release-Tag"
+    printThemeValue "Version" "${_version}"
+    printThemeValue "Release-Tag" "${_tag}"
+}
+
+# Die letzten Release-Tags (gitListReleaseTags) im CLI-Theme, neueste zuerst:
+# Tag als Bezeichnung, Nachricht als Beschreibung; die erste Spalte wird so
+# breit wie der längste Tag. Ohne Release-Tag ein Hinweis.
+#
+# Usage:
+#   showReleaseTags
+#   showReleaseTags 5 ../app
+#
+# $1 Anzahl (Standard 10), $2 Verzeichnis (Standard .); Exit wie gitListReleaseTags
+showReleaseTags() {
+    local _list _tag _message _longest=0 _extra
+    _list="$(gitListReleaseTags "${1:-10}" "${2:-.}")" || return $?
+    if [[ -z ${_list} ]]; then
+        printThemeHint "keine Release-Tags"
+        return 0
+    fi
+    while IFS=$'\t' read -r _tag _message; do
+        (( ${#_tag} > _longest )) && _longest=${#_tag}
+    done <<< "${_list}"
+    _extra=$(( _longest - $(themeNumber "${THEME_WIDTH_TARGET}" "${THEME_FALLBACK_WIDTH_TARGET}") ))
+    (( _extra > 0 )) || _extra=0
+    while IFS=$'\t' read -r _tag _message; do
+        printThemeRow "${_tag}" "${_message}" "${_extra}"
+    done <<< "${_list}"
 }

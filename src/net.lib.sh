@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# tools.lib.sh bindet net.lib.sh ein; ein zweites . net.lib.sh ohne
+# Guard bricht sonst an readonly ab.
+[[ -z "${__NET_LIB__:-}" ]] || return 0
 readonly __NET_LIB__="net.lib.sh";
 
 #------------------------------------------------------------------------------
@@ -79,4 +82,25 @@ getIPFor() {
     fi
 
     echo "${_IP_IS}"
+}
+
+# Prüft ob der angegebene Port offen ist
+#
+# Usage:
+#     local _IS_PORT_APP_SERVER_OPEN=$(isLocalPortOpen "${PORT_APP_SERVER}")
+#     local _MARK_APP_SERVER_PORT=$(isLocalPortOpen "${PORT_APP_SERVER}" "${GREEN}" "${RED}")
+#
+# Weitere Infos:
+#     https://adamtheautomator.com/check-if-a-port-is-open-in-linux/
+#
+isLocalPortOpen() {
+    local _PORT=${1?"isPortOpen must be called with one parameter: 'PORT'"}
+    local _RET_IF_OPEN=${2-'true'}
+    local _RET_IF_CLOSED=${3-'false'}
+
+    if [[ "$(lsof -i -P -n | \grep LISTEN | \grep :"${_PORT}")" != "" ]];then
+      echo "${_RET_IF_OPEN}";
+    else
+      echo "${_RET_IF_CLOSED}";
+    fi
 }
