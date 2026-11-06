@@ -133,6 +133,56 @@ showMakeInfo() {
     echo
 }
 
+# Prüft für Prüf-Targets (test, check), ob das Projekt mit make setup eingerichtet ist:
+# --hooks DIR verlangt git config core.hooksPath = DIR, --make MAKE STEMPEL… verlangt,
+# dass `MAKE -q STEMPEL…` die Stempeldateien als aktuell meldet. Fehlt etwas, steht
+# „✗ Nicht eingerichtet“ und darunter `make setup` auf stderr; das Skript endet nicht.
+#
+# Usage (im Makefile):
+#     @source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks
+#     @source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --make "$(MAKE)" .venv/.installed
+#
+# Exit:
+#     0  eingerichtet
+#     1  nicht eingerichtet (Meldung auf stderr)
+#     2  Aufruf falsch: keine Prüfung, Stempel ohne --make oder unbekannte Option
+#
+requireMakeSetup() {
+    local _hooks="" _make=""
+    local -a _stamps=()
+    while (( $# > 0 )); do
+        case "${1}" in
+            --hooks) _hooks="${2-}"; shift 2 ;;
+            --make) _make="${2-}"; shift 2 ;;
+            --) shift; _stamps+=("$@"); break ;;
+            -*) printf 'requireMakeSetup: unbekannte Option %s\n' "${1}" >&2; return 2 ;;
+            *) _stamps+=("${1}"); shift ;;
+        esac
+    done
+    if [[ -z ${_hooks} && ${#_stamps[@]} -eq 0 ]]; then
+        printf 'requireMakeSetup: --hooks DIR oder --make MAKE STEMPEL… erwartet\n' >&2
+        return 2
+    fi
+    if (( ${#_stamps[@]} > 0 )) && [[ -z ${_make} ]]; then
+        printf 'requireMakeSetup: Stempel brauchen --make MAKE\n' >&2
+        return 2
+    fi
+
+    local _ready=yes
+    if [[ -n ${_hooks} && "$(git config core.hooksPath 2>/dev/null)" != "${_hooks}" ]]; then
+        _ready=no
+    fi
+    if (( ${#_stamps[@]} > 0 )) && ! "${_make}" -q "${_stamps[@]}" >/dev/null 2>&1; then
+        _ready=no
+    fi
+    [[ ${_ready} == no ]] || return 0
+    {
+        printThemeStatus "✗" "Nicht eingerichtet" ERR
+        printThemeHint "make setup"
+    } >&2
+    return 1
+}
+
 # Hinweiszeilen von stdin: `## Titel` wird Überschrift, `Beschriftung<TAB>Wert`
 # eine Zeile mit dem Wert in der Rolle C_VAL, der nie umbricht. Eine Zeile ohne
 # TAB ist eine Beschriftung ohne Wert; leere Zeilen zählen nicht. Die Ausgabe

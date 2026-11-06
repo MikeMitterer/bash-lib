@@ -133,7 +133,7 @@ statt abzubrechen.
 |---|---|---|
 | `tools.lib.sh` | Ausgabehelfer (`printThemeHeading`, `printThemeRow`, `printThemeOption`, `printThemeExample`, `printThemeStatus`, `usageLine`), Version und Release-Tags anzeigen (`showProjectVersion`, `showReleaseTags`), Ports, Zeichenketten | colors, apps, dtime, version |
 | `colors.lib.sh` | ANSI-Farben, CLI-Theme und Spaltenlayout | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`) | tools |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHelp`, `showMakeHints`, `showMakeInfo`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable` | logging, os |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -164,6 +164,10 @@ Spalten wie die Hilfe eines Skripts:
 - **`showMakeInfo NAME VALUE …`** gibt Paare als Zeilen für `make info` aus,
   etwa `showMakeInfo WORKSPACE "$${WORKSPACE}"`; ein leerer Wert erscheint als
   „nicht gesetzt“.
+- **`requireMakeSetup --hooks DIR` / `--make MAKE STAMP…`** meldet
+  „Nicht eingerichtet“ und `make setup` auf stderr, wenn `core.hooksPath` nicht
+  `DIR` ist oder `MAKE -q` die Stempeldateien als veraltet meldet, etwa
+  `requireMakeSetup --make "$(MAKE)" .venv/.installed`.
 
 Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
 nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen sie nicht um;

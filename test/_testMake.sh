@@ -174,6 +174,49 @@ runMake showMakeInfo WERT "${hostile}"
 assertContains "${hostile}" "${out}" "Wert mit \$(…), Backtick, Apostroph, &, Backslash und % wörtlich"
 
 echo
+echo "requireMakeSetup"
+echo
+
+# Wegwerf-Repo: setup legt .stamp an; die Prüfung läuft im Repo (git, make -q)
+setup="${work}/setup"
+mkdir -p "${setup}"
+git init -q "${setup}"
+printf '.stamp: input\n\ttouch .stamp\n' > "${setup}/Makefile"
+touch "${setup}/input"
+# Setzt rc, out und err für requireMakeSetup "$@", aufgerufen im Wegwerf-Repo
+readSetup() {
+    (cd "${setup}" && runMake requireMakeSetup "$@"
+     printf '%s' "${rc}" > "${work}/setup.rc"; printf '%s' "${out}" > "${work}/setup.out"
+     printf '%s' "${err}" > "${work}/setup.err")
+    rc="$(cat "${work}/setup.rc")"; out="$(cat "${work}/setup.out")"; err="$(cat "${work}/setup.err")"
+}
+
+readSetup --hooks .githooks
+assertEquals "1" "${rc}" "hooksPath fehlt: Rückgabe 1"
+assertContains "Nicht eingerichtet" "${err}" "hooksPath fehlt: Meldung auf stderr"
+assertContains $'\n       make setup' "${err}" "hooksPath fehlt: nächster Schritt in eigener Zeile"
+assertEquals "" "${out}" "hooksPath fehlt: nichts auf stdout"
+git -C "${setup}" config core.hooksPath .githooks
+readSetup --hooks .githooks
+assertEquals "0" "${rc}" "hooksPath gesetzt: Rückgabe 0"
+assertEquals "" "${err}" "hooksPath gesetzt: keine Meldung"
+
+readSetup --make make .stamp
+assertEquals "1" "${rc}" "Stempel fehlt: Rückgabe 1"
+assertContains "Nicht eingerichtet" "${err}" "Stempel fehlt: Meldung"
+(cd "${setup}" && make -s .stamp)
+readSetup --make make .stamp
+assertEquals "0" "${rc}" "Stempel aktuell: Rückgabe 0"
+sleep 1; touch "${setup}/input"
+readSetup --hooks .githooks --make make .stamp
+assertEquals "1" "${rc}" "Stempel veraltet: Rückgabe 1, auch wenn hooksPath stimmt"
+
+readSetup .stamp
+assertEquals "2" "${rc}" "Stempel ohne --make: Aufruffehler Exit 2"
+readSetup
+assertEquals "2" "${rc}" "ohne Prüfung: Aufruffehler Exit 2"
+
+echo
 echo "showMakeHints"
 echo
 
@@ -224,6 +267,7 @@ assertContains "Project:" "${nocolor}" "make help ohne clitheme: läuft"
 info="$(make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
 assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeilen über showMakeInfo"
 assertContains "showMakeInfo" "$(sed -n '/^info:/,/^$/p' "${ROOT}/Makefile")" "Makefile: info über showMakeInfo"
+assertContains "requireMakeSetup" "$(sed -n '/^require-setup:/,/^$/p' "${ROOT}/Makefile")" "Makefile: require-setup über requireMakeSetup"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
 assertContains "pipx install -e '${ROOT}'" "${hints}" "make hints: Arbeitskopie mit absolutem Pfad"
@@ -251,7 +295,7 @@ physical="$(cd "${folder}" && pwd -P)"
 assertContains "pipx install -e '${physical//\'/\'\\\'\'}'" "${hints}" "Beispiel: Pfad mit Apostroph und \$(…) wörtlich"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|"it's"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|"it's"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 help="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" help 2>&1)"
