@@ -170,9 +170,7 @@ install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
 require-setup:
-	@[[ "$$(git config core.hooksPath)" == ".githooks" ]] || { \
-		echo -e "  $(THEME_COLOR_DANGER)✗$(RESET) Nicht eingerichtet: $(THEME_COLOR_ACCENT)make setup$(RESET)" >&2; \
-		exit 1; }
+	@source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks
 
 # ─── Status ──────────────────────────────────────────────────────────────────
 
