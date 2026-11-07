@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# BashLib setzt Bash 5 voraus. Die Prüfung steht vor allem anderen und nutzt nur, was
+# Bash 3.2 (/bin/bash unter macOS) versteht; exit beendet auch das einbindende Skript.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 5 ]; then
+    printf '  ✗ Bash 5 nötig, läuft mit Bash %s\n       brew install bash\n' \
+        "${BASH_VERSINFO[0]:-?}.${BASH_VERSINFO[1]:-?}.${BASH_VERSINFO[2]:-?}" >&2
+    exit 1
+fi
+
 # tools.lib.sh bindet cli.lib.sh ein; ein zweites . cli.lib.sh ohne
 # Guard bricht sonst an readonly ab.
 [[ -z "${__CLI_LIB__:-}" ]] || return 0
