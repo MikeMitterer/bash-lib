@@ -265,6 +265,39 @@ requireMakeSetup() {
     return 1
 }
 
+# Installiert die Arbeitskopie DIR editierbar mit pipx (`pipx install -e --force DIR`):
+# die Befehle aus [project.scripts] zeigen danach auf DIR. Bei Erfolg steht
+# „✓ BEFEHLE aus DIR“ da, die Befehle aus DIR/pyproject.toml (readPackageCommands),
+# ohne Einträge „Paket“; die rohe Ausgabe von pipx bleibt verborgen. Fehlt pipx,
+# stehen „✗ pipx fehlt“ und https://pipx.pypa.io auf stderr; scheitert pipx, dessen
+# Ausgabe und „✗ pipx install fehlgeschlagen“. Neue Befehle legt pipx nur beim
+# Installieren an; nach einem Update deshalb erneut aufrufen.
+#
+# Usage (im Makefile):
+#     install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
+#         @source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
+#
+# Exit:
+#     0  installiert
+#     1  pipx fehlt oder pipx install gescheitert (Meldung auf stderr)
+#     2  Aufruf falsch: kein DIR
+#
+installEditablePackage() {
+    if (( $# != 1 )) || [[ -z ${1} ]]; then
+        printf 'installEditablePackage: DIR erwartet\n' >&2
+        return 2
+    fi
+    local _output _commands
+    requireCommand pipx "https://pipx.pypa.io" || return 1
+    if ! _output="$(pipx install -e --force "${1}" 2>&1)"; then
+        printf '%s\n' "${_output}" >&2
+        printThemeStatus "✗" "pipx install fehlgeschlagen" ERR >&2
+        return 1
+    fi
+    _commands="$(readPackageCommands "${1}")" || _commands="Paket"
+    printThemeStatus "✓" "${_commands//$'\n'/, } aus $(themeEscape "${1}")" OK
+}
+
 # Ersetzt {NAME} durch den Wert aus NAME=WERT; unbekannte Platzhalter bleiben,
 # wie sie sind. Werte werden nicht erneut durchsucht. Gilt ein NAME mehrfach,
 # zählt der letzte.

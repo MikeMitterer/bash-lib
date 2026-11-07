@@ -36,10 +36,11 @@ pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
 Farben.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
-(`pipx install -e --force`); die Befehle des Pakets zeigen danach auf `src/`.
-Nach einem Update erneut aufrufen, denn neue Befehle legt pipx nur beim
-Installieren an. `test/_testMakeInstall.sh` prüft das Target mit einem
-nachgebauten pipx und die Zeilenbreite von `make help`.
+(`installEditablePackage` aus `make.lib.sh`); die Befehle des Pakets zeigen
+danach auf `src/`. Nach einem Update erneut aufrufen, denn neue Befehle legt
+pipx nur beim Installieren an. `test/_testMakeInstall.sh` prüft die Funktion
+und das Target mit einem nachgebauten pipx und die Zeilenbreite von
+`make help`.
 
 `make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
 `make setup` bricht er mit einem Hinweis ab. `make help` listet alle Targets,

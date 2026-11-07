@@ -133,7 +133,7 @@ instead of aborting.
 | `tools.lib.sh` | General helpers (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); loads all of the libraries on the right, so scripts find every function as before | cli, apps, dtime, version, make |
 | `cli.lib.sh` | Output in the CLI theme: theme from clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Fixed ANSI color palette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), setup check for test targets (`requireMakeSetup`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
+| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), setup check for test targets (`requireMakeSetup`), editable install with pipx (`installEditablePackage`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
 | `apps.lib.sh` | Paths of the tools used, `checkIfToolIsAvailable`, missing command with hint (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging for scripts | – |
 | `os.lib.sh` | Detect the operating system | – |
@@ -175,6 +175,17 @@ one output line**, so the recipe reads like its output:
   “Nicht eingerichtet” and `make setup` on stderr if `core.hooksPath` is not
   `DIR` or `MAKE -q` reports the stamp files as outdated; for example
   `requireMakeSetup --make "$(MAKE)" .venv/.installed`.
+- **`installEditablePackage DIR`** installs the working copy `DIR` editable
+  with pipx (`pipx install -e --force DIR`) and prints “✓ COMMANDS aus DIR”
+  with the commands from `[project.scripts]`. Without pipx it fails with
+  “pipx fehlt” and https://pipx.pypa.io, if pipx fails with its output; in
+  both cases the exit code is 1. Call it again after an update, because pipx
+  creates new commands only on install:
+
+  ```makefile
+  install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
+  	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
+  ```
 
 `BASH_ENV` loads `make.lib.sh` into each recipe line of the display targets
 only. Bash expands the value of `BASH_ENV`, so it names `$${BASH_LIBS}` rather
