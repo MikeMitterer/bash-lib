@@ -118,8 +118,9 @@ Metavariable mit `$(…)`, die nie ausgeführt wird.
 
 `test/_testLibLayout.sh` prüft die Aufteilung: welche Funktion in welcher
 Bibliothek steht, dass ein Skript mit nur `tools.lib.sh` alle bisherigen
-Funktionen außer `isLocalPortOpen` findet, `cli.lib.sh` und `colors.lib.sh` allein
-einbindbar sind und
+Funktionen außer `isLocalPortOpen` und denen aus `make.lib.sh` findet, `make.lib.sh`
+die Versionsanzeige samt Ausgabe und Allzweck-Helfern mitbringt, `cli.lib.sh` und
+`colors.lib.sh` allein einbindbar sind und
 ein zweites Einbinden ohne Guard nicht abbricht.
 
 `test/_testHelpers.sh` prüft `requireCommand` (vorhanden, fehlt, Hinweis mit

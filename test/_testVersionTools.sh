@@ -36,14 +36,14 @@ makeRepo() {
     git -C "${repo}" commit -q -m "init"
 }
 
-# Führt $2… nach dem Einbinden von tools.lib.sh in ${work}/$1 aus, ohne Farben.
+# Führt $2… nach dem Einbinden von make.lib.sh in ${work}/$1 aus, ohne Farben.
 # Setzt rc und out (stdout und stderr).
 runIn() {
     local dir="${work}/$1"
     shift
     rc=0
     out="$(cd "${dir}" && NO_COLOR=1 XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" \
-        bash -c '. "${BASH_LIBS}/tools.lib.sh" >/dev/null 2>&1; "$@"' _ "$@" 2>&1)" || rc=$?
+        bash -c '. "${BASH_LIBS}/make.lib.sh" >/dev/null 2>&1; "$@"' _ "$@" 2>&1)" || rc=$?
 }
 
 echo
