@@ -69,8 +69,10 @@ showMakeHeader() {
 }
 
 # Gruppen (`##@ Gruppe`) als Überschrift, Targets mit `## Beschreibung` als Zeile,
-# aus den Makefiles in der angegebenen Reihenfolge. Zuweisungen (NAME := …) und
-# Targets ohne `##` zählen nicht. Eine Beschreibung, die auf „ — Maintainer“ endet,
+# aus den Makefiles in der angegebenen Reihenfolge. Server-Targets mit `##R` (schreibend)
+# und `##D` (destruktiv) stehen ebenso da, der Name in der Server- bzw. Danger-Farbe des
+# Themes. Zuweisungen (NAME := …) und Targets ohne `##` zählen nicht. Eine
+# Beschreibung, die auf „ — Maintainer“ endet,
 # bekommt die Markierung [Maintainer]. {version}, {major}, {minor} und {patch} zeigen
 # die Version aus dem Arbeitsverzeichnis (readProjectVersion) und für die drei
 # Release-Arten davor und danach, etwa „0.6.0 → 0.7.0“; ohne Versionsdatei einen
@@ -93,9 +95,11 @@ showMakeHeader() {
 #
 showMakeTargets() {
     local -a _settings=() _files=()
-    local _file _line _setting _target _description _maintainer _version _bump _next
+    local _file _line _setting _target _description _maintainer _version _bump _next _color
     local -r _GROUP='^##@[[:space:]]*(.*)$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
+    # Erster Marker nach dem Doppelpunkt: ## lokal, ##R Server schreibend, ##D destruktiv
+    local -r _MARKER='##([RD]?) (.*)$'
 
     while (( $# > 0 )); do
         case "${1}" in
@@ -143,10 +147,15 @@ showMakeTargets() {
             _line="${_line%$'\r'}"
             if [[ ${_line} =~ ${_GROUP} ]]; then
                 printThemeHeading "$(themeEscape "$(trim "${BASH_REMATCH[1]}")")"
-            elif [[ ${_line} =~ ${_TARGET} && ${BASH_REMATCH[2]} != =* \
-                    && ${BASH_REMATCH[2]} == *"## "* ]]; then
-                _target="${BASH_REMATCH[1]}"
-                _description="$(trim "${BASH_REMATCH[2]#*"## "}")"
+            elif [[ ${_line} =~ ${_TARGET} && ${BASH_REMATCH[2]} != =* ]] \
+                    && _target="${BASH_REMATCH[1]}" && [[ ${BASH_REMATCH[2]} =~ ${_MARKER} ]]; then
+                case "${BASH_REMATCH[1]}" in
+                    R) _color="${THEME_COLOR_SERVER}" ;;
+                    D) _color="${THEME_COLOR_DANGER}" ;;
+                    *) _color="" ;;
+                esac
+                [[ -z ${_color} ]] || _target="$(themeInline "${_color}" "${_target}" "")"
+                _description="$(trim "${BASH_REMATCH[2]}")"
                 _maintainer=""
                 if [[ ${_description} == *"${MAKE_MAINTAINER_SUFFIX}" ]]; then
                     _description="${_description%"${MAKE_MAINTAINER_SUFFIX}"}"

@@ -131,6 +131,35 @@ runMake showMakeTargets "${work}/first.mk" "${work}/second.mk"
 assertEquals "one Extra two" "$(awk 'NF { printf "%s%s", sep, $1; sep = " " }' <<< "${out}")" \
     "mehrere Dateien wie aus MAKEFILE_LIST: Einträge in der Reihenfolge der Dateien"
 
+# Server-Targets: ##R schreibend, ##D destruktiv; Platzhalter und — Maintainer wie bei ##
+cat > "${work}/server.mk" <<'EOF'
+##@ Server
+server-update: ##R Stack aktualisieren {major}
+server-DANGER-restore: ##D Backup einspielen — Maintainer
+local: ## Lokal
+EOF
+runMake showMakeTargets --set "major=1.4.9 → 2.0.0" "${work}/server.mk"
+assertEquals "0" "${rc}" "##R und ##D: Exit 0"
+expected="
+  Server
+       server-update          Stack aktualisieren 1.4.9 → 2.0.0
+       server-DANGER-restore  Backup einspielen [Maintainer]
+       local                  Lokal
+
+"
+assertEquals "${expected}" "${out}" "##R und ##D wie ##: Platzhalter, [Maintainer], ohne Farben schlicht"
+# Farben des Themes, wie make.lib.sh sie setzt
+# shellcheck disable=SC2016  # die Farben setzt erst make.lib.sh in der inneren Bash
+runMake eval 'printf "%b|%b|%b" "${THEME_COLOR_TARGET}" "${THEME_COLOR_SERVER}" "${THEME_COLOR_DANGER}"'
+IFS='|' read -r colorTarget colorServer colorDanger <<< "${out}"
+# Gegenprobe: drei verschiedene, nicht leere Farben, sonst belegen die Prüfungen unten nichts
+assertEquals "3" "$(printf '%s\n' "${colorTarget}" "${colorServer}" "${colorDanger}" | grep -c "${ESC}")" "Theme hat Target-, Server- und Danger-Farbe"
+assertEquals "3" "$(printf '%s\n' "${colorTarget}" "${colorServer}" "${colorDanger}" | sort -u | grep -c .)" "die drei Farben unterscheiden sich"
+runInTerminal showMakeTargets "${work}/server.mk"
+assertContains "${colorServer}server-update" "${out}" "im Terminal: ##R-Target in der Server-Farbe"
+assertContains "${colorDanger}server-DANGER-restore" "${out}" "im Terminal: ##D-Target in der Danger-Farbe"
+assertContains "${colorTarget}local" "${out}" "im Terminal: ##-Target in der Target-Farbe"
+
 runMake showMakeTargets --set major "${work}/Makefile"
 assertEquals "2" "${rc}" "--set ohne =: Exit 2"
 assertContains "NAME=WERT erwartet, war major" "${err}" "--set ohne =: Meldung"
