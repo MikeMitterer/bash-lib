@@ -182,7 +182,7 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   aufrufen, denn neue Befehle legt pipx nur beim Installieren an:
 
   ```makefile
-  install: ## Install the commands from this working copy (pipx, editable)
+  install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
   	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
   ```
 

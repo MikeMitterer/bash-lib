@@ -180,7 +180,7 @@ one output line**, so the recipe reads like its output:
   creates new commands only on install:
 
   ```makefile
-  install: ## Install the commands from this working copy (pipx, editable)
+  install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
   	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
   ```
 
