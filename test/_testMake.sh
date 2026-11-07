@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
-# _testMake.sh — make.lib.sh: showMakeHelp und showMakeHints im CLI-Theme,
-# dazu make help und make hints dieses Repos
+# _testMake.sh — make.lib.sh: showMakeHeader, showMakeTargets, printMakeHeading und
+# printMakeValue im CLI-Theme, dazu make help, info und hints dieses Repos
 #
 # Übernimmt die Fälle aus CLITheme tests/test_make_help.py (make-help, rows).
 # Bindet src/ dieser Arbeitskopie ein, nicht die Bibliotheken unter BASH_LIBS.
@@ -20,6 +20,8 @@ work="$(mktemp -d)"
 # shellcheck disable=SC2329  # per trap aufgerufen
 cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
+# Ohne Versionsdatei im Arbeitsverzeichnis: showMakeTargets zeigt dann den Ersatz
+cd "${work}" || exit 1
 
 # Theme über das echte clitheme mit eigenem XDG_CONFIG_HOME und XDG_CACHE_HOME
 export XDG_CONFIG_HOME="${work}/config" XDG_CACHE_HOME="${work}/cache"
@@ -83,10 +85,10 @@ tag-minor: ## Minor-Release {minor}, {unknown} bleibt
 EOF
 
 echo
-echo "showMakeHelp"
+echo "showMakeTargets"
 echo
 
-runMake showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
+runMake showMakeTargets --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
 assertEquals "0" "${rc}" "Exit 0"
 assertEquals "" "${err}" "nichts auf stderr"
 expected="
@@ -97,52 +99,65 @@ expected="
 
   Release
        tag-major              Major-Release 1.4.9 → 2.0.0 [Maintainer]
-       tag-minor              Minor-Release {minor}, {unknown} bleibt
+       tag-minor              Minor-Release x.y.z → x.Y+1.0, {unknown} bleibt
 
 "
 assertEquals "${expected}" "${out}" \
-    "Gruppen, Spalten nach W_KEY und GAP, langes Target auf eigener Zeile, [Maintainer], {major} gefüllt, Leerzeile am Ende"
+    "Gruppen, Spalten nach W_KEY und GAP, langes Target auf eigener Zeile, [Maintainer], --set vor der Version, ohne Versionsdatei Ersatz, Leerzeile am Ende"
 assertNotContains "VERSION" "${out}" "Zuweisung NAME := … zählt nicht"
 assertNotContains "NAME" "${out}" "Zuweisung NAME:= … zählt nicht"
 assertNotContains ".PHONY" "${out}" ".PHONY zählt nicht"
 assertNotContains "${ESC}" "${out}" "in einer Pipe keine Escape-Folgen"
 
+# Versionsplatzhalter füllt showMakeTargets selbst aus der Versionsdatei im Arbeitsverzeichnis
+project="${work}/project"
+mkdir -p "${project}"
+printf '[project]\nname = "demo"\nversion = "1.4.9"\n' > "${project}/pyproject.toml"
+printf 'v: ## {version}\na: ## {major}\nb: ## {minor}\nc: ## {patch}\n' > "${project}/Makefile"
+(cd "${project}" && runMake showMakeTargets Makefile && printf '%s' "${out}" > "${work}/version.out")
+assertEquals "1.4.9 | 1.4.9 → 2.0.0 | 1.4.9 → 1.5.0 | 1.4.9 → 1.4.10" \
+    "$(awk 'NF { sub(/^ +[a-z] +/, ""); printf "%s%s", sep, $0; sep = " | " }' "${work}/version.out")" \
+    "{version}, {major}, {minor}, {patch} aus der Versionsdatei, ohne --set"
+printf 'v: ## {version}\na: ## {major}\nb: ## {minor}\nc: ## {patch}\n' > "${work}/version.mk"
+runMake showMakeTargets "${work}/version.mk"
+assertEquals "x.y.z | x.y.z → X+1.0.0 | x.y.z → x.Y+1.0 | x.y.z → x.y.Z+1" \
+    "$(awk 'NF { sub(/^ +[a-z] +/, ""); printf "%s%s", sep, $0; sep = " | " }' <<< "${out}")" \
+    "ohne Versionsdatei lesbarer Ersatz"
+assertEquals "" "${err}" "ohne Versionsdatei nichts auf stderr"
+
 printf 'one: ## erstes\n' > "${work}/first.mk"
 printf '##@ Extra\ntwo: ## zweites\n' > "${work}/second.mk"
-runMake showMakeHelp "${work}/first.mk" "${work}/second.mk"
+runMake showMakeTargets "${work}/first.mk" "${work}/second.mk"
 assertEquals "one Extra two" "$(awk 'NF { printf "%s%s", sep, $1; sep = " " }' <<< "${out}")" \
     "mehrere Dateien wie aus MAKEFILE_LIST: Einträge in der Reihenfolge der Dateien"
 
-runMake showMakeHelp --set major "${work}/Makefile"
+runMake showMakeTargets --set major "${work}/Makefile"
 assertEquals "2" "${rc}" "--set ohne =: Exit 2"
 assertContains "NAME=WERT erwartet, war major" "${err}" "--set ohne =: Meldung"
-runMake showMakeHelp
+runMake showMakeTargets
 assertEquals "2" "${rc}" "ohne Datei: Exit 2"
-runMake showMakeHelp "${work}/missing.mk"
+runMake showMakeTargets "${work}/missing.mk"
 assertEquals "1" "${rc}" "fehlende Datei: Exit 1"
 assertContains "missing.mk" "${err}" "fehlende Datei: Name in der Meldung"
 assertEquals "" "${out}" "fehlende Datei: keine halbe Hilfe"
 
 hostile="\$(uname) \`uname\` it's & \\n %s"
 printf 'x: ## Wert {v}\n' > "${work}/hostile.mk"
-runMake showMakeHelp --set "v=${hostile}" "${work}/hostile.mk"
+runMake showMakeTargets --set "v=${hostile}" "${work}/hostile.mk"
 assertContains "Wert ${hostile}" "${out}" "Wert aus --set wörtlich, auch \$(…), Backtick, Apostroph, &, Backslash und %"
 
-runInTerminal showMakeHelp --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
+runInTerminal showMakeTargets --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
 assertContains "${ESC}[" "${out}" "im Terminal die Farben des Themes"
 assertContains "[Maintainer]" "${out}" "im Terminal mit [Maintainer]"
 printf 'x: ## %s\n' "$(printf 'Wort %.0s' {1..30})" > "${work}/long.mk"
-COLUMNS=60 runInTerminal plain showMakeHelp "${work}/long.mk"
+COLUMNS=60 runInTerminal plain showMakeTargets "${work}/long.mk"
 assertEquals "1" "$(grep -c . <<< "${out}")" "Terminal mit 60 Spalten: lange Beschreibung bleibt in einer Zeile (wie printThemeRow)"
-longValue="pipx install $(printf 'x%.0s' {1..100})"
-COLUMNS=60 runInTerminal plain showMakeHints <<< "Aus Git	${longValue}"
-assertContains "       Aus Git                ${longValue}" "${out}" "Terminal mit 60 Spalten: Wert bricht nie um"
-runInTerminal plain showMakeHelp "${work}/Makefile"
+runInTerminal plain showMakeTargets "${work}/Makefile"
 assertNotContains "${ESC}" "${out}" "mit NO_COLOR keine Escape-Folgen"
 assertContains "Bereit zum Entwickeln" "${out}" "mit NO_COLOR derselbe Text"
 
 echo
-echo "showMakeHeader und showMakeHelp --project"
+echo "showMakeHeader"
 echo
 
 runMake showMakeHeader "demo"
@@ -159,30 +174,47 @@ assertContains "Project: ${ESC}[1;38;5;11mdemo${ESC}[0m" "${out}" "Terminal: Pro
 runInTerminal plain showMakeHeader "demo"
 assertNotContains "${ESC}" "${out}" "Terminal mit NO_COLOR: keine Escape-Folgen"
 
-runMake showMakeHelp --project demo "${work}/first.mk"
-assertEquals $'\nPlease use `make <target>\' where <target> is one of\n\nProject: demo\n       one                    erstes\n\n' "${out}" \
-    "showMakeHelp --project: Kopfzeilen vor der Hilfe"
-runMake showMakeHelp "${work}/first.mk" --project
-assertEquals "2" "${rc}" "--project ohne Wert: Aufruffehler Exit 2"
-
 echo
-echo "showMakeInfo"
+echo "printMakeHeading und printMakeValue"
 echo
 
-runMake showMakeInfo PROJECT_NAME demo LEER "" "Mit Umlaut" "Wert mit Leerzeichen"
+runMake printMakeValue PROJECT_NAME demo
 assertEquals "0" "${rc}" "Exit 0"
-expected="       PROJECT_NAME           demo
-       LEER                   nicht gesetzt
-       Mit Umlaut             Wert mit Leerzeichen
-
-"
-assertEquals "${expected}" "${out}" "Paare in den Spalten des Themes, leerer Wert als nicht gesetzt, Leerzeile am Ende"
-runMake showMakeInfo NUR_NAME
-assertEquals "2" "${rc}" "ungerade Anzahl: Exit 2"
-assertContains "NAME WERT" "${err}" "ungerade Anzahl: Meldung auf stderr"
-assertEquals "" "${out}" "ungerade Anzahl: keine halbe Ausgabe"
-runMake showMakeInfo WERT "${hostile}"
+assertEquals $'       PROJECT_NAME           demo\n' "${out}" "eine Zeile in den Spalten des Themes, ohne Leerzeile danach"
+runMake printMakeValue "Nur Beschriftung"
+assertEquals "       Nur Beschriftung" "${out%"${out##*[! $'\n']}"}" "ohne Wert: nur die Beschriftung"
+runMake printMakeValue WERT "${hostile}"
 assertContains "${hostile}" "${out}" "Wert mit \$(…), Backtick, Apostroph, &, Backslash und % wörtlich"
+runMake printMakeValue "${hostile}" x
+assertContains "${hostile}" "${out}" "Beschriftung wörtlich"
+runMake printMakeValue
+assertEquals "2" "${rc}" "ohne Beschriftung: Aufruffehler Exit 2"
+runMake printMakeValue a b c
+assertEquals "2" "${rc}" "drei Argumente: Aufruffehler Exit 2"
+
+runMake printMakeHeading "Werkzeuge"
+assertEquals $'\n  Werkzeuge\n' "${out}" "Überschrift mit Abstand davor wie printThemeHeading"
+runMake printMakeHeading "${hostile}"
+assertContains "${hostile}" "${out}" "Überschrift wörtlich"
+runMake printMakeHeading
+assertEquals "2" "${rc}" "ohne Text: Aufruffehler Exit 2"
+
+runMake printMakeValue "Größenänderung" umlaut
+first="${out%%umlaut*}"
+runMake printMakeValue "Groessenaenderung" ascii
+second="${out%%ascii*}"
+assertEquals "30" "${#first}" "Wert nach Umlaut-Beschriftung in Spalte 7 + 21 + 2"
+assertEquals "30" "${#second}" "Wert nach ASCII-Beschriftung in derselben Spalte"
+long="pipx install $(printf 'x%.0s' {1..200})"
+runMake printMakeValue "Aus Git" "${long}"
+assertEquals $'       Aus Git                '"${long}"$'\n' "${out}" "langer Wert bricht nicht um"
+longValue="pipx install $(printf 'x%.0s' {1..100})"
+COLUMNS=60 runInTerminal plain printMakeValue "Aus Git" "${longValue}"
+assertContains "       Aus Git                ${longValue}" "${out}" "Terminal mit 60 Spalten: Wert bricht nie um"
+runMake printMakeHeading Titel
+assertNotContains "${ESC}" "${out}" "in einer Pipe keine Escape-Folgen"
+runInTerminal printMakeValue Name Wert
+assertContains "${ESC}[" "${out}" "im Terminal die Farben des Themes"
 
 echo
 echo "requireMakeSetup"
@@ -236,38 +268,7 @@ readSetup --hooks "" --make make .stamp
 assertEquals "2" "${rc}" "--hooks mit leerem Wert: Aufruffehler Exit 2"
 
 echo
-echo "showMakeHints"
-echo
-
-long="pipx install $(printf 'x%.0s' {1..200})"
-runMake showMakeHints <<EOF
-## Werkzeuge
-Größenänderung	umlaut
-Groessenaenderung	ascii
-
-Aus Git	${long}
-Nur Beschriftung
-EOF
-assertEquals "0" "${rc}" "Exit 0"
-mapfile -t lines < <(printf '%s' "${out}")
-count="${#lines[@]}"
-assertEquals "  Werkzeuge" "${lines[1]-}" "## Titel wird Überschrift"
-lines+=("" "" "" "" "" "")
-first="${lines[2]%%umlaut}"
-second="${lines[3]%%ascii}"
-assertEquals "30" "${#first}" "Wert nach Umlaut-Beschriftung in Spalte 7 + 21 + 2"
-assertEquals "30" "${#second}" "Wert nach ASCII-Beschriftung in derselben Spalte"
-assertEquals "       Aus Git                ${long}" "${lines[4]}" "langer Wert bricht nicht um"
-assertEquals "       Nur Beschriftung" "${lines[5]%"${lines[5]##*[! ]}"}" "Zeile ohne TAB: Beschriftung ohne Wert"
-assertEquals "7" "${count}" "leere Zeilen zählen nicht; am Ende eine Leerzeile"
-
-runMake showMakeHints <<< "Wert	${hostile}"
-assertContains "${hostile}" "${out}" "Wert von stdin wörtlich"
-runMake showMakeHints <<< $'## Titel\nA\tB'
-assertNotContains "${ESC}" "${out}" "in einer Pipe keine Escape-Folgen"
-
-echo
-echo "make help und make hints dieses Repos"
+echo "make help, info und hints dieses Repos"
 echo
 
 plain() { sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g'; }
@@ -279,18 +280,44 @@ assertNotContains "awk" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefil
 assertNotContains "hint_row" "$(cat "${ROOT}/Makefile")" "Makefile: hints ohne hint_row"
 assertNotContains "DEV_MAKE" "$(cat "${ROOT}/Makefile")" "Makefile: ohne MakeLib (DEV_MAKE)"
 assertNotContains "clitheme export --make" "$(cat "${ROOT}/Makefile")" "Makefile: kein Theme-Include, die Farben kommen über make.lib.sh"
-assertContains "--project" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefile: Kopfzeilen über showMakeHelp --project"
+# Rezept eines Targets aus dem Makefile dieses Repos
+recipe() { sed -n "/^${1}:/,/^\$/p" "${ROOT}/Makefile"; }
+for target in help info hints; do
+    assertNotContains "\\" "$(recipe "${target}")" "Makefile: ${target} ohne \\-Verkettung, eine Rezeptzeile je Ausgabezeile"
+done
+assertContains "showMakeHeader" "$(recipe help)" "Makefile: help mit showMakeHeader"
+assertContains "showMakeTargets" "$(recipe help)" "Makefile: help mit showMakeTargets"
+assertNotContains "--set" "$(recipe help)" "Makefile: help ohne --set, die Version füllt showMakeTargets"
+assertContains "printMakeValue" "$(recipe info)" "Makefile: info über printMakeValue"
+assertContains "printMakeHeading" "$(recipe hints)" "Makefile: hints über printMakeHeading"
+assertNotContains "showMakeHints" "$(cat "${ROOT}/Makefile")" "Makefile: ohne showMakeHints"
+# BASH_ENV nur für die Anzeige-Targets, als Verweis auf BASH_LIBS: Bash wertet den Wert aus
+# shellcheck disable=SC2016  # Make-Text, wörtlich
+assertEquals 'help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh' \
+    "$(grep -E 'BASH_ENV' "${ROOT}/Makefile" | grep -v '^#')" "Makefile: BASH_ENV nur für help, info und hints, über \${BASH_LIBS}"
+for name in showMakeHelp showMakeInfo showMakeHints; do
+    rc=0; runMake type "${name}"
+    assertEquals "1" "${rc}" "make.lib.sh: ${name} entfernt"
+done
 # Ohne clitheme im PATH: keine Farben, auch nicht in den Zeilen, die Make selbst ausgibt
 nocolor="$(env PATH="/usr/bin:/bin:$(dirname "$(command -v bash)")" make --no-print-directory -C "${ROOT}" help 2>&1)"
 assertNotContains "${ESC}" "${nocolor}" "make help ohne clitheme: keine Escape-Folgen"
 assertContains "Project:" "${nocolor}" "make help ohne clitheme: läuft"
+assertContains "→" "$(grep -E '^ +tag-minor ' <<< "${help}")" "make help: tag-minor mit Versionsvorschau"
+# Andere Targets laden make.lib.sh nicht über BASH_ENV
+# shellcheck disable=SC2016  # Make-Text, wörtlich
+printf 'include %s\nshow-env:\n\t@printf "[%%s]" "$${BASH_ENV-}"\n' "${ROOT}/Makefile" > "${work}/env.mk"
+assertEquals "[]" "$(make -s -C "${ROOT}" -f "${work}/env.mk" show-env 2>/dev/null)" "anderes Target: kein BASH_ENV"
 info="$(make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
-assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeilen über showMakeInfo"
-assertContains "showMakeInfo" "$(sed -n '/^info:/,/^$/p' "${ROOT}/Makefile")" "Makefile: info über showMakeInfo"
+assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeile BASH_LIBS"
+assertContains "VERSION                $(cd "${ROOT}" && BASH_LIBS="${ROOT}/src" bash -c '. src/version.lib.sh; readProjectVersion')" "${info}" "make info: Zeile VERSION"
+assertContains "PACKAGE                mmit-bashlib" "${info}" "make info: Zeile PACKAGE"
 assertContains "requireMakeSetup" "$(sed -n '/^require-setup:/,/^$/p' "${ROOT}/Makefile")" "Makefile: require-setup über requireMakeSetup"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
 assertContains "pipx install -e '${ROOT}'" "${hints}" "make hints: Arbeitskopie mit absolutem Pfad"
+assertContains "  Links" "${hints}" "make hints: Überschrift Links"
+assertContains "export BASH_LIBS=\$(bashlib-path)" "${hints}" "make hints: \$(…) im Wert wörtlich"
 first="$(grep -E '^ +1\. Setup ' <<< "${hints}")"
 second="$(grep -E '^ +2\. Prüfen ' <<< "${hints}")"
 assertEquals "${#first}" "${#second}" "make hints: Umlaut-Beschriftung bündig"
@@ -301,27 +328,31 @@ echo
 
 folder="${work}/it's \$(uname)"
 mkdir -p "${folder}"
-awk '/^```makefile$/ { block = ""; inside = 1; next } inside && /^```$/ { inside = 0; if (block ~ /showMakeHelp/) print block; next } inside { block = block $0 "\n" }' \
+awk '/^```makefile$/ { block = ""; inside = 1; next } inside && /^```$/ { inside = 0; if (block ~ /showMakeTargets/) print block; next } inside { block = block $0 "\n" }' \
     "${ROOT}/README.md" > "${folder}/Makefile"
-assertContains "showMakeHelp" "$(cat "${folder}/Makefile")" "Beispiel aus der Doku gefunden"
+assertContains "showMakeTargets" "$(cat "${folder}/Makefile")" "Beispiel aus der Doku gefunden"
 rc=0
 help="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" help 2>"${work}/err")" || rc=$?
 assertEquals "0" "${rc}" "Beispiel: make help Exit 0"
 assertEquals "" "$(cat "${work}/err")" "Beispiel: make help ohne stderr"
-assertContains "Show this help" "${help}" "Beispiel: help über showMakeHelp"
+assertContains "Show this help" "${help}" "Beispiel: help über showMakeTargets"
 assertContains "Project: it's \$(uname)" "${help}" "Beispiel: Projektname aus dem Ordner, wörtlich"
 hints="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" hints 2>&1)"
 # make -C liefert den physischen Pfad; WORKSPACE_SQ quotet den Apostroph als '\''
 physical="$(cd "${folder}" && pwd -P)"
 assertContains "pipx install -e '${physical//\'/\'\\\'\'}'" "${hints}" "Beispiel: Pfad mit Apostroph und \$(…) wörtlich"
+# BASH_LIBS in einem Ordner mit $(…): BASH_ENV verweist nur auf die Variable, nichts läuft
+libs="${work}/libs \$(touch ${work}/ausgefuehrt)"
+mkdir -p "${libs}"
+cp -R "${ROOT}/src/." "${libs}/"
+rc=0
+help="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${libs}" make -s -C "${folder}" help 2>&1)" || rc=$?
+assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exit 0"
+assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|"it's"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
-help="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" help 2>&1)"
-assertContains "help: ## Show this help" "${help}" "Beispiel ohne BashLib: schlichte Liste"
-hints="$(env BASH_LIBS="${work}/fehlt" make -s -C "${folder}" hints 2>&1)"
-assertContains "pipx install -e" "${hints}" "Beispiel ohne BashLib: Hinweise schlicht"
 
 finishTests

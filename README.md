@@ -133,7 +133,7 @@ instead of aborting.
 | `tools.lib.sh` | General helpers (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); loads all of the libraries on the right, so scripts find every function as before | cli, apps, dtime, version, make |
 | `cli.lib.sh` | Output in the CLI theme: theme from clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Fixed ANSI color palette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`showMakeHeader`, `showMakeHelp`, `showMakeHints`, `showMakeInfo`), setup check for test targets (`requireMakeSetup`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
+| `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), setup check for test targets (`requireMakeSetup`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |
 | `apps.lib.sh` | Paths of the tools used, `checkIfToolIsAvailable`, missing command with hint (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging for scripts | – |
 | `os.lib.sh` | Detect the operating system | – |
@@ -152,54 +152,58 @@ instead of aborting.
 
 ## Help and hints in Makefiles
 
-`make.lib.sh` prints `make help` and `make hints` in the CLI theme, in the same
-columns as the help of a script:
+`make.lib.sh` prints `make help`, `make info` and `make hints` in the CLI
+theme, in the same columns as the help of a script. **One recipe line prints
+one output line**, so the recipe reads like its output:
 
+- **`printMakeHeading TEXT`** prints a heading, like `printThemeHeading`.
+- **`printMakeValue LABEL [VALUE]`** prints a row label · value, like
+  `printThemeValue`; the value never wraps.
 - **`showMakeHeader NAME`** prints the header of the help, “Please use make
   &lt;target&gt; …” and “Project: NAME”, with target and name in the theme's
   group color.
-- **`showMakeHelp [--project NAME] [--set NAME=VALUE]… FILE…`** reads
-  `##@ Group` and `target: … ## Description` from the Makefiles; with
-  `--project` it starts with the header of `showMakeHeader`. A description
-  that ends in “— Maintainer” gets the mark **[Maintainer]**; `{NAME}` is
-  replaced by the value from `--set`, unknown placeholders stay as they are.
-- **`showMakeHints`** reads from stdin: `## Title` becomes a heading,
-  `Label<TAB>Value` a row whose value never wraps.
-- **`showMakeInfo NAME VALUE …`** prints pairs as rows for `make info`, for
-  example `showMakeInfo WORKSPACE "$${WORKSPACE}"`; an empty value shows as
-  “nicht gesetzt”.
+- **`showMakeTargets [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
+  `target: … ## Description` from the Makefiles. A description that ends in
+  “— Maintainer” gets the mark **[Maintainer]**. `{version}`, `{major}`,
+  `{minor}` and `{patch}` show the project version and the version before and
+  after each release kind, for example “0.6.0 → 0.7.0”; `--set` fills further
+  placeholders, unknown ones stay as they are.
 - **`requireMakeSetup --hooks DIR` / `--make MAKE STAMP…`** fails with
   “Nicht eingerichtet” and `make setup` on stderr if `core.hooksPath` is not
   `DIR` or `MAKE -q` reports the stamp files as outdated; for example
   `requireMakeSetup --make "$(MAKE)" .venv/.installed`.
 
-File names and values reach the recipe through the environment (`$${VAR}`) and
-are only printed, never evaluated. Like all theme helpers, none of them wraps; a
-long description stays one line. Without BashLib the Makefile shows a plain
-list:
+`BASH_ENV` loads `make.lib.sh` into each recipe line of the display targets
+only. Bash expands the value of `BASH_ENV`, so it names `$${BASH_LIBS}` rather
+than the path itself. File names and values reach the recipe through the
+environment (`$${VAR}`) and are only printed, never evaluated. The helpers
+need BashLib; without `BASH_LIBS` the recipe lines fail with “command not
+found”.
 
 ```makefile
 SHELL := bash
 
 WORKSPACE    := $(CURDIR)
 WORKSPACE_SQ := '$(subst ','\'',$(WORKSPACE))'
+PROJECT_NAME := $(shell basename -- $(WORKSPACE_SQ))
 # Values from outside reach recipes only through the environment ("$${VAR}")
-export WORKSPACE_SQ
+export WORKSPACE_SQ PROJECT_NAME
 export HELP_FILES = $(value MAKEFILE_LIST)
+
+# make.lib.sh in every recipe line of these targets; Bash expands BASH_ENV,
+# so it refers to BASH_LIBS instead of holding the path
+help hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 
 .PHONY: help
 help: ## Show this help
-	@if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
-		source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp --project "$$(basename "$$PWD")" $${HELP_FILES}; \
-	else grep -hE '^[a-zA-Z0-9_-]+:.*## ' $${HELP_FILES}; fi
+	@showMakeHeader "$${PROJECT_NAME}"
+	@showMakeTargets $${HELP_FILES}
 
 .PHONY: hints
 hints: ## Commands to copy
-	@rows() { printf '## %s\n' 'Working copy'; \
-		printf '%s\t%s\n' 'Install' "pipx install -e $${WORKSPACE_SQ}"; }; \
-	if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
-		source "$${BASH_LIBS}/make.lib.sh" && rows | showMakeHints; \
-	else rows | expand -t 24; fi
+	@printMakeHeading "Working copy"
+	@printMakeValue   "Install" "pipx install -e $${WORKSPACE_SQ}"
+	@echo
 ```
 
 [↑ Contents](#contents)

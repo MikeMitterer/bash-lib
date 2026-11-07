@@ -105,9 +105,9 @@ der Test fehl.
 mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
 echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
 
-`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeHelp`, `showMakeHints`,
-`showMakeInfo`, `requireMakeSetup` in einem Wegwerf-Repo) mit
-denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`, `make hints` und das Minimal-Makefile aus
+`test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeTargets`, `printMakeHeading`,
+`printMakeValue`, `requireMakeSetup` in einem Wegwerf-Repo) mit
+denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`, `make info`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
 
 `test/_testHelpFormat.sh` prüft `printThemeOption` und `printThemeExample`:
@@ -188,8 +188,8 @@ Danach die Tabelle der Bibliotheken im README ergänzen.
 Ausgaben bauen auf den Theme-Helfern aus `cli.lib.sh` auf
 (`printThemeHeading`, `printThemeRow`, `printThemeValue`, `themeMark`), nicht
 auf eigenen Farben oder Spalten. Namen folgen den vorhandenen: `show<Gegenstand>`
-für einen ganzen Block (`showReleaseTags`, `showMakeHelp`), `printTheme<Teil>`
-für eine Zeile.
+für einen ganzen Block (`showReleaseTags`, `showMakeTargets`), `printTheme<Teil>`
+für eine Zeile, in `make.lib.sh` `printMake<Teil>` (`printMakeValue`).
 
 ## Farben und Themes
 
