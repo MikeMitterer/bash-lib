@@ -163,7 +163,10 @@ one output line**, so the recipe reads like its output:
   &lt;target&gt; …” and “Project: NAME”, with target and name in the theme's
   group color.
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
-  `target: … ## Description` from the Makefiles. A description that ends in
+  `target: … ## Description` from the Makefiles. Server targets with `##R`
+  (writing) and `##D` (destructive) are listed the same way, placeholders and
+  “— Maintainer” included, with the target name in the theme's server or
+  danger color. A description that ends in
   “— Maintainer” gets the mark **[Maintainer]**. `{version}`, `{major}`,
   `{minor}` and `{patch}` show the project version and the version before and
   after each release kind, for example “0.6.0 → 0.7.0”; `--set` fills further

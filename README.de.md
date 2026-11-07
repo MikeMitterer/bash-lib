@@ -165,7 +165,9 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   &lt;target&gt; …“ und „Project: NAME“, target und Name in der Gruppenfarbe des
   Themes.
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** liest aus den Makefiles
-  `##@ Group` und `target: … ## Description`. Eine Beschreibung, die auf
+  `##@ Group` und `target: … ## Description`. Server-Targets mit `##R`
+  (schreibend) und `##D` (destruktiv) stehen ebenso da, mit Platzhaltern und
+  „— Maintainer“, der Target-Name in der Server- bzw. Danger-Farbe des Themes. Eine Beschreibung, die auf
   „— Maintainer“ endet, bekommt die Markierung **[Maintainer]**. `{version}`,
   `{major}`, `{minor}` und `{patch}` zeigen die Projektversion und die Version
   vor und nach jeder Release-Art, etwa „0.6.0 → 0.7.0“; `--set` füllt weitere
