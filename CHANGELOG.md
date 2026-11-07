@@ -2,6 +2,14 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.10.0+261107.2008.262c2 — 2026-11-07
+
+cli.lib.sh bricht unter Bash \< 5 mit Meldung und Installationshinweis (brew install bash) ab, auch beim Einbinden über tools.lib.sh
+
+### Neue Funktionen
+
+- cli.lib.sh bricht unter Bash \< 5 mit Meldung und Installationshinweis ab (T-62) (`6a98023`)
+
 ## v0.9.0+261107.1447.9f229 — 2026-11-07
 
 make install über installEditablePackage (pipx-Rezept in make.lib.sh); showMakeTargets zeigt Server-Targets mit ##R und ##D wieder an
