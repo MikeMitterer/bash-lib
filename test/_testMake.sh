@@ -328,8 +328,9 @@ for name in showMakeHelp showMakeInfo showMakeHints; do
     rc=0; runMake type "${name}"
     assertEquals "1" "${rc}" "make.lib.sh: ${name} entfernt"
 done
-# Ohne clitheme im PATH: keine Farben, auch nicht in den Zeilen, die Make selbst ausgibt
-nocolor="$(env PATH="/usr/bin:/bin:$(dirname "$(command -v bash)")" make --no-print-directory -C "${ROOT}" help 2>&1)"
+# Ohne clitheme im PATH: keine Farben, auch nicht in den Zeilen, die Make selbst ausgibt.
+# Die Bash 5 steht vor /bin (macOS: Bash 3.2), sonst bricht cli.lib.sh ab.
+nocolor="$(env PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin" make --no-print-directory -C "${ROOT}" help 2>&1)"
 assertNotContains "${ESC}" "${nocolor}" "make help ohne clitheme: keine Escape-Folgen"
 assertContains "Project:" "${nocolor}" "make help ohne clitheme: läuft"
 assertContains "→" "$(grep -E '^ +tag-minor ' <<< "${help}")" "make help: tag-minor mit Versionsvorschau"

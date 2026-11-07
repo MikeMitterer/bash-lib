@@ -35,6 +35,9 @@ Bibliothek lädt die Bibliotheken, die sie selbst braucht, über die Variable
   Linux-LTS-Versionen bringen 5.2 oder 5.3 mit. macOS bringt als `/bin/bash`
   nur 3.2 mit; eine aktuelle Bash kommt mit `brew install bash`. Skripte
   starten mit `#!/usr/bin/env bash`, damit die Bash aus dem `PATH` läuft.
+  Unter einer älteren Bash bricht `cli.lib.sh` (und damit `tools.lib.sh`)
+  sofort ab: Auf stderr stehen `✗ Bash 5 nötig, läuft mit Bash <Version>`
+  und `brew install bash`, der Exit-Code ist 1, auch beim Einbinden.
 - **`BASH_LIBS`** zeigt auf das Verzeichnis `src` dieses Repos (siehe
   [Installation](#installation)). Ohne die Variable findet keine Bibliothek
   ihre Abhängigkeiten.
