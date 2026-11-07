@@ -45,6 +45,58 @@ runInstall() {
 }
 
 echo
+echo "installEditablePackage"
+echo
+
+# Setzt output (ohne Farbcodes und Einrückung des Themes) und status. $1 PATH, weitere
+# Argumente: Umgebung, dann -- und die Argumente für installEditablePackage
+runFunction() {
+    local path="$1"; shift
+    local -a envs=()
+    while [[ $1 != -- ]]; do envs+=("$1"); shift; done
+    shift
+    : > "${work}/log"
+    # shellcheck disable=SC2016  # $@ und BASH_LIBS wertet die innere Shell aus
+    output="$(env -i HOME="${work}" PATH="${path}" FAKE_LOG="${work}/log" BASH_LIBS="${ROOT}/src" \
+        ${envs[@]+"${envs[@]}"} bash -c '. "${BASH_LIBS}/make.lib.sh" && installEditablePackage "$@"' _ "$@" 2>&1)"
+    status=$?
+    output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g; s/^ *//')"
+}
+
+# Projekt mit eigenen Befehlen: Die Statuszeile liest DIR, nicht den aktuellen Ordner.
+project="${work}/mein projekt"
+mkdir -p "${project}"
+printf '[project]\nname = "demo"\n\n[project.scripts]\ndemo = "demo:main"\ndemo-path = "demo:path"\n' \
+    > "${project}/pyproject.toml"
+
+runFunction "${work}/bin:${BASE_PATH}" -- "${project}"
+assertEquals "0" "${status}" "Funktion, pipx vorhanden: Exit 0"
+assertEquals $'install\n-e\n--force\n'"${project}" "$(cat "${work}/log")" "Funktion: pipx install -e --force DIR"
+# Nur die Statuszeile, keine rohe pipx-Ausgabe
+assertEquals "✓ demo, demo-path aus ${project}" "${output}" "Funktion: Statuszeile nennt Befehle aus DIR"
+
+mkdir -p "${work}/ohne-befehle"
+runFunction "${work}/bin:${BASE_PATH}" -- "${work}/ohne-befehle"
+assertEquals "0" "${status}" "Funktion, ohne [project.scripts]: Exit 0"
+assertEquals "✓ Paket aus ${work}/ohne-befehle" "${output}" "Funktion, ohne [project.scripts]: Statuszeile"
+
+runFunction "${work}/bin:${BASE_PATH}" FAKE_FAIL=1 -- "${project}"
+assertEquals "1" "${status}" "Funktion, pipx scheitert: Exit 1"
+assertContains "pipx kaputt" "${output}" "Funktion, pipx scheitert: Ausgabe von pipx"
+assertContains "✗ pipx install fehlgeschlagen" "${output}" "Funktion, pipx scheitert: Statuszeile"
+
+runFunction "${BASE_PATH}" -- "${project}"
+assertEquals "1" "${status}" "Funktion, pipx fehlt: Exit 1"
+assertContains "✗ pipx fehlt" "${output}" "Funktion, pipx fehlt: Meldung"
+assertContains "https://pipx.pypa.io" "${output}" "Funktion, pipx fehlt: Installationsweg"
+assertEquals "" "$(cat "${work}/log")" "Funktion, pipx fehlt: kein Aufruf"
+
+runFunction "${work}/bin:${BASE_PATH}" --
+assertEquals "2" "${status}" "Funktion ohne DIR: Exit 2"
+assertContains "installEditablePackage: DIR erwartet" "${output}" "Funktion ohne DIR: Meldung"
+assertEquals "" "$(cat "${work}/log")" "Funktion ohne DIR: kein Aufruf"
+
+echo
 echo "make install"
 echo
 

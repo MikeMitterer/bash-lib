@@ -156,19 +156,12 @@ setup-themes:
 		{ printThemeStatus "✗" "clitheme install fehlgeschlagen, Ausgabe ohne Farben" ERR; printThemeHint "clitheme show"; } >&2; \
 	fi
 
-# Installiert diese Arbeitskopie editierbar mit pipx: die Befehle aus
-# [project.scripts] zeigen danach auf src/ dieses Checkouts. Neue Befehle legt
-# pipx nur beim Installieren an; nach einem Update deshalb erneut aufrufen.
+# Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus
+# make.lib.sh): die Befehle aus [project.scripts] zeigen danach auf src/ dieses
+# Checkouts.
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
-	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"
-	@source "$${BASH_LIBS}/cli.lib.sh"; \
-	if output=$$(pipx install -e --force "$${WORKSPACE}" 2>&1); then \
-		names='$(PACKAGE_CMDS)'; printThemeStatus "✓" "$${names// /, } aus $$(themeEscape "$${WORKSPACE}")" OK; \
-	else \
-		printf '%s\n' "$$output" >&2; \
-		printThemeStatus "✗" "pipx install fehlgeschlagen" ERR >&2; exit 1; \
-	fi
+	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
