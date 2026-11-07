@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmit-bashlib"
-version = "0.7.0"
+version = "0.8.0"
 description = "Bash-Bibliotheken für eigene Skripte: Ausgabe, Farben, Werkzeuge, Versionen, Docker"
 readme = "README.md"
 license = { file = "LICENSE" }
