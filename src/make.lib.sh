@@ -5,24 +5,33 @@
 readonly __MAKE_LIB__="make.lib.sh";
 
 #------------------------------------------------------------------------------
-# Hilfe und Hinweiszeilen für Makefiles im CLI-Theme
+# Hilfe, Infos und Hinweise für Makefiles im CLI-Theme
 #
-# showMakeHelp liest aus Makefiles `##@ Gruppe` und `target: … ## Beschreibung`,
-# showMakeHints liest `## Titel` und `Beschriftung<TAB>Wert` von stdin. Beide geben
-# über die Theme-Helfer aus cli.lib.sh aus (printThemeHeading, printThemeRow,
-# printThemeValue, themeMark), also in denselben Spalten wie die Hilfe eines
-# Skripts. Am Terminal mit Farben, in einer Pipe und mit NO_COLOR ohne.
+# Eine Rezeptzeile ergibt eine Ausgabezeile: printMakeHeading und printMakeValue
+# geben je eine Zeile aus wie printThemeHeading und printThemeValue aus cli.lib.sh,
+# showMakeHeader die Kopfzeilen der Hilfe, showMakeTargets die Gruppen und Targets
+# aus den Makefiles. Am Terminal mit Farben, in einer Pipe und mit NO_COLOR ohne.
 #
-# Texte aus den Dateien, aus --set und von stdin werden nur ausgegeben, nie
-# ausgewertet: $(…), Backticks, Apostrophe und Backslashes erscheinen wörtlich.
+# Texte aus Argumenten und Dateien werden nur ausgegeben, nie ausgewertet: $(…),
+# Backticks, Apostrophe und Backslashes erscheinen wörtlich.
 #
 # Einbinden:
 #     if [[ "${__MAKE_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/make.lib.sh"; fi
 #
-# Usage (im Makefile, Dateinamen über die Umgebung):
+# Usage (im Makefile): BASH_ENV lädt make.lib.sh in jede Rezeptzeile der
+# Anzeige-Targets. Bash wertet BASH_ENV aus, darum der Verweis auf BASH_LIBS
+# statt des Pfads; Dateinamen und Werte von außen über die Umgebung.
+#     export BASH_LIBS
 #     export HELP_FILES = $(value MAKEFILE_LIST)
+#     help info: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
+#
 #     help:
-#         @source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp $${HELP_FILES}
+#         @showMakeHeader "$${PROJECT_NAME}"
+#         @showMakeTargets $${HELP_FILES}
+#
+#     info:
+#         @printMakeHeading "Umgebung"
+#         @printMakeValue   WORKSPACE "$${WORKSPACE}"
 #
 #------------------------------------------------------------------------------
 
@@ -59,30 +68,32 @@ showMakeHeader() {
     printf '\n'
 }
 
-# Hilfe aus Makefiles: Gruppen (`##@ Gruppe`) als Überschrift, Targets mit
-# `## Beschreibung` als Zeile. Zuweisungen (NAME := …) und Targets ohne `##`
-# zählen nicht. Eine Beschreibung, die auf „ — Maintainer“ endet, bekommt die
-# Markierung [Maintainer]; {NAME} ersetzt der Wert aus --set NAME=WERT,
-# unbekannte Platzhalter bleiben stehen. Die Ausgabe endet mit einer Leerzeile.
+# Gruppen (`##@ Gruppe`) als Überschrift, Targets mit `## Beschreibung` als Zeile,
+# aus den Makefiles in der angegebenen Reihenfolge. Zuweisungen (NAME := …) und
+# Targets ohne `##` zählen nicht. Eine Beschreibung, die auf „ — Maintainer“ endet,
+# bekommt die Markierung [Maintainer]. {version}, {major}, {minor} und {patch} zeigen
+# die Version aus dem Arbeitsverzeichnis (readProjectVersion) und für die drei
+# Release-Arten davor und danach, etwa „0.6.0 → 0.7.0“; ohne Versionsdatei einen
+# Ersatz wie „x.y.z → x.Y+1.0“. Weitere {NAME} ersetzt --set NAME=WERT, es gewinnt
+# auch vor der Version; unbekannte Platzhalter bleiben stehen. Die Ausgabe endet mit
+# einer Leerzeile.
 #
 # Usage:
-#     showMakeHelp Makefile
-#     showMakeHelp --set "minor=0.4.0 → 0.5.0" Makefile extra.mk
-#     showMakeHelp --project "$${PROJECT_NAME}" Makefile
+#     showMakeTargets Makefile
+#     showMakeTargets --set "host=example.org" Makefile extra.mk
 #
 # Params:
 #     --set NAME=WERT   Wert für den Platzhalter {NAME}; NAME aus A-Z, a-z, 0-9, _
-#     --project NAME    vor der Hilfe die Kopfzeilen von showMakeHeader ausgeben
 #     $@                Makefiles in der Reihenfolge der Ausgabe (etwa MAKEFILE_LIST)
 #
 # Exit:
-#     0  Hilfe ausgegeben
+#     0  ausgegeben
 #     1  eine Datei ist nicht lesbar (dann ohne Ausgabe)
-#     2  Aufruf falsch: --set ohne NAME=WERT, --project ohne NAME oder keine Datei
+#     2  Aufruf falsch: --set ohne NAME=WERT oder keine Datei
 #
-showMakeHelp() {
+showMakeTargets() {
     local -a _settings=() _files=()
-    local _file _line _setting _target _description _maintainer _project=""
+    local _file _line _setting _target _description _maintainer _version _bump _next
     local -r _GROUP='^##@[[:space:]]*(.*)$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
 
@@ -91,18 +102,10 @@ showMakeHelp() {
             --set)
                 _setting="${2-}"
                 if [[ ! ${_setting} =~ ^[A-Za-z0-9_]+= ]]; then
-                    printf 'showMakeHelp: NAME=WERT erwartet, war %s\n' "${_setting}" >&2
+                    printf 'showMakeTargets: NAME=WERT erwartet, war %s\n' "${_setting}" >&2
                     return 2
                 fi
                 _settings+=("${_setting}")
-                shift 2
-                ;;
-            --project)
-                if (( $# < 2 )) || [[ -z ${2} ]]; then
-                    printf 'showMakeHelp: --project NAME erwartet\n' >&2
-                    return 2
-                fi
-                _project="${2}"
                 shift 2
                 ;;
             --)
@@ -117,16 +120,23 @@ showMakeHelp() {
         esac
     done
     if (( ${#_files[@]} == 0 )); then
-        printf 'showMakeHelp: keine Datei angegeben\n' >&2
+        printf 'showMakeTargets: keine Datei angegeben\n' >&2
         return 2
     fi
     for _file in "${_files[@]}"; do
         if [[ ! -f ${_file} || ! -r ${_file} ]]; then
-            printf 'showMakeHelp: %s ist nicht lesbar\n' "${_file}" >&2
+            printf 'showMakeTargets: %s ist nicht lesbar\n' "${_file}" >&2
             return 1
         fi
     done
-    [[ -z ${_project} ]] || showMakeHeader "${_project}"
+
+    # Version vor den Werten aus --set: bei gleichem NAME gilt in makeFill der letzte.
+    _version="$(readProjectVersion 2>/dev/null)" || _version="x.y.z"
+    _settings=("version=${_version}" ${_settings[@]+"${_settings[@]}"})
+    for _bump in "major:X+1.0.0" "minor:x.Y+1.0" "patch:x.y.Z+1"; do
+        _next="$(semVerNext "${_bump%%:*}" 2>/dev/null)" || _next="${_bump#*:}"
+        _settings=("${_bump%%:*}=${_version} → ${_next}" "${_settings[@]}")
+    done
 
     for _file in "${_files[@]}"; do
         while IFS= read -r _line || [[ -n ${_line} ]]; do
@@ -143,34 +153,49 @@ showMakeHelp() {
                     _maintainer=" $(themeMark "[Maintainer]")"
                 fi
                 printThemeRow "${_target}" \
-                    "$(themeEscape "$(makeFill "${_description}" ${_settings[@]+"${_settings[@]}"})")${_maintainer}"
+                    "$(themeEscape "$(makeFill "${_description}" "${_settings[@]}")")${_maintainer}"
             fi
         done < "${_file}"
     done
     echo
 }
 
-# Name/Wert-Zeilen für make info: Paare NAME WERT als Argumente, in den Spalten des
-# Themes wie showMakeHints; ein leerer Wert erscheint als „nicht gesetzt“. Die
-# Ausgabe endet mit einer Leerzeile.
+# Überschrift einer Gruppe in make info und make hints, wie printThemeHeading; der
+# Text erscheint wörtlich.
 #
-# Usage (im Makefile, Werte über die Umgebung):
-#     showMakeInfo PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}"
+# Usage:
+#     @printMakeHeading "Links"
 #
 # Exit:
 #     0  ausgegeben
-#     2  ungerade Anzahl Argumente (dann ohne Ausgabe)
+#     2  Aufruf falsch: kein TEXT
 #
-showMakeInfo() {
-    if (( $# % 2 != 0 )); then
-        printf 'showMakeInfo: Paare NAME WERT erwartet, war %d Argumente\n' "$#" >&2
+printMakeHeading() {
+    if (( $# != 1 )) || [[ -z ${1} ]]; then
+        printf 'printMakeHeading: TEXT erwartet\n' >&2
         return 2
     fi
-    while (( $# > 0 )); do
-        printThemeValue "$(themeEscape "${1}")" "$(themeEscape "${2:-nicht gesetzt}")"
-        shift 2
-    done
-    echo
+    printThemeHeading "$(themeEscape "${1}")"
+}
+
+# Zeile Bezeichnung · Wert in make info und make hints, wie printThemeValue: der Wert
+# in der Rolle C_VAL, er bricht nie um. Beides erscheint wörtlich; ohne WERT steht
+# nur die Bezeichnung da.
+#
+# Usage:
+#     @printMakeValue WORKSPACE "$${WORKSPACE}"
+#     @printMakeValue "1. Setup" "make setup"
+#
+# Exit:
+#     0  ausgegeben
+#     2  Aufruf falsch: keine BEZEICHNUNG oder mehr als zwei Argumente
+#
+printMakeValue() {
+    if (( $# < 1 || $# > 2 )) || [[ -z ${1} ]]; then
+        printf 'printMakeValue: BEZEICHNUNG [WERT] erwartet\n' >&2
+        return 2
+    fi
+    printThemeValue "$(themeEscape "${1}")" "$(themeEscape "${2-}")"
 }
 
 # Prüft für Prüf-Targets (test, check), ob das Projekt mit make setup eingerichtet ist:
@@ -229,31 +254,6 @@ requireMakeSetup() {
         printThemeHint "make setup"
     } >&2
     return 1
-}
-
-# Hinweiszeilen von stdin: `## Titel` wird Überschrift, `Beschriftung<TAB>Wert`
-# eine Zeile mit dem Wert in der Rolle C_VAL, der nie umbricht. Eine Zeile ohne
-# TAB ist eine Beschriftung ohne Wert; leere Zeilen zählen nicht. Die Ausgabe
-# endet mit einer Leerzeile.
-#
-# Usage:
-#     printf '%s\t%s\n' "Vor dem Commit" "make check" | showMakeHints
-#     { printf '## %s\n' Links; printf '%s\t%s\n' Repository "${url}"; } | showMakeHints
-#
-showMakeHints() {
-    local _line _label _value
-    while IFS= read -r _line || [[ -n ${_line} ]]; do
-        _line="${_line%$'\r'}"
-        if [[ ${_line} == "## "* ]]; then
-            printThemeHeading "$(themeEscape "$(trim "${_line#"## "}")")"
-        elif [[ -n ${_line//[[:space:]]/} ]]; then
-            _label="${_line%%$'\t'*}"
-            _value=""
-            [[ ${_line} == *$'\t'* ]] && _value="${_line#*$'\t'}"
-            printThemeValue "$(themeEscape "$(trim "${_label}")")" "$(themeEscape "$(trim "${_value}")")"
-        fi
-    done
-    echo
 }
 
 # Ersetzt {NAME} durch den Wert aus NAME=WERT; unbekannte Platzhalter bleiben,

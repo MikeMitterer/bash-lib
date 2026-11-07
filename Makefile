@@ -33,30 +33,28 @@ devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools 
 # Liste der Makefiles unausgewertet über die Umgebung (siehe Standard-Header)
 export HELP_FILES = $(value MAKEFILE_LIST)
 
-# Kopfzeilen, Gruppen, Targets und [Maintainer] (Beschreibung endet auf „— Maintainer“)
-# gibt showMakeHelp aus make.lib.sh im CLI-Theme aus; {major}, {minor} und {patch}
-# zeigen die Version vorher und nachher (semVerNext).
+# help, info und hints laden make.lib.sh über BASH_ENV in jede Rezeptzeile; so steht
+# jede Ausgabezeile als eigener Befehl da. Bash wertet BASH_ENV aus: darum der Verweis
+# auf BASH_LIBS statt des Pfads, ein $(…) im Checkout-Pfad bleibt Text.
+help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
+
+# Ausgabe (gekürzt):
+#
+#   Please use `make <target>' where <target> is one of
+#
+#   Project: BashLib
+#          help                   Alle verfügbaren Befehle anzeigen
+#     Setup
+#          setup                  Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
+#     Versionierung
+#          tag-minor              Minor-Release 0.7.0 → 0.8.0, neue Funktion  [MSG="..."] [Maintainer]
+#
+# „— Maintainer“ am Ende wird zu [Maintainer]; {major}, {minor} und {patch} füllt
+# showMakeTargets mit der Version davor und danach.
 .PHONY: help
 help: ## Alle verfügbaren Befehle anzeigen
-	@source "$${BASH_LIBS}/make.lib.sh"; \
-	 ver=$$(readProjectVersion 2>/dev/null) || ver='x.y.z'; \
-	 bump() { local next; next=$$(semVerNext "$$1" 2>/dev/null) || next="$$2"; printf '%s=%s → %s' "$$1" "$$ver" "$$next"; }; \
-	 showMakeHelp --project "$${PROJECT_NAME}" \
-		--set "$$(bump major X+1.0.0)" --set "$$(bump minor x.Y+1.0)" --set "$$(bump patch x.y.Z+1)" \
-		$${HELP_FILES}
-
-.PHONY: info
-info: ## Umgebungsvariablen anzeigen
-	@echo
-	@source "$${BASH_LIBS}/make.lib.sh"; \
-	 version=$$(readProjectVersion 2>/dev/null); \
-	 showMakeInfo \
-		PROJECT_NAME "$${PROJECT_NAME}" WORKSPACE "$${WORKSPACE}" BASH_LIBS "$${BASH_LIBS}" \
-		PACKAGE '$(or $(PACKAGE_NAME),$(NO_PACKAGE))' VERSION "$${version}" \
-		THEME "$${THEME_NAME:-ohne clitheme (clitheme export)}"
-	@# devtools rückt um zwei Zeichen ein; fünf mehr stellen die Zeilen unter die Werte oben.
-	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
-	@echo
+	@showMakeHeader "$${PROJECT_NAME}"
+	@showMakeTargets $${HELP_FILES}
 
 # Repo-Adresse (origin als https) und letzter Release-Tag (v…, kein deploy-Tag) aus
 # repo-info (ProjectTools). Die Ausgabe enthält nur erlaubte Zeichen, auch der Ersatz
@@ -71,30 +69,45 @@ PACKAGE_NAME := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null &&
 PACKAGE_CMDS := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands)
 PACKAGE_CMD  := $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
+PACKAGE      := $(or $(PACKAGE_NAME),$(NO_PACKAGE))
 
-# Zeilen „## Titel“ und „Beschriftung<TAB>Wert“ für showMakeHints aus make.lib.sh;
-# die Make-Werte darin sind oben auf erlaubte Zeichen geprüft.
+.PHONY: info
+info: ## Umgebungsvariablen anzeigen
+	@echo
+	@printMakeValue PROJECT_NAME "$${PROJECT_NAME}"
+	@printMakeValue WORKSPACE    "$${WORKSPACE}"
+	@printMakeValue BASH_LIBS    "$${BASH_LIBS}"
+	@printMakeValue PACKAGE      '$(PACKAGE)'
+	@printMakeValue VERSION      "$$(readProjectVersion 2>/dev/null || echo 'keine Versionsdatei')"
+	@printMakeValue THEME        "$${THEME_NAME:-ohne clitheme (clitheme export)}"
+	@echo
+	@# devtools rückt um zwei Zeichen ein; fünf mehr stellen die Zeilen unter die Werte oben.
+	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
+	@echo
+
+# Installationsbefehle von ProjectTools und CLITheme nennt devtools (Tag aus .dev-tools.conf.sh).
+tool_command = $$($(DEV_TOOLS) command $(1) 2>/dev/null || echo "nicht abrufbar: $(devtools_unavailable)")
+
+# Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
 .PHONY: hints
 hints: ## Nützliche Links und Hinweise anzeigen
-	@source "$${BASH_LIBS}/make.lib.sh"; \
-	 projecttools=$$($(DEV_TOOLS) command projecttools 2>/dev/null) || projecttools="nicht abrufbar: $(devtools_unavailable)"; \
-	 clitheme=$$($(DEV_TOOLS) command clitheme 2>/dev/null) || clitheme="nicht abrufbar: $(devtools_unavailable)"; \
-	 { printf '## %s\n' 'Erster Start'; \
-	   printf '%s\t%s\n' '1. Setup' 'make setup' '2. Prüfen' 'make check'; \
-	   printf '## %s\n' 'BashLib in anderen Projekten'; \
-	   printf '%s\t%s\n' \
-		'Paket' '$(or $(PACKAGE_NAME),$(NO_PACKAGE))$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))' \
-		'Installieren' "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))" \
-		'Arbeitskopie' "pipx install -e $${WORKSPACE_SQ}" \
-		'Umgebung' 'export BASH_LIBS=$$(bashlib-path)'; \
-	   printf '## %s\n' 'ProjectTools (docs-check, status, changelog)'; \
-	   printf '%s\t%s\n' 'Installieren' "$$projecttools"; \
-	   printf '## %s\n' 'CLITheme (Farben und Abstände der Ausgabe)'; \
-	   printf '%s\t%s\n' 'Installieren' "$$clitheme" \
-		'Themes anlegen' 'clitheme install (macht make setup)' 'Auswahl' 'export CLI_THEME=ocean'; \
-	   printf '## %s\n' 'Links'; \
-	   printf '%s\t%s\n' 'Repository' '$(REPO_URL)'; \
-	 } | showMakeHints
+	@printMakeHeading "Erster Start"
+	@printMakeValue   "1. Setup"       "make setup"
+	@printMakeValue   "2. Prüfen"      "make check"
+	@printMakeHeading "BashLib in anderen Projekten"
+	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
+	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
+	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
+	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
+	@printMakeHeading "ProjectTools (docs-check, status, changelog)"
+	@printMakeValue   "Installieren"   "$(call tool_command,projecttools)"
+	@printMakeHeading "CLITheme (Farben und Abstände der Ausgabe)"
+	@printMakeValue   "Installieren"   "$(call tool_command,clitheme)"
+	@printMakeValue   "Themes anlegen" "clitheme install (macht make setup)"
+	@printMakeValue   "Auswahl"        "export CLI_THEME=ocean"
+	@printMakeHeading "Links"
+	@printMakeValue   "Repository"     '$(REPO_URL)'
+	@echo
 
 # ─── Precheck ────────────────────────────────────────────────────────────────
 

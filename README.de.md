@@ -134,7 +134,7 @@ statt abzubrechen.
 | `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt alle Bibliotheken rechts, Skripte finden so jede Funktion wie bisher | cli, apps, dtime, version, make |
 | `cli.lib.sh` | Ausgabe im CLI-Theme: Theme von clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Feste ANSI-Farbpalette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`showMakeHeader`, `showMakeHelp`, `showMakeHints`, `showMakeInfo`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | tools |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | tools |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable`, fehlender Befehl mit Hinweis (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -153,54 +153,59 @@ statt abzubrechen.
 
 ## Hilfe und Hinweise in Makefiles
 
-`make.lib.sh` gibt `make help` und `make hints` im CLI-Theme aus, in denselben
-Spalten wie die Hilfe eines Skripts:
+`make.lib.sh` gibt `make help`, `make info` und `make hints` im CLI-Theme aus,
+in denselben Spalten wie die Hilfe eines Skripts. **Eine Rezeptzeile ergibt
+eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
 
+- **`printMakeHeading TEXT`** gibt eine Überschrift aus, wie
+  `printThemeHeading`.
+- **`printMakeValue LABEL [VALUE]`** gibt eine Zeile Bezeichnung · Wert aus,
+  wie `printThemeValue`; der Wert bricht nie um.
 - **`showMakeHeader NAME`** gibt die Kopfzeilen der Hilfe aus, „Please use make
   &lt;target&gt; …“ und „Project: NAME“, target und Name in der Gruppenfarbe des
   Themes.
-- **`showMakeHelp [--project NAME] [--set NAME=VALUE]… FILE…`** liest aus den
-  Makefiles `##@ Group` und `target: … ## Description`; mit `--project`
-  beginnt sie mit den Kopfzeilen von `showMakeHeader`. Eine Beschreibung, die
-  auf „— Maintainer“ endet, bekommt die Markierung **[Maintainer]**; `{NAME}`
-  ersetzt der Wert aus `--set`, unbekannte Platzhalter bleiben stehen.
-- **`showMakeHints`** liest von stdin: `## Title` wird Überschrift,
-  `Label<TAB>Value` eine Zeile, deren Wert nie umbricht.
-- **`showMakeInfo NAME VALUE …`** gibt Paare als Zeilen für `make info` aus,
-  etwa `showMakeInfo WORKSPACE "$${WORKSPACE}"`; ein leerer Wert erscheint als
-  „nicht gesetzt“.
+- **`showMakeTargets [--set NAME=VALUE]… FILE…`** liest aus den Makefiles
+  `##@ Group` und `target: … ## Description`. Eine Beschreibung, die auf
+  „— Maintainer“ endet, bekommt die Markierung **[Maintainer]**. `{version}`,
+  `{major}`, `{minor}` und `{patch}` zeigen die Projektversion und die Version
+  vor und nach jeder Release-Art, etwa „0.6.0 → 0.7.0“; `--set` füllt weitere
+  Platzhalter, unbekannte bleiben stehen.
 - **`requireMakeSetup --hooks DIR` / `--make MAKE STAMP…`** meldet
   „Nicht eingerichtet“ und `make setup` auf stderr, wenn `core.hooksPath` nicht
   `DIR` ist oder `MAKE -q` die Stempeldateien als veraltet meldet, etwa
   `requireMakeSetup --make "$(MAKE)" .venv/.installed`.
 
-Dateinamen und Werte kommen über die Umgebung ins Rezept (`$${VAR}`) und werden
-nur ausgegeben, nie ausgewertet. Wie alle Theme-Helfer brechen sie nicht um;
-eine lange Beschreibung bleibt eine Zeile. Ohne BashLib zeigt das Makefile eine
-schlichte Liste:
+`BASH_ENV` lädt `make.lib.sh` nur in die Rezeptzeilen der Anzeige-Targets.
+Bash wertet den Wert von `BASH_ENV` aus, deshalb nennt er `$${BASH_LIBS}`
+statt des Pfads selbst. Dateinamen und Werte kommen über die Umgebung ins
+Rezept (`$${VAR}`) und werden nur ausgegeben, nie ausgewertet. Die Helfer
+brauchen BashLib; ohne `BASH_LIBS` scheitern die Rezeptzeilen mit „command not
+found“.
 
 ```makefile
 SHELL := bash
 
 WORKSPACE    := $(CURDIR)
 WORKSPACE_SQ := '$(subst ','\'',$(WORKSPACE))'
+PROJECT_NAME := $(shell basename -- $(WORKSPACE_SQ))
 # Values from outside reach recipes only through the environment ("$${VAR}")
-export WORKSPACE_SQ
+export WORKSPACE_SQ PROJECT_NAME
 export HELP_FILES = $(value MAKEFILE_LIST)
+
+# make.lib.sh in every recipe line of these targets; Bash expands BASH_ENV,
+# so it refers to BASH_LIBS instead of holding the path
+help hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 
 .PHONY: help
 help: ## Show this help
-	@if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
-		source "$${BASH_LIBS}/make.lib.sh" && showMakeHelp --project "$$(basename "$$PWD")" $${HELP_FILES}; \
-	else grep -hE '^[a-zA-Z0-9_-]+:.*## ' $${HELP_FILES}; fi
+	@showMakeHeader "$${PROJECT_NAME}"
+	@showMakeTargets $${HELP_FILES}
 
 .PHONY: hints
 hints: ## Commands to copy
-	@rows() { printf '## %s\n' 'Working copy'; \
-		printf '%s\t%s\n' 'Install' "pipx install -e $${WORKSPACE_SQ}"; }; \
-	if [[ -r "$${BASH_LIBS:-}/make.lib.sh" ]]; then \
-		source "$${BASH_LIBS}/make.lib.sh" && rows | showMakeHints; \
-	else rows | expand -t 24; fi
+	@printMakeHeading "Working copy"
+	@printMakeValue   "Install" "pipx install -e $${WORKSPACE_SQ}"
+	@echo
 ```
 
 [↑ Übersicht](#übersicht)
