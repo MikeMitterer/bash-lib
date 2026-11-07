@@ -32,7 +32,8 @@ EOF
 chmod +x "${work}/bin/pipx"
 
 # Ohne ~/.local/bin, damit ein installiertes pipx nicht mitspielt.
-BASE_PATH="/usr/bin:/bin:$(dirname "$(command -v make)"):$(dirname "$(command -v bash)")"
+# Die Bash 5 steht vor /bin (macOS: Bash 3.2), sonst bricht cli.lib.sh ab.
+BASE_PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin:$(dirname "$(command -v make)")"
 
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
 runInstall() {
