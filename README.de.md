@@ -121,7 +121,7 @@ printThemeStatus "✓" "Done" SUCCESS
 ```
 
 `tools.lib.sh` bringt `cli.lib.sh` (Ausgabe im CLI-Theme), `colors.lib.sh`,
-`apps.lib.sh`, `dtime.lib.sh` und `version.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Makefile-Rezepte binden `make.lib.sh` selbst ein; es bringt `tools.lib.sh` mit. Die Wächterzeile jeder
+`apps.lib.sh`, `dtime.lib.sh` und `version.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Makefile-Rezepte binden `make.lib.sh` selbst ein; es bringt `tools.lib.sh` mit. Das ist ein Breaking Change: Skripte, die bisher `showProjectVersion` oder `showReleaseTags` über `tools.lib.sh` bekamen, binden `make.lib.sh` selbst ein (im CHANGELOG unter „Inkompatible Änderungen“). Die Wächterzeile jeder
 Bibliothek steht in ihrem Dateikopf unter „Einbinden“.
 
 **Ein Skript, das auch ohne BashLib laufen soll**, prüft wie oben, ob

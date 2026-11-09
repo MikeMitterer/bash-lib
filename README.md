@@ -120,7 +120,7 @@ printThemeStatus "✓" "Done" SUCCESS
 ```
 
 `tools.lib.sh` brings `cli.lib.sh` (output in the CLI theme), `colors.lib.sh`,
-`apps.lib.sh`, `dtime.lib.sh` and `version.lib.sh` along; for most scripts this one line is enough. Makefile recipes load `make.lib.sh` themselves; it brings `tools.lib.sh` along. The guard
+`apps.lib.sh`, `dtime.lib.sh` and `version.lib.sh` along; for most scripts this one line is enough. Makefile recipes load `make.lib.sh` themselves; it brings `tools.lib.sh` along. This is a breaking change: scripts that used to get `showProjectVersion` or `showReleaseTags` through `tools.lib.sh` load `make.lib.sh` themselves (listed in the CHANGELOG under “Incompatible changes”). The guard
 line of each library is in its file header under “Einbinden”.
 
 **A script that should also run without BashLib** checks, as above, whether
