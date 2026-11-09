@@ -15,6 +15,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 . "${ROOT}/src/assert.lib.sh"
 # Ein umgebendes make (make check) gibt sonst seine Flags weiter
 unset MAKEFLAGS MAKELEVEL MFLAGS
+# Bash überspringt BASH_ENV, wenn stdin eine Netzverbindung ist und SHLVL unter 2 liegt
+# (Erkennung von rshd/sshd). env -i leert SHLVL, und unter einem Agenten ist stdin oft
+# ein Socket; dann fänden make info und make hints die Funktionen aus make.lib.sh nicht.
+exec < /dev/null
 
 work="$(mktemp -d)"
 # shellcheck disable=SC2329  # per trap aufgerufen
