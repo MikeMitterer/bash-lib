@@ -2,6 +2,27 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.10.0+261107.2008.262c2 — 2026-11-07
+
+cli.lib.sh bricht unter Bash \< 5 mit Meldung und Installationshinweis (brew install bash) ab, auch beim Einbinden über tools.lib.sh
+
+### Neue Funktionen
+
+- cli.lib.sh bricht unter Bash \< 5 mit Meldung und Installationshinweis ab (T-62) (`6a98023`)
+
+## v0.9.0+261107.1447.9f229 — 2026-11-07
+
+make install über installEditablePackage (pipx-Rezept in make.lib.sh); showMakeTargets zeigt Server-Targets mit ##R und ##D wieder an
+
+### Neue Funktionen
+
+- installEditablePackage – pipx-Rezept von make install als Funktion in make.lib.sh (T-60) (`cc541b1`)
+- showMakeTargets zeigt Server-Targets mit ##R und ##D (T-59) (`85d622f`)
+
+### Dokumentation
+
+- deutscher Hilfetext im install-Beispiel von installEditablePackage (T-60) (`204f91c`)
+
 ## v0.8.0+261107.1105.c9a53 — 2026-11-07
 
 Makefile-Ausgabe zeilenweise: printMakeHeading, printMakeValue, showMakeTargets; showMakeHelp, showMakeInfo und showMakeHints entfernt

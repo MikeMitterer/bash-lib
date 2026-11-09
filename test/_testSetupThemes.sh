@@ -42,7 +42,8 @@ ln -s "${clitheme}" "${work}/theme-bin/clitheme"
 chmod +x "${work}/pipx-bin/pipx"
 
 # Ohne ~/.local/bin, damit installierte Werkzeuge nicht mitspielen.
-BASE_PATH="/usr/bin:/bin:$(dirname "$(command -v make)"):$(dirname "$(command -v bash)")"
+# Die Bash 5 steht vor /bin (macOS: Bash 3.2), sonst bricht cli.lib.sh ab.
+BASE_PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin:$(dirname "$(command -v make)")"
 DEVTOOLS_TAG="$(sed -n 's/^DEVTOOLS_TAG=//p' "${ROOT}/.dev-tools.conf.sh")"
 
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make

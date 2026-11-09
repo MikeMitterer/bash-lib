@@ -33,7 +33,10 @@ libraries it needs itself through the variable `BASH_LIBS`.
 - **Bash 5.** The libraries require Bash 5; current Linux LTS releases ship
   5.2 or 5.3. macOS ships only 3.2 as `/bin/bash`; a current Bash comes with
   `brew install bash`. Scripts start with `#!/usr/bin/env bash` so that the
-  Bash from the `PATH` runs.
+  Bash from the `PATH` runs. Under an older Bash, `cli.lib.sh` (and with it
+  `tools.lib.sh`) stops right away: it prints `✗ Bash 5 nötig, läuft mit Bash
+  <Version>` and `brew install bash` on stderr and exits with code 1, even
+  when sourced.
 - **`BASH_LIBS`** points to the `src` directory of this repository (see
   [Installation](#installation)). Without the variable no library finds its
   dependencies.
