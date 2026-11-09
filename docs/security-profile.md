@@ -138,7 +138,9 @@ von `test/_testMakeTag.sh`. Login, Push und `rsync` führt kein Test aus.
 ### Löschende Befehle
 
 Vollständig für `src/`, `Makefile`, `python/` und `.githooks`. Keine dieser
-Stellen fragt nach, und keine prüft den Wert, den sie vom Aufrufer bekommt.
+Stellen fragt nach. Geprüft wird höchstens, ob ein Wert oder Ordner vorhanden ist,
+etwa `RSYNC_DESTINATION` und `DEPLOY_DIR` vor dem `rsync` in `samples.lib.sh`, nie
+sein Inhalt. Das ist am Code gelesen; keine Prüfung hält es fest.
 
 | Befehl | Stelle | Was verloren geht, woher der Wert kommt |
 |---|---|---|
