@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
-# _testMakeTag.sh — make tag-* gibt nur kurze Statuszeilen aus
+# _testMakeTag.sh — make tag-* über tag-version: Ablauf, Ausgabe, nur lokal
 #
 # Kopiert den Arbeitsstand dieser Arbeitskopie (versionierte und neue, nicht
 # ignorierte Dateien) in ein Wegwerf-Repo mit aktiven .githooks und ruft dort
 # make tag-patch auf. Prüft die Ausgabe bei Erfolg und bei einem Fehler, dass
-# Version-Commit, Tag und Changelog-Commit nur lokal liegen (Bare-Remote), und
-# die Ausgabe der Git-Hooks bei einem Commit.
+# Version-Commit, Tag und Changelog-Commit nur lokal liegen (Bare-Remote), MSG
+# mit Sonderzeichen, develop im Worktree, ein Repo ohne develop und die Ausgabe
+# der Git-Hooks bei einem Commit.
 #
 # Braucht ProjectTools (docs-check, changelog, tag-version) wie make check.
 #
@@ -70,7 +71,7 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/bashlib-maketag.XXXXXX")"
 work="$(cd "${work}" && pwd -P)"
 
 echo
-echo "make tag-patch: Statuszeilen bei Erfolg"
+echo "make tag-patch: Ausgabe von tag-version bei Erfolg"
 echo
 
 makeRepo ok
@@ -88,11 +89,9 @@ git -C "${work}/ok" branch develop
 LANG=C.UTF-8 LC_ALL= LANGUAGE= runMake ok tag-patch
 tag="$(git -C "${work}/ok" tag --sort=-creatordate | head -n1)"
 assertEquals "0" "${rc}" "Exit 0"
-assertContains "Version" "$(grep "${old} → ${new}" <<< "${out}")" "Statuszeile Version alt → neu"
-assertContains "nur lokal" "$(grep -F "${tag}" <<< "${out}")" "Statuszeile Tag mit Hinweis nur lokal"
-assertContains "Changelog" "$(grep 'CHANGELOG.md' <<< "${out}")" "Statuszeile Changelog"
-assertContains "vorgespult" "$(grep 'develop' <<< "${out}")" "Statuszeile develop"
-assertEquals "4" "$(grep -c . <<< "${out}")" "genau vier Zeilen"
+assertContains "Version" "$(grep "${old} → ${new}" <<< "${out}")" "Zeile Version alt → neu"
+assertContains "nur lokal" "$(grep -F "${tag}" <<< "${out}")" "Zeile Tag mit Hinweis nur lokal"
+assertContains "vorgespult" "$(grep 'develop' <<< "${out}")" "Zeile develop"
 assertNotContains "semVerBump" "${out}" "keine Rezeptzeile"
 assertNotContains "file changed" "${out}" "keine rohe git-commit-Ausgabe"
 assertNotContains "[master" "${out}" "keine rohe git-commit-Kopfzeile"
@@ -120,14 +119,16 @@ runMake ok version
 assertContains "${tag}" "$(grep 'Release-Tag' <<< "${out}")" "make version: Release-Tag ist der Release-Tag"
 
 # Das Rezept bumpt mit tag-version (ProjectTools), lässt changelog selbst committen
-# (ohne Push) und spult danach develop vor; kein eigener Umweg, kein alter Befehlsname.
-recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
-assertContains 'tag-version $(1) --message' "${recipe}" "Rezept bumpt mit tag-version und MSG"
+# (ohne Push) und spult danach develop vor; kein eigener Umweg, kein alter Befehlsname,
+# keine eigene Prüfung: Der Ablauf steht nur in tag-version.
+assertEquals "0" "$(grep -cE 'define release|release_row' "${ROOT}/Makefile")" "Makefile ohne Makro release und release_row"
+recipe="$(sed -n '/^tag-major tag-minor tag-patch: require-tools precheck$/,/^$/p' "${ROOT}/Makefile")"
+assertEquals "3" "$(grep -c $'^\t' <<< "${recipe}")" "Rezept hat genau drei Befehle"
+assertContains 'tag-version "$(patsubst tag-%,%,$@)" --message' "${recipe}" "Rezept bumpt mit tag-version und MSG"
 assertContains "tag-version --fast-forward" "${recipe}" "Rezept spult develop mit tag-version vor"
 assertNotContains "version-bump" "${recipe}" "Rezept ohne version-bump"
-# release_row ist eine Make-Variable; ein Aufruf des ProjectTools-Befehls release
-# stünde als eigenes Kommando am Zeilen- oder Befehlsanfang, auch hinter dem
-# Make-Präfix @ (silent) oder - (Fehler ignorieren).
+# Ein Aufruf des ProjectTools-Befehls release stünde als eigenes Kommando am Zeilen-
+# oder Befehlsanfang, auch hinter dem Make-Präfix @ (silent) oder - (Fehler ignorieren).
 release_calls="$(grep -Ec '(^|[;&|(])[[:space:]@+-]*release([[:space:]]|$)' <<< "${recipe}" || true)"
 assertEquals "0" "${release_calls}" "Rezept ohne ProjectTools-release"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
@@ -159,9 +160,39 @@ before="$(git -C "${work}/ahead" rev-parse HEAD)"
 runMake ahead tag-patch
 assertEquals "1" "$(( rc != 0 ))" "develop weiter: Exit ungleich 0"
 assertContains "develop ist weiter als master" "${out}" "develop weiter: Meldung"
-assertContains "al ticket accept" "${out}" "develop weiter: nächster Schritt"
+assertContains "git log --oneline master..develop" "${out}" "develop weiter: nächster Schritt"
 assertEquals "" "$(git -C "${work}/ahead" tag)" "develop weiter: kein Tag"
 assertEquals "${before}" "$(git -C "${work}/ahead" rev-parse HEAD)" "develop weiter: kein Versionssprung"
+
+echo
+echo "make tag-patch: MSG unverändert, Repo ohne develop"
+echo
+
+# Zugleich ein Repo ohne develop. Die Nachricht enthält alles, was Make oder die Shell
+# auswerten könnten; pwned entstünde, wenn die Shell sie ausführt.
+msg="--Fix \"a\" & 'b' \$HOME \$(touch pwned)"
+makeRepo plain
+runMake plain tag-patch "MSG=${msg}"
+tag="$(git -C "${work}/plain" tag --sort=-creatordate | head -n1)"
+assertEquals "0" "${rc}" "ohne develop: Exit 0"
+assertEquals "" "$(git -C "${work}/plain" branch --list develop)" "ohne develop: kein Branch angelegt"
+assertEquals "docs(changelog): update release history" "$(git -C "${work}/plain" log -1 --format=%s)" "ohne develop: Changelog-Commit"
+assertEquals "${msg}" "$(git -C "${work}/plain" tag -l --format='%(contents:subject)' "${tag}")" "MSG unverändert im Tag"
+assertContains "${msg}" "$(cat "${work}/plain/CHANGELOG.md")" "MSG unverändert im Changelog"
+assertEquals "0" "$(find "${work}/plain" -name pwned | wc -l | tr -d ' ')" "MSG wird nicht ausgeführt"
+
+echo
+echo "make tag-patch: develop in einem Worktree"
+echo
+
+makeRepo tree
+git -C "${work}/tree" branch develop
+git -C "${work}/tree" worktree add -q "${work}/tree-develop" develop
+runMake tree tag-patch
+assertEquals "0" "${rc}" "Worktree: Exit 0"
+assertEquals "$(git -C "${work}/tree" rev-parse master)" "$(git -C "${work}/tree-develop" rev-parse HEAD)" "Worktree: develop auf master vorgespult"
+assertEquals "" "$(git -C "${work}/tree-develop" status --porcelain)" "Worktree: danach sauber"
+assertNotContains "${work}" "${out}" "Worktree: kein absoluter Pfad"
 
 echo
 echo "make tag-patch: Fehler bleiben sichtbar"

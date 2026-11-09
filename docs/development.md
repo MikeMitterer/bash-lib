@@ -80,10 +80,11 @@ Es bindet
 `BASH_LIBS`, und blendet die globale Git-Konfiguration aus.
 
 `test/_testMakeTag.sh` kopiert den Arbeitsstand in ein Wegwerf-Repo mit
-aktiven Hooks und ruft dort `make tag-patch` auf: Bei Erfolg erscheinen nur
-die drei Statuszeilen, bei einem Fehler die Meldung mit Exit ungleich 0. Es
-prüft außerdem, dass die Hooks ohne Probleme still bleiben und Fehler zeigen.
-Es braucht ProjectTools wie `make check`.
+aktiven Hooks und ruft dort `make tag-patch` auf: Bei Erfolg erscheint die
+Ausgabe von `tag-version`, bei einem Fehler dessen Meldung mit Exit ungleich 0.
+Dazu kommen `MSG` mit Sonderzeichen, `develop` in einem Worktree und ein Repo
+ohne `develop`. Es prüft außerdem, dass die Hooks ohne Probleme still bleiben
+und Fehler zeigen. Es braucht ProjectTools wie `make check`.
 
 `test/_testBashlibCommand.sh` ruft den Befehl `bashlib` ohne Installation
 auf. Ein nachgebautes `dist-info` liefert Version und Befehle wie nach
@@ -164,8 +165,12 @@ git push --follow-tags origin master
 Jedes `tag-*`-Target hebt die Version und setzt den Tag `vX.Y.Z+YYMMDD.HHMM.hash`
 mit `tag-version` (ProjectTools), committet `CHANGELOG.md`
 (`changelog --commit`) und spult danach `develop` mit
-`tag-version --fast-forward` vor; alles nur lokal, und das Makefile meldet je
-Schritt eine Statuszeile. Dafür braucht es ProjectTools ab 0.7.0; den Tag nennt
+`tag-version --fast-forward` vor; alles nur lokal. Prüfung und Meldungen kommen
+von `tag-version`: Außerhalb von `master` oder bei weiterem `develop` bricht es
+vor jeder Änderung ab. Die Erfolgszeile von `changelog --commit` bleibt weg,
+weil sie den absoluten Pfad nennt; Fehler bleiben sichtbar. `MSG` kommt
+unverändert an, auch mit `$`, Anführungszeichen oder führendem `--`.
+Dafür braucht es ProjectTools ab 0.7.0; den Tag nennt
 `PROJECTTOOLS_TAG` in `.dev-tools.conf.sh`. Veröffentlicht wird erst mit
 `git push --follow-tags`.
 `make changelog` zeigt vorher eine Vorschau.
