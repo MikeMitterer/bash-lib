@@ -135,4 +135,24 @@ Die Bibliotheken in `src/` setzen selbst kein `set -e`. In `src/`, `Makefile` un
 `.githooks` steht `git push` nur in Kommentaren: `make tag-*` bleibt lokal, belegt
 von `test/_testMakeTag.sh`. Login, Push und `rsync` führt kein Test aus.
 
+### Löschende Befehle
+
+Vollständig für `src/`, `Makefile`, `python/` und `.githooks`. Keine dieser
+Stellen fragt nach, und keine prüft den Wert, den sie vom Aufrufer bekommt.
+
+| Befehl | Stelle | Was verloren geht, woher der Wert kommt |
+|---|---|---|
+| `rsync --delete` | `samples.lib.sh`, `webapp.lib.sh` | Dateien am Ziel, die im Quellordner fehlen. Das Ziel `RSYNC_DESTINATION` kommt aus den gesourcten Einstellungen; `webapp.lib.sh` kennt zusätzlich einen Probelauf (`dry-run`) |
+| `docker compose down --volumes` | `stopContainer` in `docker.lib.sh` | **Volumes, schon ohne Argumente:** Der zweite Parameter steht auf `clear`, erst `keep` oder `false` schont sie. Die Compose-Datei nennt der Aufrufer |
+| `rm -rf "${DEPLOY_DIR}"` | `deploySamples` in `samples.lib.sh` | Der Ordner liegt im Beispielordner aus den Argumenten. `DEPLOY_DIR` setzt die Bibliothek, aber nicht `readonly`, also kann der Aufrufer es überschreiben. Das `cd` davor wird nicht geprüft; scheitert es, löscht der Befehl im aktuellen Ordner |
+| `rm -rf .dart_tool`, `rm -f web/index.html.bak` | `deploySamples` in `samples.lib.sh` | feste Namen, im selben Ordner wie oben |
+| `build_runner --delete-conflicting-outputs` | `samples.lib.sh` | erzeugte Dateien, die Dart-Werkzeuge entscheiden |
+| `mv` auf den Zielordner | `syncToLocalDir` in `fs.lib.sh` | nichts: Der Ordner aus dem Argument wandert in den Backup-Ordner |
+| `rm -f pyproject.toml.bak` | `version.lib.sh` | feste Sicherungsdatei von `sed` |
+| `rm` in den Hooks | `.githooks/pre-commit`, `.githooks/post-commit` | nur eigene Dateien aus `mktemp` |
+
+`rm -rf -- ${_venv}` in `ensurePythonVenv` ist nur ein angezeigter Hinweis und läuft
+nicht. `stopContainer` und `deploySamples` führt kein Test aus; `stopContainer` ist
+einmalig mit einem nachgebauten `docker` gemessen.
+
 [↑ Übersicht](#übersicht)
