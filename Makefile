@@ -201,8 +201,10 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 # ─── Versionierung ───────────────────────────────────────────────────────────
 
 # Nach versioning-conventions (templates/versioning.mk): Die Version steht in
-# pyproject.toml; lesen und erhöhen nur über version.lib.sh dieses Checkouts
-# (readProjectVersion, semVerBump, semVerNext für {major}/{minor}/{patch} in help).
+# pyproject.toml; gelesen wird sie über version.lib.sh dieses Checkouts
+# (readProjectVersion, semVerNext für {major}/{minor}/{patch} in help). Bump,
+# Tag und Vorspulen macht tag-version (ProjectTools), das semVerBump aus
+# dieser BashLib nutzt; den Weg nennt das Rezept unter „Versionierung“.
 
 ##@ Versionierung
 
@@ -255,7 +257,7 @@ define release
 	@source "$${BASH_LIBS}/cli.lib.sh"; source "$${BASH_LIBS}/version.lib.sh"; \
 	 old=$$(readProjectVersion); \
 	 tag-version $(1) --message "$${MSG:-}" >/dev/null || exit $$?; \
-	 tag=$$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1); \
+	 tag=$$(gitReleaseTag HEAD); \
 	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
 	 $(call release_row,Tag,$${tag} (nur lokal))
 	@source "$${BASH_LIBS}/cli.lib.sh"; head=$$(git rev-parse HEAD); \

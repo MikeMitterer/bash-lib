@@ -125,6 +125,10 @@ recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
 assertContains 'tag-version $(1) --message' "${recipe}" "Rezept bumpt mit tag-version und MSG"
 assertContains "tag-version --fast-forward" "${recipe}" "Rezept spult develop mit tag-version vor"
 assertNotContains "version-bump" "${recipe}" "Rezept ohne version-bump"
+# release_row ist eine Make-Variable; ein Aufruf des ProjectTools-Befehls release
+# stünde als eigenes Kommando am Zeilen- oder Befehlsanfang.
+release_calls="$(grep -Ec '(^|[;&|])[[:space:]]*release([[:space:]]|$)' <<< "${recipe}" || true)"
+assertEquals "0" "${release_calls}" "Rezept ohne ProjectTools-release"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
 assertNotContains "--generate" "${recipe}" "Rezept ohne changelog --generate"
 assertNotContains "git commit" "${recipe}" "Rezept ohne eigenen Changelog-Commit"
