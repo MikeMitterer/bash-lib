@@ -8,7 +8,7 @@
 # Version-Commit, Tag und Changelog-Commit nur lokal liegen (Bare-Remote), und
 # die Ausgabe der Git-Hooks bei einem Commit.
 #
-# Braucht ProjectTools (docs-check, changelog) wie make check.
+# Braucht ProjectTools (docs-check, changelog, tag-version) wie make check.
 #
 #   ./test/_testMakeTag.sh
 # ------------------------------------------------------------------------------
@@ -119,8 +119,17 @@ assertNotContains "deploy-2026-11" "${out}" "make hints: kein deploy-Tag"
 runMake ok version
 assertContains "${tag}" "$(grep 'Release-Tag' <<< "${out}")" "make version: Release-Tag ist der Release-Tag"
 
-# Das Rezept lässt changelog selbst committen (ohne Push), kein eigener Umweg
+# Das Rezept bumpt mit tag-version (ProjectTools), lässt changelog selbst committen
+# (ohne Push) und spult danach develop vor; kein eigener Umweg, kein alter Befehlsname.
 recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
+assertContains 'tag-version $(1) --message' "${recipe}" "Rezept bumpt mit tag-version und MSG"
+assertContains "tag-version --fast-forward" "${recipe}" "Rezept spult develop mit tag-version vor"
+assertNotContains "version-bump" "${recipe}" "Rezept ohne version-bump"
+# release_row ist eine Make-Variable; ein Aufruf des ProjectTools-Befehls release
+# stünde als eigenes Kommando am Zeilen- oder Befehlsanfang, auch hinter dem
+# Make-Präfix @ (silent) oder - (Fehler ignorieren).
+release_calls="$(grep -Ec '(^|[;&|(])[[:space:]@+-]*release([[:space:]]|$)' <<< "${recipe}" || true)"
+assertEquals "0" "${release_calls}" "Rezept ohne ProjectTools-release"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
 assertNotContains "--generate" "${recipe}" "Rezept ohne changelog --generate"
 assertNotContains "git commit" "${recipe}" "Rezept ohne eigenen Changelog-Commit"

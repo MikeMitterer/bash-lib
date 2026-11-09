@@ -161,10 +161,13 @@ make tag-patch    # bzw. tag-minor, tag-major; MSG="…" setzt die Tag-Message
 git push --follow-tags origin master
 ```
 
-Jedes `tag-*`-Target erhöht die Version mit `semVerBump`, committet, setzt den Tag
-`vX.Y.Z+YYMMDD.HHMM.hash` und committet danach `CHANGELOG.md`
-(`changelog --commit`), alles nur lokal, und meldet je Schritt eine
-Statuszeile. Veröffentlicht wird erst mit `git push --follow-tags`.
+Jedes `tag-*`-Target hebt die Version und setzt den Tag `vX.Y.Z+YYMMDD.HHMM.hash`
+mit `tag-version` (ProjectTools), committet `CHANGELOG.md`
+(`changelog --commit`) und spult danach `develop` mit
+`tag-version --fast-forward` vor; alles nur lokal, und das Makefile meldet je
+Schritt eine Statuszeile. Dafür braucht es ProjectTools ab 0.7.0; den Tag nennt
+`PROJECTTOOLS_TAG` in `.dev-tools.conf.sh`. Veröffentlicht wird erst mit
+`git push --follow-tags`.
 `make changelog` zeigt vorher eine Vorschau.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
 Der Changelog ist deutsch, unabhängig von der Locale der Shell

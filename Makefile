@@ -99,7 +99,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
 	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
 	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
-	@printMakeHeading "ProjectTools (docs-check, status, changelog)"
+	@printMakeHeading "ProjectTools (docs-check, status, changelog, tag-version)"
 	@printMakeValue   "Installieren"   "$(call tool_command,projecttools)"
 	@printMakeHeading "CLITheme (Farben und Abstände der Ausgabe)"
 	@printMakeValue   "Installieren"   "$(call tool_command,clitheme)"
@@ -201,8 +201,10 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 # ─── Versionierung ───────────────────────────────────────────────────────────
 
 # Nach versioning-conventions (templates/versioning.mk): Die Version steht in
-# pyproject.toml; lesen und erhöhen nur über version.lib.sh dieses Checkouts
-# (readProjectVersion, semVerBump, semVerNext für {major}/{minor}/{patch} in help).
+# pyproject.toml; gelesen wird sie über version.lib.sh dieses Checkouts
+# (readProjectVersion, semVerNext für {major}/{minor}/{patch} in help). Bump,
+# Tag und Vorspulen macht tag-version (ProjectTools), das semVerBump aus
+# dieser BashLib nutzt; den Weg nennt das Rezept unter „Versionierung“.
 
 ##@ Versionierung
 
@@ -227,18 +229,18 @@ release_row = printThemeStatus "✓" "$$(printf '%-10s %s' "$(1)" "$(2)")" OK
 CHANGELOG_LANGUAGE ?= de
 export CHANGELOG_LANGUAGE
 
-# $(call release,major|minor|patch): bumpen, taggen und CHANGELOG.md committen,
-# alles nur lokal; veröffentlicht wird mit git push --follow-tags.
+# $(call release,major|minor|patch): Version heben und lokal taggen (tag-version,
+# ProjectTools), CHANGELOG.md committen (changelog --commit), develop vorspulen
+# (tag-version --fast-forward); alles nur lokal. Veröffentlicht wird mit
+# git push --follow-tags.
 # Nur auf master und nur, wenn develop nicht weiter ist (T-36): Das Board übernimmt
 # Tickets per Merge-Commit, ein Tag auf einem Ticket-Branch läge dann neben der
-# First-Parent-Historie, und changelog ließe das Release aus. Danach wird develop
-# auf master vorgespult, damit die nächste Abnahme master wieder vorspulen kann.
-# Ausgabe: je Schritt eine Statuszeile. semVerBump gibt auf stdout nur den Tag
-# aus; seine stderr-Ausgabe erscheint bei einem Fehler vollständig, bei Erfolg
-# ohne die Zeilen „Hinweis: …“, die hier die Tag-Zeile ersetzt.
-# changelog --commit schreibt und committet CHANGELOG.md nur lokal; seine
-# Erfolgszeile (mit absolutem Pfad) ersetzt die Changelog-Zeile, Fehler gehen
-# nach stderr. Ob committet wurde, zeigt ein neuer HEAD.
+# First-Parent-Historie, und changelog ließe das Release aus. Die Prüfung steht
+# hier für die Meldungen des Projekts; tag-version prüft dieselben Bedingungen
+# vor jeder Änderung noch einmal und bricht dann ohne Tag ab.
+# Ausgabe: je Schritt eine Statuszeile. tag-version schreibt seine Step-Zeilen
+# auf stdout und Fehler nach stderr; stdout wird ersetzt, damit die vier Zeilen
+# des Projekts bleiben. Ob changelog committet hat, zeigt ein neuer HEAD.
 define release
 	@source "$${BASH_LIBS}/cli.lib.sh"; \
 	 branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
@@ -253,12 +255,11 @@ define release
 		exit 1; \
 	 fi
 	@source "$${BASH_LIBS}/cli.lib.sh"; source "$${BASH_LIBS}/version.lib.sh"; \
-	 err=$$(mktemp); trap 'command rm -f -- "$$err"' EXIT; \
 	 old=$$(readProjectVersion); \
-	 tag=$$(semVerBump $(1) auto "" "$${MSG:-}" 2>"$$err") || { rc=$$?; cat "$$err" >&2; exit $$rc; }; \
-	 grep -v '^Hinweis: ' "$$err" >&2 || true; \
+	 tag-version $(1) --message "$${MSG:-}" >/dev/null || exit $$?; \
+	 tag=$$(gitReleaseTag HEAD); \
 	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
-	 $(call release_row,Tag,$${tag##*$$'\n'} (nur lokal))
+	 $(call release_row,Tag,$${tag} (nur lokal))
 	@source "$${BASH_LIBS}/cli.lib.sh"; head=$$(git rev-parse HEAD); \
 	 LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --commit >/dev/null || exit $$?; \
 	 if [[ "$$(git rev-parse HEAD)" == "$$head" ]]; then \
@@ -267,10 +268,8 @@ define release
 		$(call release_row,Changelog,CHANGELOG.md committet); \
 	 fi
 	@source "$${BASH_LIBS}/cli.lib.sh"; \
-	 if old=$$(git rev-parse -q --verify refs/heads/develop); then \
-		holder=$$(git worktree list --porcelain | awk '/^worktree /{ w = substr($$0, 10) } $$0 == "branch refs/heads/develop" { print w }'); \
-		if [[ -n "$$holder" ]]; then git -C "$$holder" merge -q --ff-only master || exit $$?; \
-		else git update-ref refs/heads/develop HEAD "$$old" || exit $$?; fi; \
+	 if git rev-parse -q --verify refs/heads/develop >/dev/null; then \
+		tag-version --fast-forward >/dev/null || exit $$?; \
 		$(call release_row,develop,auf master vorgespult); \
 	 fi
 endef
