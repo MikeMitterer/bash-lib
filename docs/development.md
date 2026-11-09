@@ -201,6 +201,12 @@ auf eigenen Farben oder Spalten. Namen folgen den vorhandenen: `show<Gegenstand>
 für einen ganzen Block (`showReleaseTags`, `showMakeTargets`), `printTheme<Teil>`
 für eine Zeile, in `make.lib.sh` `printMake<Teil>` (`printMakeValue`).
 
+## Sicherheit und Qualität
+
+Das [Sicherheitsprofil](security-profile.md) nennt die Grenzen von BashLib, das
+[Qualitätsprofil](quality-profile.md) die Maßstäbe für Reviews und den
+Qualitätslauf. Ändert sich der Aufbau, beide abgleichen.
+
 ## Farben und Themes
 
 Die Palette (`RED`, `GREEN`, `NC`, …) in `colors.lib.sh` ist fest. Farben und
