@@ -2,6 +2,29 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.11.0+261109.1631.11aca — 2026-11-09
+
+make tag-\* ruft tag-version direkt auf, tools.lib.sh ohne make.lib.sh, Sicherheits- und Qualitätsprofil
+
+### Inkompatible Änderungen
+
+- tools.lib.sh bindet make.lib.sh nicht mehr ein (T-55) (`dd4334e`)
+
+### Neue Funktionen
+
+- tag-\* nutzt tag-version aus ProjectTools (T-65) (`51ffec7`)
+
+### Fehlerkorrekturen
+
+- tag-\*-Hilfezeilen unter 100 Zeichen halten (T-63) (`1b04e8d`)
+- Review-Befunde R1 zu tag-version (T-65) (`276d446`)
+- Review-Befunde R2 zu tag-version (T-65) (`48d86f6`)
+
+### Dokumentation
+
+- tools.lib.sh ohne make.lib.sh als Breaking Change kennzeichnen (T-55) (`077e821`)
+- CHANGELOG-Abschnitt auf Deutsch benennen (T-55 R1-F1) (`687f688`)
+
 ## v0.10.0+261107.2008.262c2 — 2026-11-07
 
 cli.lib.sh bricht unter Bash \< 5 mit Meldung und Installationshinweis (brew install bash) ab, auch beim Einbinden über tools.lib.sh
