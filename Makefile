@@ -99,7 +99,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
 	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
 	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
-	@printMakeHeading "ProjectTools (docs-check, status, changelog)"
+	@printMakeHeading "ProjectTools (docs-check, status, changelog, tag-version)"
 	@printMakeValue   "Installieren"   "$(call tool_command,projecttools)"
 	@printMakeHeading "CLITheme (Farben und Abstände der Ausgabe)"
 	@printMakeValue   "Installieren"   "$(call tool_command,clitheme)"
