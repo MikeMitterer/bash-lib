@@ -119,8 +119,12 @@ assertNotContains "deploy-2026-11" "${out}" "make hints: kein deploy-Tag"
 runMake ok version
 assertContains "${tag}" "$(grep 'Release-Tag' <<< "${out}")" "make version: Release-Tag ist der Release-Tag"
 
-# Das Rezept lässt changelog selbst committen (ohne Push), kein eigener Umweg
+# Das Rezept bumpt mit tag-version (ProjectTools), lässt changelog selbst committen
+# (ohne Push) und spult danach develop vor; kein eigener Umweg, kein alter Befehlsname.
 recipe="$(sed -n '/^define release$/,/^endef$/p' "${ROOT}/Makefile")"
+assertContains 'tag-version $(1) --message' "${recipe}" "Rezept bumpt mit tag-version und MSG"
+assertContains "tag-version --fast-forward" "${recipe}" "Rezept spult develop mit tag-version vor"
+assertNotContains "version-bump" "${recipe}" "Rezept ohne version-bump"
 assertContains "changelog --commit" "${recipe}" "Rezept ruft changelog --commit auf"
 assertNotContains "--generate" "${recipe}" "Rezept ohne changelog --generate"
 assertNotContains "git commit" "${recipe}" "Rezept ohne eigenen Changelog-Commit"
