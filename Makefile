@@ -91,9 +91,9 @@ tool_command = $$($(DEV_TOOLS) command $(1) 2>/dev/null || echo "nicht abrufbar:
 # Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
 .PHONY: hints
 hints: ## Nützliche Links und Hinweise anzeigen
-	@printMakeHeading "Erster Start"
-	@printMakeValue   "1. Setup"       "make setup"
-	@printMakeValue   "2. Prüfen"      "make check"
+	@printMakeHeading "Alltag"
+	@printMakeValue   "Neuer Checkout" "make setup"
+	@printMakeValue   "Vor dem Commit" "make check"
 	@printMakeHeading "BashLib in anderen Projekten"
 	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
 	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
@@ -204,7 +204,7 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 # pyproject.toml; gelesen wird sie über version.lib.sh dieses Checkouts
 # (readProjectVersion, semVerNext für {major}/{minor}/{patch} in help). Bump,
 # Tag und Vorspulen macht tag-version (ProjectTools), das semVerBump aus
-# dieser BashLib nutzt; den Weg nennt das Rezept unter „Versionierung“.
+# dieser BashLib nutzt (BASH_LIBS oben); das Rezept steht am Ende des Abschnitts.
 
 ##@ Versionierung
 
@@ -220,74 +220,33 @@ tags: precheck ## Letzte 10 Release-Tags mit Nachricht anzeigen
 	@source "$${BASH_LIBS}/make.lib.sh" && showReleaseTags 10
 	@echo
 
-# Eine Statuszeile für tag-* über printThemeStatus (cli.lib.sh): Häkchen, Beschriftung
-# auf 10 Zeichen, Wert. Aufruf: $(call release_row,Beschriftung,Wert), ohne Komma in den Werten.
-release_row = printThemeStatus "✓" "$$(printf '%-10s %s' "$(1)" "$(2)")" OK
-
 # Sprache von CHANGELOG.md, unabhängig von der Locale der Shell (changelog folgt
 # sonst LANG; unter C.UTF-8 käme Englisch). Überschreiben: make … CHANGELOG_LANGUAGE=en
 CHANGELOG_LANGUAGE ?= de
 export CHANGELOG_LANGUAGE
 
-# $(call release,major|minor|patch): Version heben und lokal taggen (tag-version,
-# ProjectTools), CHANGELOG.md committen (changelog --commit), develop vorspulen
-# (tag-version --fast-forward); alles nur lokal. Veröffentlicht wird mit
-# git push --follow-tags.
-# Nur auf master und nur, wenn develop nicht weiter ist (T-36): Das Board übernimmt
-# Tickets per Merge-Commit, ein Tag auf einem Ticket-Branch läge dann neben der
-# First-Parent-Historie, und changelog ließe das Release aus. Die Prüfung steht
-# hier für die Meldungen des Projekts; tag-version prüft dieselben Bedingungen
-# vor jeder Änderung noch einmal und bricht dann ohne Tag ab.
-# Ausgabe: je Schritt eine Statuszeile. tag-version schreibt seine Step-Zeilen
-# auf stdout und Fehler nach stderr; stdout wird ersetzt, damit die vier Zeilen
-# des Projekts bleiben. Ob changelog committet hat, zeigt ein neuer HEAD.
-define release
-	@source "$${BASH_LIBS}/cli.lib.sh"; \
-	 branch=$$(git symbolic-ref --short -q HEAD || echo 'detached HEAD'); \
-	 if [[ "$$branch" != master ]]; then \
-		{ printThemeStatus "✗" "Release nur auf master, nicht auf $$(themeEscape "$$branch"); nach der Abnahme auf master:" ERR; \
-		  printThemeHint "make $@"; } >&2; \
-		exit 1; \
-	 fi; \
-	 if git rev-parse -q --verify refs/heads/develop >/dev/null && ! git merge-base --is-ancestor develop HEAD; then \
-		{ printThemeStatus "✗" "develop ist weiter als master; erst die Tickets abnehmen:" ERR; \
-		  printThemeHint "al ticket accept"; } >&2; \
-		exit 1; \
-	 fi
-	@source "$${BASH_LIBS}/cli.lib.sh"; source "$${BASH_LIBS}/version.lib.sh"; \
-	 old=$$(readProjectVersion); \
-	 tag-version $(1) --message "$${MSG:-}" >/dev/null || exit $$?; \
-	 tag=$$(gitReleaseTag HEAD); \
-	 $(call release_row,Version,$$old → $$(readProjectVersion)); \
-	 $(call release_row,Tag,$${tag} (nur lokal))
-	@source "$${BASH_LIBS}/cli.lib.sh"; head=$$(git rev-parse HEAD); \
-	 LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --commit >/dev/null || exit $$?; \
-	 if [[ "$$(git rev-parse HEAD)" == "$$head" ]]; then \
-		$(call release_row,Changelog,CHANGELOG.md unverändert); \
-	 else \
-		$(call release_row,Changelog,CHANGELOG.md committet); \
-	 fi
-	@source "$${BASH_LIBS}/cli.lib.sh"; \
-	 if git rev-parse -q --verify refs/heads/develop >/dev/null; then \
-		tag-version --fast-forward >/dev/null || exit $$?; \
-		$(call release_row,develop,auf master vorgespult); \
-	 fi
-endef
-
 .PHONY: changelog
 changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --dry-run
 
+# MSG von der Kommandozeile unausgewertet; sonst macht Make aus $HOME oder $(…) schon
+# beim Export an das Rezept etwas anderes. Im Rezept nur als "$${MSG:-}".
+override MSG := $(value MSG)
+export MSG
+
+.PHONY: tag-major tag-minor tag-patch
+tag-major: ## Major {major}, inkompatibel  [MSG="..."] — Maintainer
+tag-minor: ## Minor {minor}, neue Funktion  [MSG="..."] — Maintainer
+tag-patch: ## Patch {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
+
+# Version heben und lokal taggen, CHANGELOG.md committen, develop vorspulen; alles nur
+# lokal, veröffentlicht wird mit git push --follow-tags. Prüfung (nur auf master, develop
+# nicht weiter; T-36) und Ablauf stehen nur in tag-version (ProjectTools); ein Fehler in
+# einer Zeile bricht die folgenden ab. changelog nennt bei Erfolg den absoluten Pfad der
+# Datei, darum ohne stdout; Fehler kommen über stderr.
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem Tag.
-.PHONY: tag-major
-tag-major: require-tools precheck ## Major {major}, inkompatibel  [MSG="..."] — Maintainer
-	$(call release,major)
-
-.PHONY: tag-minor
-tag-minor: require-tools precheck ## Minor {minor}, neue Funktion  [MSG="..."] — Maintainer
-	$(call release,minor)
-
-.PHONY: tag-patch
-tag-patch: require-tools precheck ## Patch {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
-	$(call release,patch)
+tag-major tag-minor tag-patch: require-tools precheck
+	@tag-version "$(patsubst tag-%,%,$@)" --message "$${MSG:-}"
+	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --commit >/dev/null
+	@tag-version --fast-forward
