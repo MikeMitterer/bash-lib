@@ -47,7 +47,7 @@ help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 #     Setup
 #          setup                  Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 #     Versionierung
-#          tag-minor              Minor-Release 0.7.0 → 0.8.0, neue Funktion  [MSG="..."] [Maintainer]
+#          tag-minor              Minor 0.7.0 → 0.8.0, neue Funktion  [MSG="..."] [Maintainer]
 #
 # „— Maintainer“ am Ende wird zu [Maintainer]; {major}, {minor} und {patch} füllt
 # showMakeTargets mit der Version davor und danach.
@@ -282,13 +282,13 @@ changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
 # require-tools vor precheck: ohne ProjectTools bricht ein Release vor dem Bump ab,
 # nicht erst nach dem Tag.
 .PHONY: tag-major
-tag-major: require-tools precheck ## Major-Release {major}, inkompatibel  [MSG="..."] — Maintainer
+tag-major: require-tools precheck ## Major {major}, inkompatibel  [MSG="..."] — Maintainer
 	$(call release,major)
 
 .PHONY: tag-minor
-tag-minor: require-tools precheck ## Minor-Release {minor}, neue Funktion  [MSG="..."] — Maintainer
+tag-minor: require-tools precheck ## Minor {minor}, neue Funktion  [MSG="..."] — Maintainer
 	$(call release,minor)
 
 .PHONY: tag-patch
-tag-patch: require-tools precheck ## Patch-Release {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
+tag-patch: require-tools precheck ## Patch {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
 	$(call release,patch)
