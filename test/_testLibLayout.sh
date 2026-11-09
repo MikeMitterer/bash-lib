@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
 # _testLibLayout.sh — Aufteilung der Bibliotheken: cli.lib.sh (Ausgabe im
-# CLI-Theme), colors.lib.sh (Palette), tools.lib.sh (Allzweck-Helfer); ein
-# Skript, das nur tools.lib.sh einbindet, findet alle bisherigen Funktionen
+# CLI-Theme), colors.lib.sh (Palette), tools.lib.sh (Allzweck-Helfer),
+# make.lib.sh (Makefiles); ein Skript, das nur tools.lib.sh einbindet, findet
+# alle bisherigen Funktionen außer denen aus make.lib.sh und net.lib.sh
 #
 #   ./test/_testLibLayout.sh
 # ------------------------------------------------------------------------------
@@ -42,8 +43,12 @@ for name in "${NET[@]}"; do assertEquals "net.lib.sh" "$(definedIn "${name}")" "
 for name in "${TOOLS[@]}"; do assertEquals "tools.lib.sh" "$(definedIn "${name}")" "${name} in tools.lib.sh"; done
 for name in "${PALETTE[@]}"; do assertEquals "colors.lib.sh" "$(definedIn "${name}")" "${name} in colors.lib.sh"; done
 
-assertEquals "" "$(missingAfter tools.lib.sh "${CLI[@]}" "${MAKE[@]}" "${TOOLS[@]}" "${PALETTE[@]}")" \
-    "nur tools.lib.sh eingebunden: Ausgabe, Versionsanzeige, Allzweck-Helfer und Palette da"
+assertEquals "" "$(missingAfter tools.lib.sh "${CLI[@]}" "${TOOLS[@]}" "${PALETTE[@]}")" \
+    "nur tools.lib.sh eingebunden: Ausgabe, Allzweck-Helfer und Palette da"
+assertEquals "${MAKE[*]} " "$(missingAfter tools.lib.sh "${MAKE[@]}")" \
+    "nur tools.lib.sh eingebunden: Versionsanzeige nicht (make.lib.sh selbst einbinden)"
+assertEquals "" "$(missingAfter make.lib.sh "${MAKE[@]}" "${CLI[@]}" "${TOOLS[@]}")" \
+    "make.lib.sh eingebunden: Versionsanzeige, Ausgabe und Allzweck-Helfer da"
 assertEquals "${NET[*]} " "$(missingAfter tools.lib.sh "${NET[@]}")" \
     "nur tools.lib.sh eingebunden: isLocalPortOpen nicht (net.lib.sh selbst einbinden)"
 assertEquals "" "$(missingAfter net.lib.sh "${NET[@]}")" "net.lib.sh eingebunden: isLocalPortOpen da"

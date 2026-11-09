@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# tools.lib.sh bindet make.lib.sh ein; ein zweites . make.lib.sh ohne
-# Guard bricht sonst an readonly ab.
+# Ein zweites . make.lib.sh ohne Guard bricht sonst an readonly ab.
 [[ -z "${__MAKE_LIB__:-}" ]] || return 0
 readonly __MAKE_LIB__="make.lib.sh";
 

@@ -120,7 +120,7 @@ printThemeStatus "✓" "Done" SUCCESS
 ```
 
 `tools.lib.sh` brings `cli.lib.sh` (output in the CLI theme), `colors.lib.sh`,
-`apps.lib.sh`, `dtime.lib.sh`, `version.lib.sh` and `make.lib.sh` along; for most scripts this one line is enough. The guard
+`apps.lib.sh`, `dtime.lib.sh` and `version.lib.sh` along; for most scripts this one line is enough. Makefile recipes load `make.lib.sh` themselves; it brings `tools.lib.sh` along. This is a breaking change: scripts that used to get `showProjectVersion` or `showReleaseTags` through `tools.lib.sh` load `make.lib.sh` themselves (listed in the CHANGELOG under “Inkompatible Änderungen”). The guard
 line of each library is in its file header under “Einbinden”.
 
 **A script that should also run without BashLib** checks, as above, whether
@@ -133,7 +133,7 @@ instead of aborting.
 
 | Library | Content | Loads |
 |---|---|---|
-| `tools.lib.sh` | General helpers (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); loads all of the libraries on the right, so scripts find every function as before | cli, apps, dtime, version, make |
+| `tools.lib.sh` | General helpers (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); loads the libraries on the right | cli, apps, dtime, version |
 | `cli.lib.sh` | Output in the CLI theme: theme from clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Fixed ANSI color palette (`RED`, `GREEN`, `NC` …) | – |
 | `make.lib.sh` | Help and hints for Makefiles in the CLI theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), setup check for test targets (`requireMakeSetup`), editable install with pipx (`installEditablePackage`), version and release tags (`showProjectVersion`, `showReleaseTags`) | tools |

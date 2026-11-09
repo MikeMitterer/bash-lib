@@ -61,7 +61,7 @@ gitReleaseTag() {
 # Gibt die Release-Tags eines Repos als Daten aus, neueste zuerst: je Zeile
 # Tag, Tabulator, Nachricht (bei annotierten Tags deren erste Zeile, sonst die
 # Commit-Nachricht). Nur Tags v<Ziffer>…, wie bei gitReleaseTag. Ohne
-# Formatierung; die Anzeige im CLI-Theme macht showReleaseTags (tools.lib.sh).
+# Formatierung; die Anzeige im CLI-Theme macht showReleaseTags (make.lib.sh).
 #
 # Usage:
 #      gitListReleaseTags | while IFS=$'\t' read -r tag msg; do …; done
