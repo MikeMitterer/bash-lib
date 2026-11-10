@@ -178,9 +178,14 @@ echo "make tag-patch: MSG unverändert, Repo ohne develop"
 echo
 
 # Zugleich ein Repo ohne develop. Die Nachricht enthält alles, was Make oder die Shell
-# auswerten könnten; pwned entstünde, wenn die Shell sie ausführt.
-msg="--Fix \"a\" & 'b' \$HOME \$(touch pwned)"
+# auswerten könnten; pwned entstünde, wenn die Shell sie ausführt, PWNED, wenn Make sie
+# beim Einlesen auswertet (Export an das erste $(shell …), T-76).
+msg="--Fix \"a\" & 'b' \$HOME \$\$ \$(touch pwned) \$(shell touch PWNED)"
 makeRepo plain
+# Schon beim Einlesen, für jedes Target: make -n help führt MSG nicht aus
+runMake plain -n help 'MSG=x $(shell touch PWNED)'
+assertEquals "0" "$(find "${work}/plain" -name PWNED | wc -l | tr -d ' ')" "make -n help: MSG mit \$(shell …) wird beim Einlesen nicht ausgeführt"
+command rm -f -- "${work}/plain/PWNED"
 runMake plain tag-patch "MSG=${msg}"
 tag="$(git -C "${work}/plain" tag --sort=-creatordate | head -n1)"
 assertEquals "0" "${rc}" "ohne develop: Exit 0"
@@ -188,7 +193,7 @@ assertEquals "" "$(git -C "${work}/plain" branch --list develop)" "ohne develop:
 assertEquals "docs(changelog): update release history" "$(git -C "${work}/plain" log -1 --format=%s)" "ohne develop: Changelog-Commit"
 assertEquals "${msg}" "$(git -C "${work}/plain" tag -l --format='%(contents:subject)' "${tag}")" "MSG unverändert im Tag"
 assertContains "${msg}" "$(cat "${work}/plain/CHANGELOG.md")" "MSG unverändert im Changelog"
-assertEquals "0" "$(find "${work}/plain" -name pwned | wc -l | tr -d ' ')" "MSG wird nicht ausgeführt"
+assertEquals "0" "$(find "${work}/plain" \( -name pwned -o -name PWNED \) | wc -l | tr -d ' ')" "MSG wird nicht ausgeführt"
 
 echo
 echo "make tag-patch: develop in einem Worktree"
