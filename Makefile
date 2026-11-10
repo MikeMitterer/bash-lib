@@ -8,6 +8,12 @@ SHELL := bash
 
 .DEFAULT_GOAL := help
 
+# MSG für make tag-* unausgewertet übernehmen, vor dem ersten $(shell …): Make
+# exportiert Variablen von der Kommandozeile und wertet sie dabei aus, aus $HOME
+# würde OME und $(shell …) liefe. Im Rezept nur als "$${MSG:-}".
+override MSG := $(value MSG)
+export MSG
+
 WORKSPACE    := $(CURDIR)
 WORKSPACE_SQ := '$(subst ','\'',$(WORKSPACE))'
 PROJECT_NAME := $(shell basename -- $(WORKSPACE_SQ))
@@ -218,11 +224,6 @@ export CHANGELOG_LANGUAGE
 .PHONY: changelog
 changelog: require-tools ## CHANGELOG.md aus Tags und Commits schreiben, ohne Commit
 	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --generate
-
-# MSG von der Kommandozeile unausgewertet; sonst macht Make aus $HOME oder $(…) schon
-# beim Export an das Rezept etwas anderes. Im Rezept nur als "$${MSG:-}".
-override MSG := $(value MSG)
-export MSG
 
 .PHONY: tag-major tag-minor tag-patch
 tag-major: ## Major {major}, inkompatibel  [MSG="..."] — Maintainer
