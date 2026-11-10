@@ -46,8 +46,9 @@ sind nur Zugangsdaten, die beim Aufruf durchlaufen oder neben dem Projekt liegen
 Zugangsdaten gehören nicht ins Repository, das öffentlich ist. Das ist eine
 Konvention; keine Prüfung setzt sie durch.
 
-**Abweichung:** `.jenkins` enthält `JENKINS_JOB_TOKEN`. Im Repository liest ihn
-sonst niemand. Ob der Jenkins-Job ihn noch annimmt, ist noch nicht geklärt.
+**Bewusste Abweichung:** `.jenkins` enthält `JENKINS_JOB_TOKEN`. Im Repository
+liest ihn sonst niemand. Der Eintrag bleibt, weil das Token nach Entscheidung
+des Menschen nichts schützt (q-40, Option C).
 
 [↑ Übersicht](#übersicht)
 
