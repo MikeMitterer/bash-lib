@@ -2,6 +2,31 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.12.0+261110.1615.6038e — 2026-11-10
+
+Theme einmal je make-Lauf und ohne eval, Hilfekopf deutsch bei deutscher Sprache (auch macOS-Systemsprache), make.lib.sh ohne tools.lib.sh
+
+### Inkompatible Änderungen
+
+- make.lib.sh bindet nur cli.lib.sh und version.lib.sh ein (T-74) (`690eddc`)
+
+### Neue Funktionen
+
+- showMakeHeader gibt den Hilfekopf bei deutscher Sprache deutsch aus (T-69) (`34fa1ef`)
+- ohne Sprachvariablen gilt unter macOS die Systemsprache (T-72) (`d0ea152`)
+
+### Fehlerkorrekturen
+
+- themeImport setzt nur bekannte Namen, andere bleiben ungesetzt (T-70) (`edb8c7a`)
+
+### Geschwindigkeit
+
+- clitheme einmal je make-Lauf, Export ohne eval übernehmen (T-70) (`b765bd4`)
+
+### Weitere Änderungen
+
+- Namen nur über die Liste in themeImport zulassen (T-70) (`caf4a28`)
+
 ## v0.11.0+261109.1631.11aca — 2026-11-09
 
 make tag-\* ruft tag-version direkt auf, tools.lib.sh ohne make.lib.sh, Sicherheits- und Qualitätsprofil
