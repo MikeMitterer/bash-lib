@@ -86,18 +86,24 @@ showMakeHeader() {
 
 # Ist die Sprache der Meldungen deutsch? Vorrang wie bei gettext: LC_ALL, LC_MESSAGES,
 # LANG; LANGUAGE (Liste wie „de:en“, zählt der erste Eintrag) geht vor, außer die
-# Locale ist leer, C oder POSIX.
+# Locale ist leer, C oder POSIX. Ist keine der vier Variablen gesetzt (etwa make aus
+# einer IDE unter macOS), gilt die erste Systemsprache aus defaults read -g
+# AppleLanguages; ohne defaults oder wenn es scheitert, englisch.
 #
 # Exit:
 #     0  deutsch (de, de_AT.UTF-8, de_DE@euro, …)
 #     1  jede andere oder keine Sprache
 #
 _isGermanLocale() {
-    local _lang="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+    local _lang="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" _system
     if [[ -n ${LANGUAGE:-} && -n ${_lang} && ${_lang} != C && ${_lang} != C.* && ${_lang} != POSIX ]]; then
         _lang="${LANGUAGE%%:*}"
+    elif [[ -z ${_lang} && -z ${LANGUAGE:-} ]]; then
+        # Ausgabe wie ( "de-AT", de, en ): der erste Eintrag, ohne Anführungszeichen
+        _system="$(defaults read -g AppleLanguages 2>/dev/null)"
+        [[ ${_system} =~ ^\([[:space:]]*\"?([A-Za-z_-]+) ]] && _lang="${BASH_REMATCH[1]}"
     fi
-    [[ ${_lang} =~ ^de([_.@]|$) ]]
+    [[ ${_lang} =~ ^de([-_.@]|$) ]]
 }
 
 # Gruppen (`##@ Gruppe`) als Überschrift, Targets mit `## Beschreibung` als Zeile,
