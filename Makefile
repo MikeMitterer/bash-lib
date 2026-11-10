@@ -58,10 +58,11 @@ REPO_URL     = $(or $(shell repo-info --url 2>/dev/null),$(NO_REPO_INFO))
 RELEASE_TAG  = $(or $(shell repo-info --release-tag 2>/dev/null),$(NO_REPO_INFO))
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
 # [project.scripts]); nur erlaubte Zeichen, sonst leer. Erst beim ersten Bedarf gelesen
-# und gemerkt (wie clitheme_export), nicht bei jedem make.
-PACKAGE_NAME = $(eval PACKAGE_NAME := $$(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageName))$(PACKAGE_NAME)
+# und gemerkt (wie clitheme_export), nicht bei jedem make. $$(WORKSPACE_SQ): eval liest
+# seinen Text als Make-Code, der Checkout-Pfad darf erst danach eingesetzt werden.
+PACKAGE_NAME = $(eval PACKAGE_NAME := $$(shell source $$(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageName))$(PACKAGE_NAME)
 # Befehle aus [project.scripts], durch Leerzeichen getrennt; der erste ist PACKAGE_CMD
-PACKAGE_CMDS = $(eval PACKAGE_CMDS := $$(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands))$(PACKAGE_CMDS)
+PACKAGE_CMDS = $(eval PACKAGE_CMDS := $$(shell source $$(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands))$(PACKAGE_CMDS)
 PACKAGE_CMD  = $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
 PACKAGE      = $(or $(PACKAGE_NAME),$(NO_PACKAGE))

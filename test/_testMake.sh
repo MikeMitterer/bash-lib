@@ -424,6 +424,9 @@ mkdir -p "${hostile_dir}"
 info="$(env XDG_CONFIG_HOME="${work}/config" make --no-print-directory -C "${hostile_dir}" info 2>&1 | plain)"
 assertEquals "" "$(ls -d "${hostile_dir}/pwned" "${work}/pwned" 2>/dev/null)" "Ordner mit \$(shell touch …): nichts ausgeführt"
 assertContains "PACKAGE                mmit-bashlib" "${info}" "Ordner mit \$(…): PACKAGE aus pyproject.toml gelesen"
+hints="$(env XDG_CONFIG_HOME="${work}/config" make --no-print-directory -C "${hostile_dir}" hints 2>&1 | plain)"
+assertContains "mmit-bashlib (Befehl bashlib)" "${hints}" "Ordner mit \$(…): make hints nennt Paket und Befehl"
+assertEquals "" "$(ls -d "${hostile_dir}/pwned" "${work}/pwned" 2>/dev/null)" "Ordner mit \$(shell touch …): auch make hints führt nichts aus"
 
 echo
 echo "Minimal-Makefile aus dem README in einem Ordner it's \$(uname)"
