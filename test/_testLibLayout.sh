@@ -2,8 +2,9 @@
 # ------------------------------------------------------------------------------
 # _testLibLayout.sh — Aufteilung der Bibliotheken: cli.lib.sh (Ausgabe im
 # CLI-Theme), colors.lib.sh (Palette), tools.lib.sh (Allzweck-Helfer),
-# make.lib.sh (Makefiles); ein Skript, das nur tools.lib.sh einbindet, findet
-# alle bisherigen Funktionen außer denen aus make.lib.sh und net.lib.sh
+# make.lib.sh (Makefiles, nur mit cli.lib.sh und version.lib.sh); ein Skript, das
+# nur tools.lib.sh einbindet, findet alle bisherigen Funktionen außer denen aus
+# make.lib.sh und net.lib.sh
 #
 #   ./test/_testLibLayout.sh
 # ------------------------------------------------------------------------------
@@ -47,8 +48,15 @@ assertEquals "" "$(missingAfter tools.lib.sh "${CLI[@]}" "${TOOLS[@]}" "${PALETT
     "nur tools.lib.sh eingebunden: Ausgabe, Allzweck-Helfer und Palette da"
 assertEquals "${MAKE[*]} " "$(missingAfter tools.lib.sh "${MAKE[@]}")" \
     "nur tools.lib.sh eingebunden: Versionsanzeige nicht (make.lib.sh selbst einbinden)"
-assertEquals "" "$(missingAfter make.lib.sh "${MAKE[@]}" "${CLI[@]}" "${TOOLS[@]}")" \
-    "make.lib.sh eingebunden: Versionsanzeige, Ausgabe und Allzweck-Helfer da"
+assertEquals "" "$(missingAfter make.lib.sh "${MAKE[@]}" "${CLI[@]}" readProjectVersion)" \
+    "make.lib.sh eingebunden: Versionsanzeige, Ausgabe und version.lib.sh da"
+# make.lib.sh lädt jede Rezeptzeile (BASH_ENV): ohne tools.lib.sh und dessen Bibliotheken
+# (apps, dtime, os, logging), die beim Einbinden Programme starten
+assertEquals "${TOOLS[*]} " "$(missingAfter make.lib.sh "${TOOLS[@]}")" \
+    "make.lib.sh eingebunden: Allzweck-Helfer nicht (tools.lib.sh selbst einbinden)"
+assertEquals "unset unset unset unset" \
+    "$(BASH_LIBS="${ROOT}/src" bash -c '. "${BASH_LIBS}/make.lib.sh"; echo "${__TOOLS_LIB__:-unset} ${__APPS_LIB__:-unset} ${__DTIME_LIB__:-unset} ${__OS_LIB__:-unset}"' 2>/dev/null)" \
+    "make.lib.sh eingebunden: tools, apps, dtime und os nicht geladen"
 assertEquals "${NET[*]} " "$(missingAfter tools.lib.sh "${NET[@]}")" \
     "nur tools.lib.sh eingebunden: isLocalPortOpen nicht (net.lib.sh selbst einbinden)"
 assertEquals "" "$(missingAfter net.lib.sh "${NET[@]}")" "net.lib.sh eingebunden: isLocalPortOpen da"

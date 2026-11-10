@@ -121,7 +121,7 @@ printThemeStatus "✓" "Done" SUCCESS
 ```
 
 `tools.lib.sh` bringt `cli.lib.sh` (Ausgabe im CLI-Theme), `colors.lib.sh`,
-`apps.lib.sh`, `dtime.lib.sh` und `version.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Makefile-Rezepte binden `make.lib.sh` selbst ein; es bringt `tools.lib.sh` mit. Das ist ein Breaking Change: Skripte, die bisher `showProjectVersion` oder `showReleaseTags` über `tools.lib.sh` bekamen, binden `make.lib.sh` selbst ein (im CHANGELOG unter „Inkompatible Änderungen“). Die Wächterzeile jeder
+`apps.lib.sh`, `dtime.lib.sh` und `version.lib.sh` mit; für die meisten Skripte genügt diese eine Zeile. Makefile-Rezepte binden `make.lib.sh` selbst ein; es bringt nur `cli.lib.sh` und `version.lib.sh` mit, nicht `tools.lib.sh`, weil `BASH_ENV` es in jede Rezeptzeile lädt. Rezepte, die weitere Helfer brauchen, binden `tools.lib.sh` oder die betreffende Bibliothek selbst ein. Das ist ein Breaking Change: Skripte, die bisher `showProjectVersion` oder `showReleaseTags` über `tools.lib.sh` bekamen, binden `make.lib.sh` selbst ein (im CHANGELOG unter „Inkompatible Änderungen“). Die Wächterzeile jeder
 Bibliothek steht in ihrem Dateikopf unter „Einbinden“.
 
 **Ein Skript, das auch ohne BashLib laufen soll**, prüft wie oben, ob
@@ -137,7 +137,7 @@ statt abzubrechen.
 | `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt die Bibliotheken rechts | cli, apps, dtime, version |
 | `cli.lib.sh` | Ausgabe im CLI-Theme: Theme von clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Feste ANSI-Farbpalette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), editierbar mit pipx installieren (`installEditablePackage`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | tools |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), editierbar mit pipx installieren (`installEditablePackage`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | cli, version |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable`, fehlender Befehl mit Hinweis (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
