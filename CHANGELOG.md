@@ -2,6 +2,19 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.13.0+261110.1712.e9cc5 — 2026-11-10
+
+installCliThemes für make setup, make changelog schreibt CHANGELOG.md, MSG und Checkout-Pfad werden beim Einlesen nicht mehr ausgewertet
+
+### Fehlerkorrekturen
+
+- Checkout-Pfad in eval erst nach dem Lesen einsetzen (T-75, R1-F1) (`5a89323`)
+- override MSG vor das erste $(shell …) ziehen (T-76) (`67c302a`)
+
+### Weitere Änderungen
+
+- Makefile aufräumen – installCliThemes, changelog schreibt die Datei (T-75) (`671d399`)
+
 ## v0.12.0+261110.1615.6038e — 2026-11-10
 
 Theme einmal je make-Lauf und ohne eval, Hilfekopf deutsch bei deutscher Sprache (auch macOS-Systemsprache), make.lib.sh ohne tools.lib.sh
