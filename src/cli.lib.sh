@@ -81,8 +81,9 @@ themeImport() {
     local -A _imported=()
     local -r _escape=$'\033' _quote="'\"'\"'"
     local -r _sgr="^(${_escape}\\[[0-9;]+m)?\$"
-    # NAME=WERT, WERT bar (Zeichen, die shlex.quote nicht quotet) oder in '…', ein ' darin als '"'"'
-    local -r _assignment="^[[:space:]]*(THEME_[A-Z_]+)=('[^']*'(\"'\"'[^']*')*|[A-Za-z0-9_@%+=:,./-]+)([[:space:]]+|$)"
+    # NAME=WERT, welche NAME gelten, entscheidet case unten; WERT bar (Zeichen, die
+    # shlex.quote nicht quotet) oder in '…', ein ' darin als '"'"'
+    local -r _assignment="^[[:space:]]*([A-Z_]+)=('[^']*'(\"'\"'[^']*')*|[A-Za-z0-9_@%+=:,./-]+)([[:space:]]+|$)"
     while [[ ${_rest} =~ [^[:space:]] ]]; do
         [[ ${_rest} =~ ${_assignment} ]] || return 1
         _name="${BASH_REMATCH[1]}" _value="${BASH_REMATCH[2]}"
