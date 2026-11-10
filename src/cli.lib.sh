@@ -63,6 +63,56 @@ themeOwn() {
     [[ -n ${!1+x} && ! $(declare -p "${1}" 2>/dev/null) =~ ${_EXPORTED} ]]
 }
 
+# Übernimmt die THEME_*-Werte aus der Ausgabe von clitheme export --bash, ohne eval: Zeilen
+# oder durch Leerzeichen getrennte Zuweisungen (so liefert sie $(shell …) in Make), Werte in
+# der Form von shlex.quote. Gesetzt werden nur die Namen aus THEME_EXPORTED und THEME_NAME,
+# THEME_SOURCE, THEME_ORIGIN und THEME_NOTICE; andere (etwa eine neue Rolle einer späteren
+# clitheme-Fassung) bleiben ungesetzt. Gilt nur, wenn alles passt: jeder dieser Namen
+# vorhanden, Farben leer oder eine SGR-Folge, Einrückungen nur Leerzeichen, Abstände nur
+# Ziffern, die übrigen Texte ohne Escape-Zeichen. Sonst bleibt alles unverändert.
+#
+# $1 Ausgabe von clitheme export --bash, $2 „inherited“: aus der Umgebung, dann auch ohne
+# Hinweis in THEME_NOTICE
+#
+# Exit:
+#     0  übernommen
+#     1  nicht übernommen
+#
+themeImport() {
+    local _rest="${1#\# clitheme export --bash}" _name _value
+    local -A _imported=()
+    local -r _known=" ${THEME_EXPORTED//[[:space:]]/ } THEME_NAME THEME_SOURCE THEME_ORIGIN THEME_NOTICE "
+    local -r _escape=$'\033' _quote="'\"'\"'"
+    local -r _sgr="^(${_escape}\\[[0-9;]+m)?\$"
+    # NAME=WERT; WERT bar (Zeichen, die shlex.quote nicht quotet) oder in '…', ein ' darin
+    # als '"'"'
+    local -r _assignment="^[[:space:]]*([A-Z_]+)=('[^']*'(\"'\"'[^']*')*|[A-Za-z0-9_@%+=:,./-]+)([[:space:]]+|$)"
+    while [[ ${_rest} =~ [^[:space:]] ]]; do
+        [[ ${_rest} =~ ${_assignment} ]] || return 1
+        _name="${BASH_REMATCH[1]}" _value="${BASH_REMATCH[2]}"
+        _rest="${_rest:${#BASH_REMATCH[0]}}"
+        if [[ ${_value} == \'* ]]; then
+            _value="${_value:1:-1}"
+            _value="${_value//${_quote}/\'}"
+        fi
+        [[ ${_known} == *" ${_name} "* ]] || continue
+        case ${_name} in
+            THEME_COLOR_*) [[ ${_value} =~ ${_sgr} ]] ;;
+            THEME_INDENT_*) [[ ${_value} =~ ^\ *$ ]] ;;
+            THEME_NOTICE) [[ ${2:-} != inherited || -z ${_value} ]] && [[ ${_value} != *${_escape}* ]] ;;
+            THEME_NAME | THEME_SOURCE | THEME_ORIGIN) [[ ${_value} != *${_escape}* ]] ;;
+            *) [[ ${_value} =~ ^[0-9]+$ ]] ;; # Breiten und Abstände
+        esac || return 1
+        _imported[${_name}]="${_value}"
+    done
+    for _name in ${_known}; do
+        [[ -n ${_imported[${_name}]+x} ]] || return 1
+    done
+    for _name in "${!_imported[@]}"; do
+        printf -v "${_name}" '%s' "${_imported[${_name}]}"
+    done
+}
+
 # Setzt die THEME_*-Werte aus clitheme export --bash. Eigene Werte des Skripts bleiben;
 # ohne clitheme gibt es keine Farben und die Ersatzabstände.
 # shellcheck disable=SC2034  # THEME_* liest der Aufrufer
@@ -86,22 +136,24 @@ themeLoad() {
     THEME_WIDTH_TARGET="${THEME_FALLBACK_WIDTH_TARGET}" THEME_COLUMN_GAP="${THEME_FALLBACK_COLUMN_GAP}"
     THEME_WIDTH_HELP=120 THEME_GROUP_SPACING="${THEME_FALLBACK_GROUP_SPACING}"
 
-    if ! command -v clitheme >/dev/null 2>&1; then
+    # Ein geerbter Export (CLITHEME_EXPORT, einmal je make-Lauf) erspart den Aufruf von
+    # clitheme; mit Hinweis gilt er nicht, denn Make macht aus dessen Zeilenumbruch ein
+    # Leerzeichen.
+    if [[ -n ${CLITHEME_EXPORT:-} ]] && themeImport "${CLITHEME_EXPORT}" inherited; then
+        :
+    elif ! command -v clitheme >/dev/null 2>&1; then
         THEME_NOTICE="clitheme fehlt, Ausgabe ohne Farben"$'\n'"${THEME_CLITHEME_INSTALL}"
-    elif _export="$(clitheme export --bash 2>/dev/null)"; then
-        # clitheme quotet jeden Wert; die Ausgabe enthält nur Zuweisungen an THEME_*.
-        eval "${_export}"
-        # Escape-Bytes als Escape-Text wie die Palette: themeStyle setzt sie mit %b um.
-        # Ersatz über eine Variable, damit der Escape-Text wörtlich bleibt.
-        for _name in GROUP TARGET DESC VALUE HINT ACCENT SUCCESS WARNING DANGER SERVER; do
-            _name="THEME_COLOR_${_name}"
-            _value="${!_name}"
-            printf -v "${_name}" '%s' "${_value//${_escape}/${_escapeText}}"
-        done
-    else
+    elif ! _export="$(clitheme export --bash 2>/dev/null)" || ! themeImport "${_export}"; then
         # Installiert, aber gescheitert: der Aufruf zeigt den Grund.
         THEME_NOTICE="clitheme export gescheitert, Ausgabe ohne Farben"$'\n'"clitheme export --bash"
     fi
+    # Escape-Bytes als Escape-Text wie die Palette: themeStyle setzt sie mit %b um.
+    # Ersatz über eine Variable, damit der Escape-Text wörtlich bleibt.
+    for _name in GROUP TARGET DESC VALUE HINT ACCENT SUCCESS WARNING DANGER SERVER; do
+        _name="THEME_COLOR_${_name}"
+        _value="${!_name}"
+        printf -v "${_name}" '%s' "${_value//${_escape}/${_escapeText}}"
+    done
 
     for _name in "${!_own[@]}"; do
         printf -v "${_own[_name]}" '%s' "${_values[_name]}"

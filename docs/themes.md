@@ -24,9 +24,24 @@ CLI_THEME=ocean ./mein-skript.sh --help
 `cli.lib.sh` ruft beim Einbinden einmal `clitheme export --bash` auf.
 clitheme liest das gewählte Theme (`CLI_THEME`, Standard `classic`; Datei unter
 `${XDG_CONFIG_HOME:-~/.config}/clitheme/`), prüft es und gibt die aufgelösten
-Werte gequotet aus. `clitheme install` legt die mitgelieferten Vorlagen an,
-`clitheme show` zeigt das gewählte Theme. Format, Rollen und Fehlerfälle der
-Theme-Datei beschreibt das README von CLITheme.
+Werte gequotet aus. `cli.lib.sh` übernimmt sie ohne `eval` (`themeImport`): Es
+setzt nur die unten genannten `THEME_*`-Variablen, andere Namen (etwa eine neue
+Rolle einer späteren clitheme-Fassung) bleiben ungesetzt. Farben gelten nur als
+SGR-Folge, Abstände nur als Zahl; passt ein Wert nicht oder fehlt einer, gibt es
+keine Farben und den Hinweis unten. `clitheme install` legt
+die mitgelieferten Vorlagen an, `clitheme show` zeigt das gewählte Theme.
+Format, Rollen und Fehlerfälle der Theme-Datei beschreibt das README von
+CLITheme.
+
+**Einmal je make-Lauf:** Lädt ein Makefile `make.lib.sh` über `BASH_ENV` in
+jede Rezeptzeile, startet sonst jede Zeile clitheme. Gibt das Makefile die
+Ausgabe von `clitheme export --bash` in `CLITHEME_EXPORT` mit (Beispiel im
+README und in `make.lib.sh`), übernimmt `cli.lib.sh` sie mit derselben Prüfung
+und ruft clitheme nicht auf. So startet clitheme je make-Lauf einmal, mit Make
+ab 4.4 zweimal (es gibt `BASH_ENV` auch an `$(shell)` weiter), unabhängig von
+der Zahl der Zeilen. Trägt sie einen Befund in `THEME_NOTICE`, gilt sie
+nicht, und `cli.lib.sh` fragt clitheme selbst. Ein anderes `CLI_THEME` oder eine
+geänderte Theme-Datei gilt beim nächsten make-Lauf.
 
 Danach stehen bereit:
 

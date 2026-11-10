@@ -37,6 +37,11 @@ export HELP_FILES = $(value MAKEFILE_LIST)
 # jede Ausgabezeile als eigener Befehl da. Bash wertet BASH_ENV aus: darum der Verweis
 # auf BASH_LIBS statt des Pfads, ein $(…) im Checkout-Pfad bleibt Text.
 help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
+# Das Theme einmal je make-Lauf: clitheme_export ruft clitheme beim ersten Bedarf auf und
+# merkt sich die Ausgabe; make.lib.sh übernimmt sie geprüft, statt clitheme je Zeile zu starten.
+# Make ab 4.4 gibt BASH_ENV auch an $(shell): Dort lädt make.lib.sh das Theme ein zweites Mal.
+clitheme_export = $(eval clitheme_export := $$(shell clitheme export --bash 2>/dev/null))$(clitheme_export)
+help info hints: export CLITHEME_EXPORT = $(clitheme_export)
 
 # Ausgabe (gekürzt):
 #
