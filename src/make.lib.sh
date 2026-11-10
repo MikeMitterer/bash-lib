@@ -42,8 +42,10 @@ readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
 
 # Kopfzeilen der Makefile-Hilfe: Leerzeile, „Please use `make <target>' where <target>
 # is one of“, Leerzeile, „Project: NAME“; target und NAME in der Gruppenfarbe des
-# Themes. Ohne Theme-Farben, mit NO_COLOR oder ohne Terminal ohne Escape-Folgen. Der
-# Name wird nur ausgegeben, nie ausgewertet.
+# Themes. Bei deutscher Sprache (_isGermanLocale) deutsch: „Verwende `make <target>',
+# wobei <target> eines der folgenden ist“ und „Projekt: NAME“. Ohne Theme-Farben, mit
+# NO_COLOR oder ohne Terminal ohne Escape-Folgen. Der Name wird nur ausgegeben, nie
+# ausgewertet.
 #
 # Usage:
 #     showMakeHeader "$${PROJECT_NAME}"
@@ -60,11 +62,35 @@ showMakeHeader() {
     # Mit NC als Farbe behält themeStyle die eingebetteten Farben; ohne Theme-Farben bleibt
     # sie leer, und themeStyle gibt nur den Text aus.
     local -r _plain="${THEME_COLOR_GROUP:+${NC}}"
+    local -r _target="$(themeInline "${THEME_COLOR_GROUP}" target "")"
+    local -r _name="$(themeInline "${THEME_COLOR_GROUP}" "$(themeEscape "${1}")" "")"
     echo
-    themeStyle "Please use \`make <$(themeInline "${THEME_COLOR_GROUP}" target "")>' where <target> is one of" "${_plain}"
-    printf '\n\n'
-    themeStyle "Project: $(themeInline "${THEME_COLOR_GROUP}" "$(themeEscape "${1}")" "")" "${_plain}"
+    if _isGermanLocale; then
+        themeStyle "Verwende \`make <${_target}>', wobei <target> eines der folgenden ist" "${_plain}"
+        printf '\n\n'
+        themeStyle "Projekt: ${_name}" "${_plain}"
+    else
+        themeStyle "Please use \`make <${_target}>' where <target> is one of" "${_plain}"
+        printf '\n\n'
+        themeStyle "Project: ${_name}" "${_plain}"
+    fi
     printf '\n'
+}
+
+# Ist die Sprache der Meldungen deutsch? Vorrang wie bei gettext: LC_ALL, LC_MESSAGES,
+# LANG; LANGUAGE (Liste wie „de:en“, zählt der erste Eintrag) geht vor, außer die
+# Locale ist leer, C oder POSIX.
+#
+# Exit:
+#     0  deutsch (de, de_AT.UTF-8, de_DE@euro, …)
+#     1  jede andere oder keine Sprache
+#
+_isGermanLocale() {
+    local _lang="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+    if [[ -n ${LANGUAGE:-} && -n ${_lang} && ${_lang} != C && ${_lang} != C.* && ${_lang} != POSIX ]]; then
+        _lang="${LANGUAGE%%:*}"
+    fi
+    [[ ${_lang} =~ ^de([_.@]|$) ]]
 }
 
 # Gruppen (`##@ Gruppe`) als Überschrift, Targets mit `## Beschreibung` als Zeile,

@@ -166,7 +166,9 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   wie `printThemeValue`; der Wert bricht nie um.
 - **`showMakeHeader NAME`** gibt die Kopfzeilen der Hilfe aus, „Please use make
   &lt;target&gt; …“ und „Project: NAME“, target und Name in der Gruppenfarbe des
-  Themes.
+  Themes. Ist die Sprache deutsch (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`
+  mit dem Vorrang wie bei gettext), lauten sie „Verwende make &lt;target&gt; …“
+  und „Projekt: NAME“.
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** liest aus den Makefiles
   `##@ Group` und `target: … ## Description`. Server-Targets mit `##R`
   (schreibend) und `##D` (destruktiv) stehen ebenso da, mit Platzhaltern und
