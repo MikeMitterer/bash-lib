@@ -216,8 +216,32 @@ LANG=de_AT.UTF-8 LC_ALL=C runMake showMakeHeader "demo"
 assertContains "Project: demo" "${out}" "LC_ALL=C vor LANG=de_AT.UTF-8: englisch"
 LANG=C LANGUAGE=de runMake showMakeHeader "demo"
 assertContains "Project: demo" "${out}" "LANGUAGE=de bei LANG=C: englisch, wie gettext"
-LANG='' runMake showMakeHeader "demo"
-assertContains "Project: demo" "${out}" "ohne Sprache: englisch"
+# Ohne Sprachvariablen gilt unter macOS die erste Systemsprache (defaults read -g
+# AppleLanguages). Nachbauten von defaults unter /bin/sh (L-220); jeder Aufruf zählt.
+for lang in de en fail; do
+    mkdir -p "${work}/defaults-${lang}"
+    { printf '#!/bin/sh\necho "$*" >> %q\n' "${work}/defaults-calls"
+      case ${lang} in
+          de)   printf 'cat <<EOF\n(\n    "de-AT",\n    de,\n    en\n)\nEOF\n' ;;
+          en)   printf 'cat <<EOF\n(\n    "en-US",\n    de\n)\nEOF\n' ;;
+          fail) printf 'echo "Domain does not exist" >&2\nexit 1\n' ;;
+      esac
+    } > "${work}/defaults-${lang}/defaults"
+    chmod +x "${work}/defaults-${lang}/defaults"
+done
+: > "${work}/defaults-calls"
+LANG='' PATH="${work}/defaults-de:${PATH}" runMake showMakeHeader "demo"
+assertContains "Projekt: demo" "${out}" "ohne Sprache, Systemsprache de-AT: deutsch"
+assertEquals "read -g AppleLanguages" "$(cat "${work}/defaults-calls")" "ohne Sprache: defaults read -g AppleLanguages einmal"
+LANG='' PATH="${work}/defaults-en:${PATH}" runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "ohne Sprache, Systemsprache en-US: englisch"
+LANG='' PATH="${work}/defaults-fail:${PATH}" runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "ohne Sprache, defaults scheitert: englisch"
+assertEquals "" "${err}" "ohne Sprache, defaults scheitert: nichts auf stderr"
+: > "${work}/defaults-calls"
+LANG=en_US.UTF-8 PATH="${work}/defaults-de:${PATH}" runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "LANG=en_US.UTF-8 bei Systemsprache de-AT: englisch"
+assertEquals "" "$(cat "${work}/defaults-calls")" "mit LANG: defaults nicht aufgerufen"
 LANG=de_AT.UTF-8 runInTerminal showMakeHeader "demo"
 assertContains "Projekt: ${ESC}[1;38;5;11mdemo${ESC}[0m" "${out}" "Terminal deutsch: Projektname in der Gruppenfarbe"
 
@@ -420,7 +444,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 
