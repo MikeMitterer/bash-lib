@@ -89,7 +89,7 @@ und Pfade, die BashLib ausführt, werden nicht geprüft.
 | `MSG` bei `make tag-*` | `Makefile`: `override MSG`, im Rezept als Umgebungsvariable | `test/_testMakeTag.sh` |
 | Checkout-Pfad, auch mit `'` und `$(…)` | `Makefile`: `WORKSPACE_SQ`, `BASH_ENV` über `BASH_LIBS` | `test/_testMake.sh` |
 | Release-Tag aus `repo-info` | `Makefile`, Target `hints` | `test/_testMakeHints.sh` |
-| Werte aus `clitheme export --bash` | `themeImport` in `cli.lib.sh`, ohne `eval`: nur bekannte Namen, Farben nur als SGR-Folge | `test/_testTheme.sh` |
+| Werte aus `clitheme export --bash` | `themeImport` in `cli.lib.sh`, ohne `eval`: gesetzt werden nur die Namen aus `THEME_EXPORTED` sowie `THEME_NAME`, `THEME_SOURCE`, `THEME_ORIGIN` und `THEME_NOTICE`, andere bleiben ungesetzt; Farben nur als SGR-Folge | `test/_testTheme.sh` |
 | `CLITHEME_EXPORT` aus der Umgebung (einmal je make-Lauf) | `themeImport` in `cli.lib.sh`, dieselbe Prüfung; passt etwas nicht, ruft `themeLoad` clitheme selbst auf | `test/_testTheme.sh`, `test/_testMake.sh` |
 | Hinweistext für `requireCommand` | `requireCommand` in `apps.lib.sh`, über `themeEscape` aus `cli.lib.sh` | `test/_testHelpers.sh` |
 | Metavariablen in Hilfetexten | `printThemeOption` in `cli.lib.sh` | `test/_testHelpFormat.sh` |

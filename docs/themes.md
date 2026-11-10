@@ -24,9 +24,11 @@ CLI_THEME=ocean ./mein-skript.sh --help
 `cli.lib.sh` ruft beim Einbinden einmal `clitheme export --bash` auf.
 clitheme liest das gewählte Theme (`CLI_THEME`, Standard `classic`; Datei unter
 `${XDG_CONFIG_HOME:-~/.config}/clitheme/`), prüft es und gibt die aufgelösten
-Werte gequotet aus. `cli.lib.sh` übernimmt sie ohne `eval` (`themeImport`): nur
-die bekannten Namen, Farben nur als SGR-Folge, Abstände nur als Zahl; passt
-etwas nicht, gibt es keine Farben und den Hinweis unten. `clitheme install` legt
+Werte gequotet aus. `cli.lib.sh` übernimmt sie ohne `eval` (`themeImport`): Es
+setzt nur die unten genannten `THEME_*`-Variablen, andere Namen (etwa eine neue
+Rolle einer späteren clitheme-Fassung) bleiben ungesetzt. Farben gelten nur als
+SGR-Folge, Abstände nur als Zahl; passt ein Wert nicht oder fehlt einer, gibt es
+keine Farben und den Hinweis unten. `clitheme install` legt
 die mitgelieferten Vorlagen an, `clitheme show` zeigt das gewählte Theme.
 Format, Rollen und Fehlerfälle der Theme-Datei beschreibt das README von
 CLITheme.

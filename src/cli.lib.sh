@@ -65,7 +65,9 @@ themeOwn() {
 
 # Übernimmt die THEME_*-Werte aus der Ausgabe von clitheme export --bash, ohne eval: Zeilen
 # oder durch Leerzeichen getrennte Zuweisungen (so liefert sie $(shell …) in Make), Werte in
-# der Form von shlex.quote. Gilt nur, wenn alles passt: jeder Name erwartet und
+# der Form von shlex.quote. Gesetzt werden nur die Namen aus THEME_EXPORTED und THEME_NAME,
+# THEME_SOURCE, THEME_ORIGIN und THEME_NOTICE; andere (etwa eine neue Rolle einer späteren
+# clitheme-Fassung) bleiben ungesetzt. Gilt nur, wenn alles passt: jeder dieser Namen
 # vorhanden, Farben leer oder eine SGR-Folge, Einrückungen nur Leerzeichen, Abstände nur
 # Ziffern, die übrigen Texte ohne Escape-Zeichen. Sonst bleibt alles unverändert.
 #
@@ -79,10 +81,11 @@ themeOwn() {
 themeImport() {
     local _rest="${1#\# clitheme export --bash}" _name _value
     local -A _imported=()
+    local -r _known=" ${THEME_EXPORTED//[[:space:]]/ } THEME_NAME THEME_SOURCE THEME_ORIGIN THEME_NOTICE "
     local -r _escape=$'\033' _quote="'\"'\"'"
     local -r _sgr="^(${_escape}\\[[0-9;]+m)?\$"
-    # NAME=WERT, welche NAME gelten, entscheidet case unten; WERT bar (Zeichen, die
-    # shlex.quote nicht quotet) oder in '…', ein ' darin als '"'"'
+    # NAME=WERT; WERT bar (Zeichen, die shlex.quote nicht quotet) oder in '…', ein ' darin
+    # als '"'"'
     local -r _assignment="^[[:space:]]*([A-Z_]+)=('[^']*'(\"'\"'[^']*')*|[A-Za-z0-9_@%+=:,./-]+)([[:space:]]+|$)"
     while [[ ${_rest} =~ [^[:space:]] ]]; do
         [[ ${_rest} =~ ${_assignment} ]] || return 1
@@ -92,17 +95,17 @@ themeImport() {
             _value="${_value:1:-1}"
             _value="${_value//${_quote}/\'}"
         fi
+        [[ ${_known} == *" ${_name} "* ]] || continue
         case ${_name} in
             THEME_COLOR_*) [[ ${_value} =~ ${_sgr} ]] ;;
             THEME_INDENT_*) [[ ${_value} =~ ^\ *$ ]] ;;
-            THEME_WIDTH_TARGET | THEME_COLUMN_GAP | THEME_WIDTH_HELP | THEME_GROUP_SPACING) [[ ${_value} =~ ^[0-9]+$ ]] ;;
             THEME_NOTICE) [[ ${2:-} != inherited || -z ${_value} ]] && [[ ${_value} != *${_escape}* ]] ;;
             THEME_NAME | THEME_SOURCE | THEME_ORIGIN) [[ ${_value} != *${_escape}* ]] ;;
-            *) false ;;
+            *) [[ ${_value} =~ ^[0-9]+$ ]] ;; # Breiten und Abstände
         esac || return 1
         _imported[${_name}]="${_value}"
     done
-    for _name in ${THEME_EXPORTED} THEME_NAME THEME_SOURCE THEME_ORIGIN THEME_NOTICE; do
+    for _name in ${_known}; do
         [[ -n ${_imported[${_name}]+x} ]] || return 1
     done
     for _name in "${!_imported[@]}"; do
