@@ -164,7 +164,9 @@ one output line**, so the recipe reads like its output:
   `printThemeValue`; the value never wraps.
 - **`showMakeHeader NAME`** prints the header of the help, “Please use make
   &lt;target&gt; …” and “Project: NAME”, with target and name in the theme's
-  group color.
+  group color. If the language is German (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`,
+  `LANG`, with gettext's precedence), it reads “Verwende make &lt;target&gt; …”
+  and “Projekt: NAME”.
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
   `target: … ## Description` from the Makefiles. Server targets with `##R`
   (writing) and `##D` (destructive) are listed the same way, placeholders and
