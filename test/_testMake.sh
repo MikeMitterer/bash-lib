@@ -416,6 +416,15 @@ first="$(grep -E '^ +1\. Setup ' <<< "${hints}")"
 second="$(grep -E '^ +2\. Prüfen ' <<< "${hints}")"
 assertEquals "${#first}" "${#second}" "make hints: Umlaut-Beschriftung bündig"
 
+# Das Makefile dieses Repos in einem Ordner mit $(…) im Namen: Der Checkout-Pfad wird
+# weder Make- noch Shell-Code, auch nicht in den erst bei Bedarf gelesenen PACKAGE_*.
+hostile_dir="${work}/x\$(shell touch pwned) \$(uname)"
+mkdir -p "${hostile_dir}"
+( cd "${ROOT}" && git ls-files -z | tar --null -T - -cf - ) | tar -xf - -C "${hostile_dir}"
+info="$(env XDG_CONFIG_HOME="${work}/config" make --no-print-directory -C "${hostile_dir}" info 2>&1 | plain)"
+assertEquals "" "$(ls -d "${hostile_dir}/pwned" "${work}/pwned" 2>/dev/null)" "Ordner mit \$(shell touch …): nichts ausgeführt"
+assertContains "PACKAGE                mmit-bashlib" "${info}" "Ordner mit \$(…): PACKAGE aus pyproject.toml gelesen"
+
 echo
 echo "Minimal-Makefile aus dem README in einem Ordner it's \$(uname)"
 echo
@@ -450,7 +459,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|precheck.err|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 
