@@ -41,8 +41,13 @@ readonly __MAKE_LIB__="make.lib.sh";
 #
 #------------------------------------------------------------------------------
 
-# shellcheck source=SCRIPTDIR/tools.lib.sh
-if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
+# Nur Ausgabe und Version: BASH_ENV lädt make.lib.sh in jede Rezeptzeile, tools.lib.sh
+# (apps, dtime, os) startet beim Einbinden Programme. Wer dessen Helfer braucht, bindet
+# tools.lib.sh selbst ein.
+# shellcheck source=SCRIPTDIR/cli.lib.sh
+if [[ "${__CLI_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/cli.lib.sh"; fi
+# shellcheck source=SCRIPTDIR/version.lib.sh
+if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
 
 # Endet eine Beschreibung so, steht dafür die Markierung [Maintainer] in der Rolle C_MARK.
 readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
@@ -134,10 +139,11 @@ _isGermanLocale() {
 showMakeTargets() {
     local -a _settings=() _files=()
     local _file _line _setting _target _description _maintainer _version _bump _next _color
-    local -r _GROUP='^##@[[:space:]]*(.*)$'
+    # Leerzeichen am Rand des Namens bzw. der Beschreibung fangen die Muster nicht ein
+    local -r _GROUP='^##@[[:space:]]*(.*[^[:space:]])?[[:space:]]*$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
     # Erster Marker nach dem Doppelpunkt: ## lokal, ##R Server schreibend, ##D destruktiv
-    local -r _MARKER='##([RD]?) (.*)$'
+    local -r _MARKER='##([RD]?) [[:space:]]*(.*[^[:space:]])?[[:space:]]*$'
 
     while (( $# > 0 )); do
         case "${1}" in
@@ -184,7 +190,7 @@ showMakeTargets() {
         while IFS= read -r _line || [[ -n ${_line} ]]; do
             _line="${_line%$'\r'}"
             if [[ ${_line} =~ ${_GROUP} ]]; then
-                printThemeHeading "$(themeEscape "$(trim "${BASH_REMATCH[1]}")")"
+                printThemeHeading "$(themeEscape "${BASH_REMATCH[1]}")"
             elif [[ ${_line} =~ ${_TARGET} && ${BASH_REMATCH[2]} != =* ]] \
                     && _target="${BASH_REMATCH[1]}" && [[ ${BASH_REMATCH[2]} =~ ${_MARKER} ]]; then
                 case "${BASH_REMATCH[1]}" in
@@ -193,7 +199,7 @@ showMakeTargets() {
                     *) _color="" ;;
                 esac
                 [[ -z ${_color} ]] || _target="$(themeInline "${_color}" "${_target}" "")"
-                _description="$(trim "${BASH_REMATCH[2]}")"
+                _description="${BASH_REMATCH[2]}"
                 _maintainer=""
                 if [[ ${_description} == *"${MAKE_MAINTAINER_SUFFIX}" ]]; then
                     _description="${_description%"${MAKE_MAINTAINER_SUFFIX}"}"
@@ -326,6 +332,9 @@ installEditablePackage() {
         return 2
     fi
     local _output _commands
+    # requireCommand aus apps.lib.sh erst hier: das Einbinden sucht Werkzeuge im System
+    # shellcheck source=SCRIPTDIR/apps.lib.sh
+    if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
     requireCommand pipx "https://pipx.pypa.io" || return 1
     if ! _output="$(pipx install -e --force "${1}" 2>&1)"; then
         printf '%s\n' "${_output}" >&2
