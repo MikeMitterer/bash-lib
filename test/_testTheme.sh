@@ -134,8 +134,10 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     show = 'printf "%s|%s" "$THEME_NAME" "$THEME_COLOR_GROUP"'
     assert run(show, extra={'PATH': without, 'CLITHEME_EXPORT': collapsed}) == r'mono|\x1B[1;38;5;15m'
     assert run(show, extra={'CLITHEME_EXPORT': exported}) == r'mono|\x1B[1;38;5;15m'
-    for refused in (collapsed + ' PATH=/nowhere',
+    for refused in (collapsed + ' PATH=/nowhere', collapsed + ' THEME_EVIL=x',
                     collapsed.replace("THEME_COLOR_GROUP='\x1b[1;38;5;15m'", "THEME_COLOR_GROUP='\x1b]0;x\x07'"),
+                    collapsed.replace("THEME_COLOR_GROUP='\x1b[1;38;5;15m'", ''),
+                    collapsed.replace('THEME_ORIGIN=CLI_THEME', "THEME_ORIGIN='\x1b]0;x\x07'"),
                     collapsed.replace("THEME_NOTICE=''", "THEME_NOTICE='Befund clitheme install'")):
         assert refused != collapsed
         assert run(show, extra={'CLITHEME_EXPORT': refused}) == r'classic|\x1B[1;38;5;11m', refused

@@ -65,7 +65,7 @@ themeOwn() {
 
 # Übernimmt die THEME_*-Werte aus der Ausgabe von clitheme export --bash, ohne eval: Zeilen
 # oder durch Leerzeichen getrennte Zuweisungen (so liefert sie $(shell …) in Make), Werte in
-# der Form von shlex.quote. Gilt nur, wenn alles passt: jeder Name einmal erwartet und
+# der Form von shlex.quote. Gilt nur, wenn alles passt: jeder Name erwartet und
 # vorhanden, Farben leer oder eine SGR-Folge, Einrückungen nur Leerzeichen, Abstände nur
 # Ziffern, die übrigen Texte ohne Escape-Zeichen. Sonst bleibt alles unverändert.
 #
@@ -91,7 +91,6 @@ themeImport() {
             _value="${_value:1:-1}"
             _value="${_value//${_quote}/\'}"
         fi
-        [[ -z ${_imported[${_name}]+x} ]] || return 1
         case ${_name} in
             THEME_COLOR_*) [[ ${_value} =~ ${_sgr} ]] ;;
             THEME_INDENT_*) [[ ${_value} =~ ^\ *$ ]] ;;
