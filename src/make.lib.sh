@@ -345,6 +345,30 @@ installEditablePackage() {
     printThemeStatus "✓" "${_commands//$'\n'/, } aus $(themeEscape "${1}")" OK
 }
 
+# Legt mit clitheme install fehlende Theme-Dateien an (vorhandene bleiben) und meldet den
+# Ordner. Fehlt clitheme, tut es nichts: Die Ausgabe bleibt dann farblos, den
+# Installationsbefehl nennt devtools. Scheitert install, stehen dessen Ausgabe und der
+# nächste Schritt auf stderr.
+#
+# Usage (im Makefile, Teil von setup):
+#     @source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
+#
+# Exit:
+#     0  Themes angelegt oder clitheme fehlt
+#     1  clitheme install gescheitert
+#
+installCliThemes() {
+    local _output
+    command -v clitheme >/dev/null || return 0
+    if ! _output="$(clitheme install 2>&1)"; then
+        printf '%s\n' "${_output}" >&2
+        printThemeStatus "✗" "clitheme install fehlgeschlagen, Ausgabe ohne Farben" ERR >&2
+        printThemeHint "clitheme show" >&2
+        return 1
+    fi
+    printThemeStatus "✓" "CLI-Themes in $(themeEscape "$(dirname -- "$(clitheme path)")")" OK
+}
+
 # Ersetzt {NAME} durch den Wert aus NAME=WERT; unbekannte Platzhalter bleiben,
 # wie sie sind. Werte werden nicht erneut durchsucht. Gilt ein NAME mehrfach,
 # zählt der letzte.

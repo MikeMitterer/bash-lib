@@ -105,7 +105,8 @@ der Test fehl.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
 mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
-echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx.
+echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx und ein
+scheiterndes `clitheme install`. Die Themes legt `installCliThemes` aus `make.lib.sh` an.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeTargets`, `printMakeHeading`,
 `printMakeValue`, `requireMakeSetup` in einem Wegwerf-Repo) mit
@@ -173,7 +174,8 @@ unverändert an, auch mit `$`, Anführungszeichen oder führendem `--`.
 Dafür braucht es ProjectTools ab 0.7.0; den Tag nennt
 `PROJECTTOOLS_TAG` in `.dev-tools.conf.sh`. Veröffentlicht wird erst mit
 `git push --follow-tags`.
-`make changelog` zeigt vorher eine Vorschau.
+`make changelog` schreibt `CHANGELOG.md` vorab, ohne Commit; `git diff` zeigt dann, was
+das Release hinzufügt.
 Projekte wie ProjectTools hängen über diesen Tag an BashLib.
 Der Changelog ist deutsch, unabhängig von der Locale der Shell
 (`CHANGELOG_LANGUAGE`, Standard `de`).
