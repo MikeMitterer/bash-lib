@@ -168,7 +168,9 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   &lt;target&gt; …“ und „Project: NAME“, target und Name in der Gruppenfarbe des
   Themes. Ist die Sprache deutsch (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`
   mit dem Vorrang wie bei gettext), lauten sie „Verwende make &lt;target&gt; …“
-  und „Projekt: NAME“.
+  und „Projekt: NAME“. Ist keine dieser Variablen gesetzt, etwa wenn make aus
+  einer IDE startet, gilt unter macOS die erste Systemsprache
+  (`defaults read -g AppleLanguages`).
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** liest aus den Makefiles
   `##@ Group` und `target: … ## Description`. Server-Targets mit `##R`
   (schreibend) und `##D` (destruktiv) stehen ebenso da, mit Platzhaltern und

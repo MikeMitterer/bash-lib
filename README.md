@@ -166,7 +166,9 @@ one output line**, so the recipe reads like its output:
   &lt;target&gt; …” and “Project: NAME”, with target and name in the theme's
   group color. If the language is German (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`,
   `LANG`, with gettext's precedence), it reads “Verwende make &lt;target&gt; …”
-  and “Projekt: NAME”.
+  and “Projekt: NAME”. If none of these variables is set, for example when make
+  runs from an IDE, macOS uses the first system language
+  (`defaults read -g AppleLanguages`).
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
   `target: … ## Description` from the Makefiles. Server targets with `##R`
   (writing) and `##D` (destructive) are listed the same way, placeholders and
