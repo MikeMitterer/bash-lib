@@ -210,6 +210,9 @@ export HELP_FILES = $(value MAKEFILE_LIST)
 # make.lib.sh in every recipe line of these targets; Bash expands BASH_ENV,
 # so it refers to BASH_LIBS instead of holding the path
 help hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
+# clitheme once for all recipe lines instead of once per line
+clitheme_export = $(eval clitheme_export := $$(shell clitheme export --bash 2>/dev/null))$(clitheme_export)
+help hints: export CLITHEME_EXPORT = $(clitheme_export)
 
 .PHONY: help
 help: ## Show this help

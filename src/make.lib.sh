@@ -24,6 +24,13 @@ readonly __MAKE_LIB__="make.lib.sh";
 #     export HELP_FILES = $(value MAKEFILE_LIST)
 #     help info: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 #
+# Ohne die zwei Zeilen darunter startet jede Rezeptzeile clitheme (rund 0,1 s). Mit ihnen
+# läuft clitheme export einmal je make-Lauf, und themeLoad übernimmt das Ergebnis geprüft
+# aus CLITHEME_EXPORT (cli.lib.sh, themeImport). Make ab 4.4 gibt BASH_ENV auch an
+# $(shell); dort lädt make.lib.sh das Theme noch einmal, also zwei Aufrufe je Lauf:
+#     clitheme_export = $(eval clitheme_export := $$(shell clitheme export --bash 2>/dev/null))$(clitheme_export)
+#     help info: export CLITHEME_EXPORT = $(clitheme_export)
+#
 #     help:
 #         @showMakeHeader "$${PROJECT_NAME}"
 #         @showMakeTargets $${HELP_FILES}

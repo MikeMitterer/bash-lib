@@ -143,7 +143,6 @@ ihre Zeile im README. Das ist eine Konvention; kein Werkzeug prüft es.
 
 | Ausnahme | Grund steht in |
 |---|---|
-| `eval` der Ausgabe von `clitheme export --bash` | Kommentar in `themeLoad`, `src/cli.lib.sh` |
 | `make tag-*` zeigt nur stderr von `changelog --commit` | Kommentar am Rezept im `Makefile` |
 | `setup-themes` scheitert nie | Kommentar am Target im `Makefile` |
 | `make test-package` ist nicht Teil von `make check` | Kommentar am Target im `Makefile` |

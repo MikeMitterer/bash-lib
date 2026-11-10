@@ -89,7 +89,8 @@ und Pfade, die BashLib ausführt, werden nicht geprüft.
 | `MSG` bei `make tag-*` | `Makefile`: `override MSG`, im Rezept als Umgebungsvariable | `test/_testMakeTag.sh` |
 | Checkout-Pfad, auch mit `'` und `$(…)` | `Makefile`: `WORKSPACE_SQ`, `BASH_ENV` über `BASH_LIBS` | `test/_testMake.sh` |
 | Release-Tag aus `repo-info` | `Makefile`, Target `hints` | `test/_testMakeHints.sh` |
-| Werte aus `clitheme export --bash` | `themeLoad` in `cli.lib.sh` | `test/_testTheme.sh` |
+| Werte aus `clitheme export --bash` | `themeImport` in `cli.lib.sh`, ohne `eval`: nur bekannte Namen, Farben nur als SGR-Folge | `test/_testTheme.sh` |
+| `CLITHEME_EXPORT` aus der Umgebung (einmal je make-Lauf) | `themeImport` in `cli.lib.sh`, dieselbe Prüfung; passt etwas nicht, ruft `themeLoad` clitheme selbst auf | `test/_testTheme.sh`, `test/_testMake.sh` |
 | Hinweistext für `requireCommand` | `requireCommand` in `apps.lib.sh`, über `themeEscape` aus `cli.lib.sh` | `test/_testHelpers.sh` |
 | Metavariablen in Hilfetexten | `printThemeOption` in `cli.lib.sh` | `test/_testHelpFormat.sh` |
 | Befehlsnamen aus `pyproject.toml` | `readPackageCommands` in `version.lib.sh`, ungültige Namen fallen weg | `test/_testHelpers.sh` |
@@ -126,7 +127,7 @@ gemessen, aber nicht durch einen Test abgesichert.
 
 | Befehl | Stelle | Über eine Shell | Exit-Code |
 |---|---|---|---|
-| `clitheme export --bash` | `themeLoad` in `cli.lib.sh` | Ausgabe läuft durch `eval`; `test/_testTheme.sh` prüft das Quoting mit dem echten clitheme | geprüft; bei Fehler Ausgabe ohne Farben und ein Hinweis |
+| `clitheme export --bash` | `themeLoad` in `cli.lib.sh`; mit der Konvention aus `make.lib.sh` einmal je make-Lauf im `Makefile` | kein `eval`: `themeImport` liest die Zuweisungen selbst; `test/_testTheme.sh` prüft das mit dem echten clitheme | geprüft; bei Fehler oder unpassender Ausgabe ohne Farben und ein Hinweis |
 | `docker-machine env` | `docker.lib.sh` | Ausgabe läuft durch `eval`, ohne Anführungszeichen | nicht geprüft |
 | `tag-version`, `changelog`, `docs-check`, `repo-status`, `repo-info` | Rezepte im `Makefile` | Rezeptzeile von Make | Make bricht beim ersten Fehler ab; `require-tools` prüft ProjectTools vorher |
 | `docker`, `aws` | `docker.lib.sh` | direkt, ECR-Login als Pipe | nicht geprüft, außer das aufrufende Skript setzt `set -e` |
