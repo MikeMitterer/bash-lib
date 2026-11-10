@@ -15,6 +15,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 . "${ROOT}/src/assert.lib.sh"
 # Ein umgebendes make (make check) gibt sonst seine Flags weiter
 unset MAKEFLAGS MAKELEVEL MFLAGS
+# showMakeHeader folgt der Sprache; englisch fest, die deutschen Fälle setzen sie je Aufruf
+unset LANGUAGE LC_ALL LC_MESSAGES
+export LANG=en_US.UTF-8
 
 work="$(mktemp -d)"
 # shellcheck disable=SC2329  # per trap aufgerufen
@@ -202,6 +205,21 @@ assertContains "<${ESC}[1;38;5;11mtarget${ESC}[0m>" "${out}" "Terminal: target i
 assertContains "Project: ${ESC}[1;38;5;11mdemo${ESC}[0m" "${out}" "Terminal: Projektname in der Gruppenfarbe"
 runInTerminal plain showMakeHeader "demo"
 assertNotContains "${ESC}" "${out}" "Terminal mit NO_COLOR: keine Escape-Folgen"
+LANG=de_AT.UTF-8 runMake showMakeHeader "demo"
+assertEquals $'\nVerwende `make <target>\', wobei <target> eines der folgenden ist\n\nProjekt: demo\n' "${out}" \
+    "LANG=de_AT.UTF-8: beide Kopfzeilen deutsch"
+LANG=C LC_MESSAGES=de_DE.UTF-8 runMake showMakeHeader "${hostile}"
+assertContains "Projekt: ${hostile}" "${out}" "LC_MESSAGES=de_DE.UTF-8 vor LANG=C: deutsch, Name wörtlich"
+LANG=de_AT.UTF-8 LANGUAGE=en runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "LANGUAGE=en vor LANG=de_AT.UTF-8: englisch"
+LANG=de_AT.UTF-8 LC_ALL=C runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "LC_ALL=C vor LANG=de_AT.UTF-8: englisch"
+LANG=C LANGUAGE=de runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "LANGUAGE=de bei LANG=C: englisch, wie gettext"
+LANG= runMake showMakeHeader "demo"
+assertContains "Project: demo" "${out}" "ohne Sprache: englisch"
+LANG=de_AT.UTF-8 runInTerminal showMakeHeader "demo"
+assertContains "Projekt: ${ESC}[1;38;5;11mdemo${ESC}[0m" "${out}" "Terminal deutsch: Projektname in der Gruppenfarbe"
 
 echo
 echo "printMakeHeading und printMakeValue"
