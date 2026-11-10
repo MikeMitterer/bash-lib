@@ -401,6 +401,12 @@ for theme in mono classic; do
     assertContains "$(printf '%-23s%s' THEME "${theme}")" "${info}" "make info: Zeile THEME zeigt ${theme}"
 done
 assertContains "requireMakeSetup" "$(sed -n '/^require-setup:/,/^$/p' "${ROOT}/Makefile")" "Makefile: require-setup über requireMakeSetup"
+# precheck meldet ein fehlendes BASH_LIBS auf stderr, stdout bleibt leer
+rc=0
+stdout="$(make --no-print-directory -C "${ROOT}" precheck BASH_LIBS="${work}/nirgends" 2>"${work}/precheck.err")" || rc=$?
+assertEquals "2" "${rc}" "make precheck ohne BashLib: Exit 2 (Make-Fehler)"
+assertEquals "" "${stdout}" "make precheck ohne BashLib: stdout leer"
+assertContains "BASH_LIBS" "$(cat "${work}/precheck.err")" "make precheck ohne BashLib: Meldung auf stderr"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
 assertContains "pipx install -e '${ROOT}'" "${hints}" "make hints: Arbeitskopie mit absolutem Pfad"
@@ -444,7 +450,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|precheck.err|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 

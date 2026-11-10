@@ -107,6 +107,15 @@ assertEquals "chore: bump version to ${new}" "$(git -C "${work}/ok" log -1 --for
 assertEquals "" "$(git -C "${work}/ok.git" tag)" "kein Tag im Remote"
 assertEquals "${base}" "$(git -C "${work}/ok.git" rev-parse master)" "kein neuer Commit im Remote"
 
+# make changelog schreibt CHANGELOG.md, ohne zu committen
+command rm -f -- "${work}/ok/CHANGELOG.md"
+head="$(git -C "${work}/ok" rev-parse HEAD)"
+LANG=C.UTF-8 LC_ALL= LANGUAGE= runMake ok changelog
+assertEquals "0" "${rc}" "make changelog: Exit 0"
+assertContains "## ${tag} " "$(cat "${work}/ok/CHANGELOG.md" 2>/dev/null)" "make changelog: CHANGELOG.md geschrieben"
+assertEquals "${head}" "$(git -C "${work}/ok" rev-parse HEAD)" "make changelog: kein Commit"
+assertEquals "" "$(git -C "${work}/ok" status --porcelain)" "make changelog: Datei gleich der committeten"
+
 # hints und version nennen den Release-Tag, nicht einen näheren deploy-Tag. repo-info
 # nimmt nur http(s)-Adressen; das lokale Remote ist oben schon geprüft.
 git -C "${work}/ok" remote set-url origin https://example.org/ok.git
