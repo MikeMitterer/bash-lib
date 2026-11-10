@@ -401,6 +401,12 @@ for theme in mono classic; do
     assertContains "$(printf '%-23s%s' THEME "${theme}")" "${info}" "make info: Zeile THEME zeigt ${theme}"
 done
 assertContains "requireMakeSetup" "$(sed -n '/^require-setup:/,/^$/p' "${ROOT}/Makefile")" "Makefile: require-setup über requireMakeSetup"
+# precheck meldet ein fehlendes BASH_LIBS auf stderr, stdout bleibt leer
+rc=0
+stdout="$(make --no-print-directory -C "${ROOT}" precheck BASH_LIBS="${work}/nirgends" 2>"${work}/precheck.err")" || rc=$?
+assertEquals "2" "${rc}" "make precheck ohne BashLib: Exit 2 (Make-Fehler)"
+assertEquals "" "${stdout}" "make precheck ohne BashLib: stdout leer"
+assertContains "BASH_LIBS" "$(cat "${work}/precheck.err")" "make precheck ohne BashLib: Meldung auf stderr"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
 assertContains "pipx install -e '${ROOT}'" "${hints}" "make hints: Arbeitskopie mit absolutem Pfad"
@@ -409,6 +415,18 @@ assertContains "export BASH_LIBS=\$(bashlib-path)" "${hints}" "make hints: \$(�
 first="$(grep -E '^ +1\. Setup ' <<< "${hints}")"
 second="$(grep -E '^ +2\. Prüfen ' <<< "${hints}")"
 assertEquals "${#first}" "${#second}" "make hints: Umlaut-Beschriftung bündig"
+
+# Das Makefile dieses Repos in einem Ordner mit $(…) im Namen: Der Checkout-Pfad wird
+# weder Make- noch Shell-Code, auch nicht in den erst bei Bedarf gelesenen PACKAGE_*.
+hostile_dir="${work}/x\$(shell touch pwned) \$(uname)"
+mkdir -p "${hostile_dir}"
+( cd "${ROOT}" && git ls-files -z | tar --null -T - -cf - ) | tar -xf - -C "${hostile_dir}"
+info="$(env XDG_CONFIG_HOME="${work}/config" make --no-print-directory -C "${hostile_dir}" info 2>&1 | plain)"
+assertEquals "" "$(ls -d "${hostile_dir}/pwned" "${work}/pwned" 2>/dev/null)" "Ordner mit \$(shell touch …): nichts ausgeführt"
+assertContains "PACKAGE                mmit-bashlib" "${info}" "Ordner mit \$(…): PACKAGE aus pyproject.toml gelesen"
+hints="$(env XDG_CONFIG_HOME="${work}/config" make --no-print-directory -C "${hostile_dir}" hints 2>&1 | plain)"
+assertContains "mmit-bashlib (Befehl bashlib)" "${hints}" "Ordner mit \$(…): make hints nennt Paket und Befehl"
+assertEquals "" "$(ls -d "${hostile_dir}/pwned" "${work}/pwned" 2>/dev/null)" "Ordner mit \$(shell touch …): auch make hints führt nichts aus"
 
 echo
 echo "Minimal-Makefile aus dem README in einem Ordner it's \$(uname)"
@@ -444,7 +462,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 

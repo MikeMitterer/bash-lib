@@ -87,4 +87,23 @@ assertEquals "no" "$([[ -e ${work}/config/clitheme ]] && echo yes || echo no)" "
 assertContains "✗ pipx fehlt" "${output}" "ohne pipx: Meldung mit Installationsweg"
 assertNotContains "command not found" "${output}" "ohne pipx: keine rohe Shell-Meldung"
 
+# clitheme vorhanden, install scheitert: Ausgabe und Hinweis auf stderr, setup läuft weiter
+mkdir -p "${work}/broken-bin"
+cat > "${work}/broken-bin/clitheme" <<'EOF'
+#!/bin/sh
+echo "Theme-Ordner nicht beschreibbar" >&2
+exit 1
+EOF
+chmod +x "${work}/broken-bin/clitheme"
+runSetup "${work}/pipx-bin:${work}/broken-bin:${BASE_PATH}" FAKE_CHECK=ok
+assertEquals "0" "${status}" "install scheitert: Exit 0"
+assertContains "Theme-Ordner nicht beschreibbar" "${output}" "install scheitert: Ausgabe von clitheme"
+assertContains "✗ clitheme install fehlgeschlagen" "${output}" "install scheitert: Statuszeile"
+assertContains "clitheme show" "${output}" "install scheitert: Hinweis auf clitheme show"
+
+# Die Ablauflogik steckt in installCliThemes (make.lib.sh), nicht im Rezept
+recipe="$(sed -n '/^setup-themes:/,/^$/p' "${ROOT}/Makefile")"
+assertContains "installCliThemes" "${recipe}" "Rezept ruft installCliThemes auf"
+assertNotContains "\\" "${recipe}" "Rezept ohne \\-Verkettung"
+
 finishTests

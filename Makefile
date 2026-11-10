@@ -43,17 +43,6 @@ help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 clitheme_export = $(eval clitheme_export := $$(shell clitheme export --bash 2>/dev/null))$(clitheme_export)
 help info hints: export CLITHEME_EXPORT = $(clitheme_export)
 
-# Ausgabe (gekürzt):
-#
-#   Please use `make <target>' where <target> is one of
-#
-#   Project: BashLib
-#          help                   Alle verfügbaren Befehle anzeigen
-#     Setup
-#          setup                  Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
-#     Versionierung
-#          tag-minor              Minor 0.7.0 → 0.8.0, neue Funktion  [MSG="..."] [Maintainer]
-#
 # „— Maintainer“ am Ende wird zu [Maintainer]; {major}, {minor} und {patch} füllt
 # showMakeTargets mit der Version davor und danach.
 .PHONY: help
@@ -68,14 +57,18 @@ NO_REPO_INFO := repo-info fehlt (ProjectTools, siehe make hints)
 REPO_URL     = $(or $(shell repo-info --url 2>/dev/null),$(NO_REPO_INFO))
 RELEASE_TAG  = $(or $(shell repo-info --release-tag 2>/dev/null),$(NO_REPO_INFO))
 # Python-Paket und Befehl aus pyproject.toml ([project] name, erster Eintrag in
-# [project.scripts]); nur erlaubte Zeichen, sonst leer.
-PACKAGE_NAME := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageName)
+# [project.scripts]); nur erlaubte Zeichen, sonst leer. Erst beim ersten Bedarf gelesen
+# und gemerkt (wie clitheme_export), nicht bei jedem make. $$(WORKSPACE_SQ): eval liest
+# seinen Text als Make-Code, der Checkout-Pfad darf erst danach eingesetzt werden.
+PACKAGE_NAME = $(eval PACKAGE_NAME := $$(shell source $$(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageName))$(PACKAGE_NAME)
 # Befehle aus [project.scripts], durch Leerzeichen getrennt; der erste ist PACKAGE_CMD
-PACKAGE_CMDS := $(shell source $(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands)
-PACKAGE_CMD  := $(firstword $(PACKAGE_CMDS))
+PACKAGE_CMDS = $(eval PACKAGE_CMDS := $$(shell source $$(WORKSPACE_SQ)/src/version.lib.sh 2>/dev/null && readPackageCommands))$(PACKAGE_CMDS)
+PACKAGE_CMD  = $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
-PACKAGE      := $(or $(PACKAGE_NAME),$(NO_PACKAGE))
+PACKAGE      = $(or $(PACKAGE_NAME),$(NO_PACKAGE))
 
+# Die Zeilen von devtools status rückt devtools um zwei Zeichen ein; fünf mehr stellen
+# sie unter die Werte oben.
 .PHONY: info
 info: ## Umgebungsvariablen anzeigen
 	@echo
@@ -86,7 +79,6 @@ info: ## Umgebungsvariablen anzeigen
 	@printMakeValue VERSION      "$$(readProjectVersion 2>/dev/null || echo 'keine Versionsdatei')"
 	@printMakeValue THEME        "$${THEME_NAME:-ohne clitheme (clitheme export)}"
 	@echo
-	@# devtools rückt um zwei Zeichen ein; fünf mehr stellen die Zeilen unter die Werte oben.
 	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
@@ -121,9 +113,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 .PHONY: precheck
 precheck:
 	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
-		echo ""; \
-		echo "Achtung: 'BASH_LIBS' fehlt oder enthält keine lesbare version.lib.sh!"; \
-		echo ""; \
+		echo "Achtung: 'BASH_LIBS' fehlt oder enthält keine lesbare version.lib.sh!" >&2; \
 		exit 1; \
 	fi
 
@@ -148,18 +138,13 @@ setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@$(MAKE) --no-print-directory setup-themes
 
 # Ohne `##`: Teil von setup; scheitert nie, damit setup ohne clitheme durchläuft.
-# devtools meldet fehlendes oder zu altes CLITheme samt Installationsbefehl; ohne
-# clitheme bleibt die Ausgabe der Skripte farblos.
+# devtools meldet fehlendes oder zu altes CLITheme samt Installationsbefehl;
+# installCliThemes (make.lib.sh) legt fehlende Theme-Dateien an. Ohne clitheme bleibt
+# die Ausgabe der Skripte farblos.
 .PHONY: setup-themes
 setup-themes:
-	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(DEV_TOOLS) check clitheme >&2 || true; fi; \
-	command -v clitheme >/dev/null || exit 0; \
-	if output=$$(clitheme install 2>&1); then \
-		printThemeStatus "✓" "CLI-Themes in $$(themeEscape "$$(dirname -- "$$(clitheme path)")")" OK; \
-	else \
-		printf '%s\n' "$$output" >&2; \
-		{ printThemeStatus "✗" "clitheme install fehlgeschlagen, Ausgabe ohne Farben" ERR; printThemeHint "clitheme show"; } >&2; \
-	fi
+	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(DEV_TOOLS) check clitheme >&2 || true; fi
+	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
 
 # Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus
 # make.lib.sh): die Befehle aus [project.scripts] zeigen danach auf src/ dieses
@@ -187,7 +172,7 @@ status: require-tools ## Git-Status des Repos und offene Blocker-Issues — Main
 
 # Voller Prüflauf, auch für agent-lessons (integration_check: make check).
 .PHONY: check
-check: require-setup test ## Voller Prüflauf — Doku und alle Bash-Tests
+check: test ## Voller Prüflauf — Doku und alle Bash-Tests
 
 .PHONY: test
 test: docs-check require-setup ## Doku prüfen und Bash-Tests ausführen (test/testAll.sh)
@@ -231,8 +216,8 @@ CHANGELOG_LANGUAGE ?= de
 export CHANGELOG_LANGUAGE
 
 .PHONY: changelog
-changelog: require-tools ## Vorschau des Changelogs aus Tags und Commits
-	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --dry-run
+changelog: require-tools ## CHANGELOG.md aus Tags und Commits schreiben, ohne Commit
+	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --generate
 
 # MSG von der Kommandozeile unausgewertet; sonst macht Make aus $HOME oder $(…) schon
 # beim Export an das Rezept etwas anderes. Im Rezept nur als "$${MSG:-}".
