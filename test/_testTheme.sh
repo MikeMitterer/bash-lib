@@ -125,6 +125,25 @@ with tempfile.TemporaryDirectory(prefix='bashlib-theme-') as scratch:
     assert '$(touch executed)' in result, result
     assert not (base / 'executed').exists() and not Path('executed').exists()
 
+    # Geerbter Export (CLITHEME_EXPORT, aus Make mit Leerzeichen statt Zeilenumbrüchen):
+    # übernommen ohne clitheme-Aufruf; mit fremdem Namen, einer Farbe, die keine SGR-Folge
+    # ist, oder einem Hinweis gilt er nicht, dann fragt themeLoad clitheme selbst.
+    exported = subprocess.run(['clitheme', 'export', '--bash'], env=dict(env, CLI_THEME='mono'),
+                              capture_output=True, text=True, check=True, timeout=30).stdout
+    collapsed = exported.replace('\n', ' ').strip()
+    show = 'printf "%s|%s" "$THEME_NAME" "$THEME_COLOR_GROUP"'
+    assert run(show, extra={'PATH': without, 'CLITHEME_EXPORT': collapsed}) == r'mono|\x1B[1;38;5;15m'
+    assert run(show, extra={'CLITHEME_EXPORT': exported}) == r'mono|\x1B[1;38;5;15m'
+    for refused in (collapsed + ' PATH=/nowhere',
+                    collapsed.replace("THEME_COLOR_GROUP='\x1b[1;38;5;15m'", "THEME_COLOR_GROUP='\x1b]0;x\x07'"),
+                    collapsed.replace("THEME_NOTICE=''", "THEME_NOTICE='Befund clitheme install'")):
+        assert refused != collapsed
+        assert run(show, extra={'CLITHEME_EXPORT': refused}) == r'classic|\x1B[1;38;5;11m', refused
+    origin = collapsed.replace('THEME_ORIGIN=CLI_THEME', "THEME_ORIGIN='$(touch executed) `touch executed`'")
+    assert origin != collapsed
+    assert run('printf "%s" "$THEME_ORIGIN"', extra={'CLITHEME_EXPORT': origin}) == '$(touch executed) `touch executed`'
+    assert not (base / 'executed').exists() and not Path('executed').exists()
+
     # Ohne clitheme im PATH: keine Farben, Ersatzabstände, einmal ein Hinweis mit
     # Installationsbefehl am Terminal, in der Pipe nichts auf stderr.
     extra = {'PATH': without}

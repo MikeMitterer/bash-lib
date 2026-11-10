@@ -342,6 +342,19 @@ info="$(make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
 assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeile BASH_LIBS"
 assertContains "VERSION                $(cd "${ROOT}" && BASH_LIBS="${ROOT}/src" bash -c '. src/version.lib.sh; readProjectVersion')" "${info}" "make info: Zeile VERSION"
 assertContains "PACKAGE                mmit-bashlib" "${info}" "make info: Zeile PACKAGE"
+# Theme einmal je make-Lauf: make info ruft clitheme export --bash einmal auf, nicht je
+# Rezeptzeile; ein anderes CLI_THEME gilt beim nächsten Lauf. Der Zähler läuft unter
+# /bin/sh: Eine Bash läse über BASH_ENV make.lib.sh und riefe sich selbst auf.
+mkdir -p "${work}/count-bin"
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> %q\nexec %q "$@"\n' "${work}/calls" "$(command -v clitheme)" \
+    > "${work}/count-bin/clitheme"
+chmod +x "${work}/count-bin/clitheme"
+for theme in mono classic; do
+    : > "${work}/calls"
+    info="$(env CLI_THEME="${theme}" PATH="${work}/count-bin:${PATH}" make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
+    assertEquals "1" "$(grep -cx 'export --bash' "${work}/calls")" "make info mit ${theme}: clitheme export einmal je Lauf"
+    assertContains "$(printf '%-23s%s' THEME "${theme}")" "${info}" "make info: Zeile THEME zeigt ${theme}"
+done
 assertContains "requireMakeSetup" "$(sed -n '/^require-setup:/,/^$/p' "${ROOT}/Makefile")" "Makefile: require-setup über requireMakeSetup"
 hints="$(make --no-print-directory -C "${ROOT}" hints 2>&1 | plain)"
 assertContains "Arbeitskopie" "${hints}" "make hints: Zeile Arbeitskopie"
@@ -367,7 +380,10 @@ assertEquals "0" "${rc}" "Beispiel: make help Exit 0"
 assertEquals "" "$(cat "${work}/err")" "Beispiel: make help ohne stderr"
 assertContains "Show this help" "${help}" "Beispiel: help über showMakeTargets"
 assertContains "Project: it's \$(uname)" "${help}" "Beispiel: Projektname aus dem Ordner, wörtlich"
-hints="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" make -s -C "${folder}" hints 2>&1)"
+: > "${work}/calls"
+hints="$(env XDG_CONFIG_HOME="${work}/config" BASH_LIBS="${ROOT}/src" PATH="${work}/count-bin:${PATH}" \
+    make -s -C "${folder}" hints 2>&1)"
+assertEquals "1" "$(grep -cx 'export --bash' "${work}/calls")" "Beispiel: make hints ruft clitheme export einmal auf"
 # make -C liefert den physischen Pfad; WORKSPACE_SQ quotet den Apostroph als '\''
 physical="$(cd "${folder}" && pwd -P)"
 assertContains "pipx install -e '${physical//\'/\'\\\'\'}'" "${hints}" "Beispiel: Pfad mit Apostroph und \$(…) wörtlich"
@@ -381,7 +397,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|"it's"*|"libs "*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 
