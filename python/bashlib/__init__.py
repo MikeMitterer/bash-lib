@@ -220,8 +220,8 @@ def skill_text() -> str:
         "## Voraussetzungen",
         "",
         "- Bash 5; `BASH_LIBS` exportiert und auf das Verzeichnis von `bashlib-path` gesetzt.",
-        "- Jede Bibliothek über ihre Wächterzeile aus dem Dateikopf („Einbinden“) laden; "
-        "`tools.lib.sh` bringt cli, colors, apps, dtime und version mit.",
+        # Was eine Bibliothek mitlädt, steht nur in ihrem Agenten-Block (Zweck), nicht hier.
+        "- Jede Bibliothek über ihre Wächterzeile aus dem Dateikopf („Einbinden“) laden.",
     ]
     return "\n".join(lines) + "\n"
 
