@@ -2,6 +2,18 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.14.0+261119.1230.2ace6 — 2026-11-19
+
+bashlib --skill beschreibt Befehle und Bibliotheken für Agenten als Markdown, --help nennt die Option
+
+### Neue Funktionen
+
+- --skill beschreibt Befehle und Bibliotheken fuer Agenten (T-81) (`8dadb14`)
+
+### Fehlerkorrekturen
+
+- --skill nennt Mitgeladenes nur im Agenten-Block (T-81, R1-F1) (`65ca9e2`)
+
 ## v0.13.0+261110.1712.e9cc5 — 2026-11-10
 
 installCliThemes für make setup, make changelog schreibt CHANGELOG.md, MSG und Checkout-Pfad werden beim Einlesen nicht mehr ausgewertet
