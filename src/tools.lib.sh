@@ -5,6 +5,11 @@ readonly __TOOLS_LIB__="tools.lib.sh";
 # Allzweck-Helfer für Skripte: trim, repeat, Logfile-Zeilen, Links, scriptToDoc.
 # Die Ausgabe im CLI-Theme steht in cli.lib.sh, die tools.lib.sh einbindet.
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Allzweck-Helfer für Skripte; lädt cli, colors, apps, dtime und version mit
+#     Wann:    ein eigenes Skript soll BashLib nutzen; meist reicht diese eine Einbindung
+#     Wichtig: trim, repeat, scriptToDoc, logFileStatus, showModuleLinks
+#
 # Einbinden:
 #     if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 #

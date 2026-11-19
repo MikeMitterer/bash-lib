@@ -5,6 +5,11 @@ readonly __PYTHON_LIB__="python.lib.sh";
 # Python-Umgebungen für Projekte: venv mit Mindestversion anlegen und Pakete
 # installieren
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Python-venv mit Mindestversion anlegen und Pakete installieren
+#     Wann:    ein Projekt braucht eine venv mit bestimmter Python-Version, etwa in `make setup`
+#     Wichtig: ensurePythonVenv, isPythonAtLeast, readPythonVersion
+#
 # Einbinden:
 #     if [[ "${__PYTHON_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/python.lib.sh"; fi
 #

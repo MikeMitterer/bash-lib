@@ -4,6 +4,11 @@ readonly __DOCKER_LIB__="docker.lib.sh";
 # -----------------------------------------------------------------------------
 # Einige Docker bzw. Docker-Machine Tools
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Docker-Images für eine oder mehrere Plattformen bauen und nach Docker Hub, GHCR oder ECR pushen
+#     Wann:    docker/build.sh baut und veröffentlicht ein Image
+#     Wichtig: buildMultiArchImage, buildSingleArchImage, ensureRegistryLogin, pushImage2DockerHub, pushImage2GHCR
+#
 # Einbinden:
 #     if [[ "${__DOCKER_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/docker.lib.sh"; fi
 

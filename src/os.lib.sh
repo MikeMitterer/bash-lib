@@ -4,6 +4,11 @@ readonly __OS_LIB__="os.lib.sh";
 #------------------------------------------------------------------------------
 # Checkt im Prinzip das OS auf dem dieses Script läuft
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Betriebssystem und Architektur als feste Variablen
+#     Wann:    ein Skript verzweigt nach Linux und macOS oder nach der CPU-Architektur
+#     Wichtig: MACHINE, ARCHITECTURE
+#
 # Einbinden:
 #     if [[ "${__OS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/os.lib.sh"; fi
 #

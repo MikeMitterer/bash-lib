@@ -89,6 +89,12 @@ je Befehl des Pakets eine Zeile sowie die Optionen, im gewählten CLI-Theme
 ([Farben und Themes](#farben-und-themes)); `bashlib --version` gibt nur die
 Version aus.
 
+**Für KI-Agenten:** `bashlib --skill` beschreibt die Befehle und jede
+Bibliothek als Markdown: wofür sie da ist, wann man sie nimmt und ihre
+wichtigsten Funktionen, dazu typische Aufrufe. Der Skill `tools` verweist
+Agenten in anderen Projekten darauf; die Ausgabe passt immer zur installierten
+Version.
+
 Neue Befehle legt pipx nur beim Installieren an, auch bei `pip install -e`.
 Nach einem Update von BashLib deshalb neu installieren:
 

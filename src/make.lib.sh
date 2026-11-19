@@ -14,6 +14,11 @@ readonly __MAKE_LIB__="make.lib.sh";
 # Texte aus Argumenten und Dateien werden nur ausgegeben, nie ausgewertet: $(…),
 # Backticks, Apostrophe und Backslashes erscheinen wörtlich.
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Hilfe, Hinweise, Version und Einrichtung für Makefiles im CLI-Theme
+#     Wann:    `make help`, `make info` oder `make hints` ausgeben, Prüf-Targets an `make setup` binden, ein Paket editierbar mit pipx installieren
+#     Wichtig: showMakeHeader, showMakeTargets, printMakeHeading, printMakeValue, requireMakeSetup, installEditablePackage, showProjectVersion
+#
 # Einbinden:
 #     if [[ "${__MAKE_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/make.lib.sh"; fi
 #

@@ -4,6 +4,11 @@ readonly __SAMPLES_LIB__="samples.lib.sh";
 #------------------------------------------------------------------------------
 # Lib zum publishen von (Dart) samples
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Dart-Beispiele auflisten, bereitstellen und veröffentlichen
+#     Wann:    ein bestehendes Dart-Projekt veröffentlicht seine Beispiele
+#     Wichtig: listSamples, deploySamples, publishSamples, serveSamples
+#
 # Einbinden:
 #     if [[ "${__SAMPLES_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/samples.lib.sh"; fi
 #

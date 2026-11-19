@@ -3,6 +3,12 @@ readonly __WEBAPP_LIB__="webapp.lib.sh";
 
 #------------------------------------------------------------------------------
 # Lib zum publishen von (Node / TS) Applikationen
+#
+# Für Agenten (bashlib --skill):
+#     Zweck:   Node- und TypeScript-Apps per rsync bereitstellen
+#     Wann:    ein bestehendes Web-Projekt wird auf den Server kopiert
+#     Wichtig: deployWebApp, generateRsyncSettingForWebApp, listURLsForWebApp
+#
 # Einbinden:
 #     if [[ "${__WEBAPP_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/webapp.lib.sh"; fi
 #

@@ -17,6 +17,11 @@ readonly __CLI_LIB__="cli.lib.sh";
 # Bausteine (themeStyle, themeLine, themeAccent, …) und die Helfer für Hilfe,
 # Werte, Hinweise und Statuszeilen (printTheme…, usageLine, showMenu).
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Ausgabe im CLI-Theme von clitheme: Überschriften, Zeilen, Werte, Hinweise, Status, Menü
+#     Wann:    Hilfe, Statuszeilen oder Hinweise eines Skripts ausgeben, ohne eigene Farben oder Spalten
+#     Wichtig: printThemeHeading, printThemeRow, printThemeValue, printThemeHint, printThemeStatus, usageLine, showMenu
+#
 # Einbinden:
 #     if [[ "${__CLI_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/cli.lib.sh"; fi
 #

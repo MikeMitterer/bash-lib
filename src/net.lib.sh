@@ -7,6 +7,11 @@ readonly __NET_LIB__="net.lib.sh";
 #------------------------------------------------------------------------------
 # Alle IP + Netz-Spezifischen Funktionen
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   IP- und Netzfunktionen
+#     Wann:    interne IP oder die IP eines Hosts ermitteln, prüfen, ob ein lokaler Port offen ist
+#     Wichtig: getIntIP, getIPFor, getNetworkFromIP, isLocalPortOpen
+#
 # Einbinden:
 #     if [[ "${__NET_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/net.lib.sh"; fi
 #

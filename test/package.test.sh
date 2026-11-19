@@ -65,6 +65,12 @@ checkInstall() {
     assertEquals "0" "${rc}" "${name}: bashlib laeuft"
     assertEquals "yes" "$([[ ${overview} == *"BashLib ${expected_version}"*"bashlib-path "* ]] && echo yes)" \
         "${name}: bashlib zeigt Version und bashlib-path"
+    local skill
+    rc=0
+    skill="$("${work}/${name}/bin/bashlib" --skill)" || rc=$?
+    assertEquals "0" "${rc}" "${name}: bashlib --skill laeuft"
+    assertEquals "yes" "$([[ ${skill} == "# bashlib"*'- `tools.lib.sh`: '*' Wann: '* ]] && echo yes)" \
+        "${name}: bashlib --skill beschreibt die Bibliotheken der Installation"
 }
 
 expected_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "${ROOT}/pyproject.toml" 2>/dev/null)"
