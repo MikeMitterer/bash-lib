@@ -91,7 +91,11 @@ auf. Ein nachgebautes `dist-info` liefert Version und Befehle wie nach
 `pip install`, dazu einen Befehl, der nur dort steht: Er erscheint ohne
 weitere Pflegestelle. Die Beschreibung je Befehl ist die erste Zeile des
 Docstrings seiner Funktion; die Befehle selbst stehen nur in
-`[project.scripts]`.
+`[project.scripts]`. Für `bashlib --skill` nennt derselbe Docstring in den
+Zeilen `Wirkung:` (liest, schreibt, beendet, git, veröffentlicht) und `Wann:`,
+was der Befehl ändert und für welche Aufgabe er da ist. Der Test prüft auch die
+Gliederung von `--skill`, eine Zeile je Bibliothek und eine Ausgabe ohne
+Farben am Terminal.
 
 `test/_testTheme.sh` prüft, wie `cli.lib.sh` das Theme aus
 `clitheme export --bash` übernimmt, mit dem echten clitheme in eigenem
@@ -192,7 +196,11 @@ Eine neue Datei `src/<name>.lib.sh` folgt dem Muster der vorhandenen:
 1. Erste Zeile nach dem Shebang setzt die Wächtervariable, etwa
    `readonly __NAME_LIB__="name.lib.sh";`.
 2. Der Dateikopf beschreibt den Zweck und nennt unter „Einbinden“ die
-   Wächterzeile.
+   Wächterzeile. Davor steht der Block „Für Agenten (bashlib --skill):“ mit
+   je einer Zeile `Zweck:`, `Wann:` und `Wichtig:` (Funktionen oder
+   Variablen der Datei, mit Komma getrennt); `bashlib --skill` liest ihn aus,
+   und `test/_testBashlibCommand.sh` wird rot, wenn er fehlt oder eine
+   genannte Funktion nicht in der Datei steht.
 3. Abhängigkeiten lädt sie über `${BASH_LIBS}` mit derselben Wächterzeile.
 
 Danach die Tabelle der Bibliotheken im README ergänzen.

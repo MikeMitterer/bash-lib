@@ -4,6 +4,11 @@ readonly __FS_LIB__="fs.lib.sh";
 #------------------------------------------------------------------------------
 # Copy-Funktionen usw. Alles was einigermaßen File/Dir spezifisch ist
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Datei- und Verzeichnisfunktionen
+#     Wann:    ein Build-Ergebnis mit Sicherung in ein lokales Verzeichnis spiegeln
+#     Wichtig: syncToLocalDir
+#
 # Einbinden:
 #     if [[ "${__FS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/fs.lib.sh"; fi
 #

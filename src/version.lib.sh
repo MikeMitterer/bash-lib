@@ -13,6 +13,11 @@ readonly __VERSION_LIB__="version.lib.sh";
 #------------------------------------------------------------------------------
 # Gibt die verschiedenen, verwendeten, Versionen (GIT usw.) aus
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Versionen lesen, berechnen, heben und taggen (SemVer, CalVer, Docker-Tags)
+#     Wann:    Projektversion oder Release-Tag ermitteln, nächste Version berechnen, Paketname und Befehle aus `pyproject.toml` lesen
+#     Wichtig: readProjectVersion, gitReleaseTag, gitListReleaseTags, semVerNext, semVerBump, gitDockerTag, readPackageName, readPackageCommands
+#
 # Einbinden:
 #     if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
 #

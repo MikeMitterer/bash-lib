@@ -4,6 +4,11 @@ readonly __APPS_LIB__="apps.lib.sh";
 #------------------------------------------------------------------------------
 # Definiert die Pfade der in den Scripts verwendeten Applikationen
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Feste Pfade der verwendeten Werkzeuge (`JQ`, `FIND`, `CLIPBOARD` …) und Prüfung, ob ein Befehl da ist
+#     Wann:    ein Skript braucht ein externes Werkzeug oder soll mit Hinweis abbrechen, wenn es fehlt
+#     Wichtig: requireCommand, checkIfToolIsAvailable, searchToolInPath, JQ, FIND
+#
 # Einbinden:
 #     if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
 #

@@ -3,6 +3,11 @@ readonly __LOGGING_LIB__="logging.lib.sh";
 
 # Bash-Logging Tools
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Logging nach Stufen auf eigene Ausgabekanäle
+#     Wann:    ein Skript soll Meldungen nach Stufe filtern (`LOG_VERBOSITY`)
+#     Wichtig: inf, warn, error, critical, debug, notify
+#
 # Einbinden:
 #     if [[ "${__LOGGING_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/logging.lib.sh"; fi
 #

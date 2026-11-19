@@ -10,6 +10,11 @@ readonly __COLORS_LIB__="colors.lib.sh";
 # kommen aus der Theme-Datei von CLITheme, siehe Abschnitt „CLI-Theme“ unten
 # und docs/themes.md.
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Feste ANSI-Farbpalette als Variablen
+#     Wann:    ein Text braucht eine feste Farbe; für Hilfe und Status die Theme-Helfer aus cli.lib.sh nehmen
+#     Wichtig: RED, GREEN, YELLOW, BLUE, NC
+#
 # Einbinden:
 #     if [[ "${__COLORS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/colors.lib.sh"; fi
 #

@@ -8,6 +8,11 @@ export PATH="${PATH}:/usr/local/bin:~/bin"
 # Einbinden der globalen Build-Lib
 #   Hier ist z.b. "CLIPBOARD" definiert
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Ältere Hilfen für Build-Skripte: Images anzeigen, Tag-Datei anlegen, Wert in die Zwischenablage
+#     Wann:    ein bestehendes Build-Skript nutzt sie; für Docker-Builds docker.lib.sh nehmen
+#     Wichtig: toClipboard, prepareTagFile, showImages, checkLastLogin
+#
 # Einbinden:
 #     if [[ "${__BUILD_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/build.lib.sh"; fi
 

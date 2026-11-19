@@ -10,6 +10,11 @@ readonly __ASSERT_LIB__="assert.lib.sh";
 # „  ✓ Beschreibung“ oder „  ✗ Beschreibung (Grund)“; finishTests gibt am Ende
 # die Summenzeile aus und beendet das Skript mit Exit 0 (alle grün) oder 1.
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Asserts für Bash-Tests mit Summenzeile und Exit-Code
+#     Wann:    ein Testskript in Bash schreiben, das Ausgaben und Exit-Codes vergleicht
+#     Wichtig: assertEquals, assertContains, assertNotContains, checkStatus, finishTests
+#
 # Einbinden:
 #     if [[ "${__ASSERT_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/assert.lib.sh"; fi
 #

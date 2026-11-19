@@ -88,6 +88,12 @@ description, one line per command of the package and the options, in the
 chosen CLI theme ([Colors and themes](#colors-and-themes));
 `bashlib --version` prints only the version.
 
+**For AI agents:** `bashlib --skill` describes the commands and every library
+as Markdown: what it is for, when to use it and its most important functions,
+plus typical calls. The `tools` skill points agents in other projects to it;
+the output always matches the installed version. The text is German, like the
+help of the commands.
+
 pipx creates new commands only when installing, also with `pip install -e`.
 After an update of BashLib, install again:
 

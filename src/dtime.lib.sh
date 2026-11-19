@@ -4,6 +4,11 @@ readonly __DTIME_LIB__="dtime.lib.sh";
 #------------------------------------------------------------------------------
 # Einige Date/Time-Definitionen
 #
+# Für Agenten (bashlib --skill):
+#     Zweck:   Datum und Uhrzeit als feste Variablen, etwa Jahr, Monat, Kalenderwoche und Formate
+#     Wann:    Dateinamen, Rotationen oder Logzeilen brauchen Datum oder Kalenderwoche
+#     Wichtig: YEAR, MONTH, CALENDAR_WEEK, ISO_8601_FORMAT, LOG_DATE_FORMAT
+#
 # Einbinden:
 #     if [[ "${__DTIME_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/dtime.lib.sh"; fi
 #
