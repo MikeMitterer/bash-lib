@@ -107,6 +107,17 @@ assertNothingPushed sem-ok "semVerBump"
 assertContains "${out}" "$(grep 'nur lokal' <<< "${err}")" "semVerBump: stderr meldet den Tag als nur lokal"
 assertEquals "" "$(grep 'git push' <<< "${err}")" "semVerBump: stderr nennt keinen Push-Befehl"
 
+# Vorgemerktes CHANGELOG.md geht in den Bump-Commit; der Tag liegt auf HEAD
+makeRepo sem-changelog none
+printf '# Changelog\n\n## v0.1.1\n' > "${work}/sem-changelog/CHANGELOG.md"
+git -C "${work}/sem-changelog" add CHANGELOG.md
+runIn sem-changelog semVerBump patch VERSION
+assertEquals "0" "${rc}" "semVerBump mit Changelog: Exit 0"
+assertEquals $'CHANGELOG.md\nVERSION' "$(git -C "${work}/sem-changelog" show --name-only --format= HEAD)" \
+    "semVerBump mit Changelog: Bump-Commit enthält CHANGELOG.md und VERSION"
+assertEquals "${out}" "$(git -C "${work}/sem-changelog" tag --points-at HEAD)" "semVerBump mit Changelog: Tag zeigt auf HEAD"
+assertEquals "" "$(git -C "${work}/sem-changelog" status --porcelain)" "semVerBump mit Changelog: nichts bleibt offen"
+
 makeRepo bump-ok ok
 runIn bump-ok bumpVer patch VERSION
 assertEquals "0" "${rc}" "bumpVer: Exit 0"

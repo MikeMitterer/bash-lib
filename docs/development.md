@@ -66,7 +66,9 @@ Verfügung.
 `test/_testVersionPush.sh` prüft die Versions-Bumps (`semVerBump`,
 `calVerBump`, `bumpVer`, `gitUpdateVersionTag`) gegen echte Git-Repos in
 einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
-und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Außerdem
+und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Ein vorher
+vorgemerktes `CHANGELOG.md` landet im Bump-Commit von `semVerBump`, und der
+Tag zeigt auf HEAD. Außerdem
 prüft es `gitReleaseTag`: Ein Tag wie `deploy-2026-11` näher am Commit zählt
 nicht, `gitVersion`, `semVerWithDate`, `gitDockerTag` und `getPackageName`
 nehmen den v-Tag. `test/_testMakeTag.sh` prüft dasselbe für `make hints`
