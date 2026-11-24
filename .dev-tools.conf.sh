@@ -9,7 +9,7 @@
 # für die Installation: die Git-URL (dann gilt der Tag) oder der Pfad einer Arbeitskopie.
 # EDITABLE=yes bindet eine Arbeitskopie bearbeitbar ein (pipx install -e), no als festen Stand.
 
-# DevTools selbst (devtools status|check|command), aufgerufen mit pipx run.
+# DevTools selbst (devtools status|check), aufgerufen mit pipx run.
 DEVTOOLS_TAG=v0.3.0+261102.1831.3723d
 
 # ProjectTools (docs-check, repo-status, changelog, repo-info ab 0.5.0;

@@ -69,6 +69,10 @@ assertEquals "0" "${rc}" "Exit 0"
 assertEquals "https://github.com/Example/demo" "$(row Repository Links)" "Repository: SSH-Remote als https-Adresse"
 assertEquals "pipx install 'git+https://github.com/Example/demo.git@v1.2.3'" \
     "$(row Installieren 'BashLib in anderen Projekten')" "Installieren: v-Tag, nicht der neuere deploy-Tag"
+# Werkzeuge richtet make setup ein; hints fragt devtools nicht nach Installationsbefehlen
+assertEquals "make setup" "$(row Einrichten 'ProjectTools')" "ProjectTools: Einrichten über make setup"
+assertEquals "make setup" "$(row Einrichten 'CLITheme')" "CLITheme: Einrichten über make setup"
+assertNotContains "nicht abrufbar" "${out}" "keine Zeile ‚nicht abrufbar‘"
 
 makeRepo local
 runHints local

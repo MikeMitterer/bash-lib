@@ -117,7 +117,7 @@ gemessen, aber nicht durch einen Test abgesichert.
 | Vorgang | Stelle | Was läuft, wer legt es fest |
 |---|---|---|
 | Werkzeugprüfung | `DEV_TOOLS` im `Makefile`, genutzt von `require-tools` und `setup-themes` | `pipx run` lädt DevTools von GitHub und führt es aus. Den Tag legt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` fest; ein Tag ist kein fester Commit |
-| ProjectTools, CLITheme | `.dev-tools.conf.sh` | BashLib installiert sie nicht. `make hints` und `devtools` nennen nur den Befehl, `THEME_CLITHEME_INSTALL` in `cli.lib.sh` ebenso |
+| ProjectTools, CLITheme | `.dev-tools.conf.sh` | BashLib installiert sie nicht. `make setup` und `devtools` nennen nur den Befehl, `THEME_CLITHEME_INSTALL` in `cli.lib.sh` ebenso |
 | `make install` | `installEditablePackage` in `make.lib.sh` | `pipx install -e --force` mit dem eigenen Checkout; Fehler werden gemeldet (`test/_testMakeInstall.sh`) |
 | venv anlegen | `ensurePythonVenv` in `python.lib.sh` | `pip install` mit den Argumenten des Aufrufers; Fehler werden gemeldet (`test/_testPython.sh`) |
 | `make test-package` | `test/package.test.sh` | `pip` holt setuptools aus dem Paketindex, in temporäre venvs; nicht Teil von `make check` |

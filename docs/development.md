@@ -9,7 +9,7 @@ steht im [README](../README.de.md).
 - [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
   für `make docs-check`, `make test`, `make status` und `make changelog`. Die
   verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
-  installierten Stand, `make hints` den Installationsbefehl. Fehlt ProjectTools
+  installierten Stand, `make setup` den Installationsbefehl. Fehlt ProjectTools
   oder ist es zu alt, brechen diese Targets mit dem Befehl ab. `make hints`
   nimmt Repo-Adresse und letzten Release-Tag aus `repo-info` (ab 0.5.0); ohne
   ProjectTools nennt es den Grund statt der Werte.
@@ -31,9 +31,9 @@ lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` mit `clitheme install`
 fehlende CLI-Theme-Dateien an, aus denen `cli.lib.sh` das Theme nimmt; vorhandene bleiben
-unverändert. Fehlt CLITheme oder ist es zu alt, nennt `make setup` den
-pipx-Befehl und läuft weiter; die Ausgabe der Skripte bleibt dann ohne
-Farben.
+unverändert. Fehlt ProjectTools oder CLITheme oder ist eines zu alt, nennt
+`make setup` den pipx-Befehl und läuft weiter; ohne CLITheme bleibt die
+Ausgabe der Skripte ohne Farben.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
 (`installEditablePackage` aus `make.lib.sh`); die Befehle des Pakets zeigen
@@ -108,7 +108,7 @@ Pseudoterminal; dafür braucht es `python3`. Ohne installiertes clitheme schläg
 der Test fehl.
 
 `test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
-mit nachgebautem `pipx` (devtools-Prüfung: vorhanden, zu alt, fehlt) und dem
+mit nachgebautem `pipx` (devtools prüft ProjectTools und CLITheme: vorhanden, zu alt, fehlt) und dem
 echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx und ein
 scheiterndes `clitheme install`. Die Themes legt `installCliThemes` aus `make.lib.sh` an.
 
@@ -141,7 +141,8 @@ unverändert lassen, vorhandene venv zu alt, pip scheitert (offline mit
 `test/_testMakeHints.sh` prüft `make hints` in Wegwerf-Repos: SSH-Remote als
 https-Adresse, der Release-Tag `v…` statt eines neueren deploy-Tags, der
 Ersatz von `repo-info` ohne Remote, der Hinweis ohne ProjectTools und ein Tag
-mit Shell-Text, der nie ausgeführt wird.
+mit Shell-Text, der nie ausgeführt wird. Für ProjectTools und CLITheme nennt
+`make hints` `make setup` statt eines Installationsbefehls.
 
 Das pip-Paket (`pyproject.toml`, Befehle `bashlib` und `bashlib-path`) prüft
 
