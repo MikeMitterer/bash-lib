@@ -387,14 +387,21 @@ assertContains "PACKAGE                mmit-bashlib" "${info}" "make info: Zeile
 # Theme einmal je make-Lauf, nicht je Rezeptzeile: make info (11 Zeilen) ruft clitheme
 # export --bash höchstens zweimal auf (Make ab 4.4 lädt BASH_ENV auch in $(shell) des
 # Merkers); ein anderes CLI_THEME gilt beim nächsten Lauf. Der Zähler läuft unter
-# /bin/sh: Eine Bash läse über BASH_ENV make.lib.sh und riefe sich selbst auf.
-mkdir -p "${work}/count-bin"
+# /bin/sh: Eine Bash läse über BASH_ENV make.lib.sh und riefe sich selbst auf. Das Makefile
+# stellt .tools/bin des Checkouts vor den PATH; der Zähler liegt darum in .tools/bin einer
+# Kopie mit Makefile, Werkzeug-Tags, pyproject.toml und src dieses Checkouts.
+counted="${work}/counted"
+mkdir -p "${counted}/.tools/bin"
+cp "${ROOT}/Makefile" "${ROOT}/.dev-tools.conf.sh" "${ROOT}/pyproject.toml" "${counted}/"
+ln -s "${ROOT}/src" "${counted}/src"
 printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> %q\nexec %q "$@"\n' "${work}/calls" "$(command -v clitheme)" \
-    > "${work}/count-bin/clitheme"
-chmod +x "${work}/count-bin/clitheme"
+    > "${counted}/.tools/bin/clitheme"
+chmod +x "${counted}/.tools/bin/clitheme"
+# Für das README-Beispiel ohne .tools/: derselbe Zähler über PATH
+ln -s "${counted}/.tools/bin" "${work}/count-bin"
 for theme in mono classic; do
     : > "${work}/calls"
-    info="$(env CLI_THEME="${theme}" PATH="${work}/count-bin:${PATH}" make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
+    info="$(env CLI_THEME="${theme}" make --no-print-directory -C "${counted}" info 2>&1 | plain)"
     calls="$(grep -cx 'export --bash' "${work}/calls")"
     assertEquals "ja" "$( (( calls >= 1 && calls <= 2 )) && echo ja || echo "nein: ${calls}")" \
         "make info mit ${theme}: clitheme export einmal je Lauf, nicht je Zeile"
@@ -462,7 +469,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|counted|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 

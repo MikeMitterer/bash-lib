@@ -122,25 +122,26 @@ assertContains "✗ pipx fehlt" "${output}" "pipx fehlt: Meldung"
 assertContains "https://pipx.pypa.io" "${output}" "pipx fehlt: Installationsweg"
 assertEquals "" "$(cat "${work}/log")" "pipx fehlt: kein Aufruf"
 
-# Ohne pipx: require-tools, info und hints nennen den Installationsweg statt roher Fehler.
+# Ohne den Starter devtools: require-tools nennt seinen Installationsbefehl, info und hints
+# laufen ohne rohe Fehler.
 runTarget() {
-    output="$(env -i HOME="${work}" PATH="${BASE_PATH}" make --no-print-directory -C "${ROOT}" "$1" 2>&1)"
+    output="$(env -i HOME="${work}" PATH="${BASE_PATH}" make --no-print-directory -C "${ROOT}" "$1" 2>&1 < /dev/null)"
     status=$?
     output="$(printf '%s' "${output}" | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 }
+conf() { sed -n "s/^$1=//p" "${ROOT}/.dev-tools.conf.sh"; }
 runTarget require-tools
-assertEquals "1" "$(( status != 0 ))" "require-tools ohne pipx: Exit ungleich 0"
-assertContains "✗ pipx fehlt" "${output}" "require-tools ohne pipx: Meldung"
-assertContains "https://pipx.pypa.io" "${output}" "require-tools ohne pipx: Installationsweg"
-assertNotContains "command not found" "${output}" "require-tools ohne pipx: keine rohe Shell-Meldung"
+assertEquals "1" "$(( status != 0 ))" "require-tools ohne devtools: Exit ungleich 0"
+assertContains "✗ devtools fehlt" "${output}" "require-tools ohne devtools: Meldung"
+assertContains "pipx install '$(conf DEVTOOLS_SOURCE)@$(conf DEVTOOLS_TAG)'" "${output}" \
+    "require-tools ohne devtools: Installationsbefehl mit Quelle und Tag aus .dev-tools.conf.sh"
+assertNotContains "command not found" "${output}" "require-tools ohne devtools: keine rohe Shell-Meldung"
 runTarget info
-assertContains "Werkzeugstand nicht abrufbar: pipx fehlt" "${output}" "info ohne pipx: Hinweis statt fehlender Zeilen"
-output="$(env -i HOME="${work}" PATH="${work}/bin:${BASE_PATH}" FAKE_LOG="${work}/log" FAKE_FAIL=1 \
-    make --no-print-directory -C "${ROOT}" info 2>&1)"
-assertContains "Werkzeugstand nicht abrufbar: pipx run devtools gescheitert" "${output}" "info, pipx run scheitert: Hinweis"
+assertContains "Werkzeugstand nicht abrufbar: devtools fehlt" "${output}" "info ohne devtools: Hinweis statt fehlender Zeilen"
 runTarget hints
-assertEquals "0" "${status}" "hints ohne pipx: Exit 0, braucht devtools nicht"
-assertNotContains "nicht abrufbar" "${output}" "hints ohne pipx: keine Zeile ‚nicht abrufbar‘"
+assertEquals "0" "${status}" "hints ohne devtools: Exit 0"
+assertNotContains "nicht abrufbar" "${output}" "hints ohne devtools: keine Zeile ‚nicht abrufbar‘"
+assertContains "pipx install '$(conf DEVTOOLS_SOURCE)@$(conf DEVTOOLS_TAG)'" "${output}" "hints nennt den Starter"
 
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 assertContains "install" "$(grep -E '^ +install ' <<< "${help}")" "make help nennt install"

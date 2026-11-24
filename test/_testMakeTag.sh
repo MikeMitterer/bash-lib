@@ -46,6 +46,8 @@ makeRepo() {
     ( cd "${ROOT}" && git ls-files -z --cached --others --exclude-standard \
         | while IFS= read -r -d '' file; do [[ -e "${file}" ]] && printf '%s\0' "${file}"; done \
         | tar --null -T - -cf - ) | tar -xf - -C "${repo}"
+    # ProjectTools aus .tools/ dieses Checkouts (make setup); .gitignore nimmt den Link aus
+    ln -s "${ROOT}/.tools" "${repo}/.tools"
     git init -q -b master "${repo}"
     git -C "${repo}" config user.name "Test"
     git -C "${repo}" config user.email "test@example.invalid"
