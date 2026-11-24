@@ -944,11 +944,18 @@ _semVerIncrement() {
 #
 # Reihenfolge: Datei lesen → bump berechnen → Datei schreiben → Commit → Tag
 #
+# Weitere Dateien im Bump-Commit: Was vor dem Aufruf mit git add vorgemerkt ist,
+# geht mit in den Commit „chore: bump version to X“, etwa ein vorab geschriebenes
+# CHANGELOG.md. Der Tag liegt dann auf diesem Commit, also auf HEAD. Nicht
+# vorgemerkte Änderungen an versionierten Dateien brechen mit Exit 3 ab;
+# unversionierte Dateien bleiben außen vor.
+#
 # Usage:
 #   semVerBump                            # Patch, auto-detect
 #   semVerBump minor                      # Minor-bump, auto-detect
 #   semVerBump major auto "" "Release"    # Major mit Tag-Message
 #   semVerBump patch pyproject.toml       # Patch, explizite Quelldatei
+#   git add CHANGELOG.md && semVerBump minor   # Changelog im getaggten Commit
 #
 semVerBump() {
   local _bump="${1:-patch}"
