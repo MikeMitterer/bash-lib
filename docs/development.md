@@ -5,18 +5,22 @@ steht im [README](../README.de.md).
 
 ## Voraussetzungen
 
-- Bash 5, Git und [pipx](https://pipx.pypa.io).
-- [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) per pipx
-  für `make docs-check`, `make test`, `make status` und `make changelog`. Die
-  verlangten Stände stehen in `.dev-tools.conf.sh`; `make info` zeigt den
-  installierten Stand, `make setup` den Installationsbefehl. Fehlt ProjectTools
-  oder ist es zu alt, brechen diese Targets mit dem Befehl ab. `make hints`
-  nimmt Repo-Adresse und letzten Release-Tag aus `repo-info` (ab 0.5.0); ohne
-  ProjectTools nennt es den Grund statt der Werte.
-- Optional [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl
-  `clitheme`, ab 0.5.0): Das Makefile nimmt Farben und Abstände aus
-  `clitheme export`, `help`, `hints` und `info` kommen über `make.lib.sh`. Ohne
-  CLITheme erscheint die Ausgabe ohne Farben.
+- Bash 5, Git, `python3` und [pipx](https://pipx.pypa.io).
+- Der Starter [DevTools](https://github.com/MikeMitterer/python-devtools)
+  (Befehl `devtools`), einmal je Rechner installiert. Fehlt er, nennen
+  `make setup` und `make hints` den `pipx install` mit Quelle und Tag aus
+  `.dev-tools.conf.sh`. Verlangt das Repo einen anderen `DEVTOOLS_TAG`, gibt
+  der Starter an diesen weiter.
+- [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) für
+  `make docs-check`, `make test`, `make status` und `make changelog` und
+  [CLITheme](https://github.com/MikeMitterer/python-clitheme) (Befehl
+  `clitheme`) für Farben und Abstände der Ausgabe. Beide bringt `make setup`
+  über `devtools --project install` nach `.tools/` des Checkouts, mit den Tags
+  aus `.dev-tools.conf.sh`; ein global installiertes zählt nicht. `make info`
+  zeigt den Stand. Fehlt ProjectTools oder ist es zu alt, brechen diese
+  Targets ab und nennen den Grund. `make hints` nimmt Repo-Adresse und letzten
+  Release-Tag aus `repo-info`; ohne ProjectTools nennt es den Grund statt der
+  Werte.
 
 ## Einrichten und Testen
 
@@ -29,11 +33,16 @@ make check
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
-Hooks erscheinen vollständig. Danach legt `make setup` mit `clitheme install`
-fehlende CLI-Theme-Dateien an, aus denen `cli.lib.sh` das Theme nimmt; vorhandene bleiben
-unverändert. Fehlt ProjectTools oder CLITheme oder ist eines zu alt, nennt
-`make setup` den pipx-Befehl und läuft weiter; ohne CLITheme bleibt die
-Ausgabe der Skripte ohne Farben.
+Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` für
+`make build` an, bringt ProjectTools und CLITheme nach `.tools/` und legt mit
+`clitheme install` fehlende CLI-Theme-Dateien an, aus denen `cli.lib.sh` das
+Theme nimmt; vorhandene bleiben unverändert. Scheitert `clitheme install`,
+läuft `make setup` weiter, und die Ausgabe der Skripte bleibt ohne Farben.
+Fehlt der Starter oder scheitert die Installation der Werkzeuge, bricht
+`make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb
+des Checkouts ändert `make setup` nur die Paket-Caches, `core.hooksPath` und
+die Theme-Dateien; `make clean` entfernt `.venv`, `.tools/`, `dist/` und
+`build/` wieder.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
 (`installEditablePackage` aus `make.lib.sh`); die Befehle des Pakets zeigen
@@ -43,7 +52,7 @@ und das Target mit einem nachgebauten pipx und die Zeilenbreite von
 `make help`.
 
 `make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
-`make setup` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
+`make setup` oder ohne `.venv` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
 `make hints` die Befehle für den ersten Start.
 
 `make test` prüft die Doku und startet `test/testAll.sh`. Die Tests laden
@@ -107,10 +116,10 @@ clitheme, weil das echte nicht scheitert). Die Farben prüft es an einem
 Pseudoterminal; dafür braucht es `python3`. Ohne installiertes clitheme schlägt
 der Test fehl.
 
-`test/_testSetupThemes.sh` prüft `make setup-themes` (Teil von `make setup`)
-mit nachgebautem `pipx` (devtools prüft ProjectTools und CLITheme: vorhanden, zu alt, fehlt) und dem
-echten `clitheme` in eigenem `XDG_CONFIG_HOME`, dazu den Lauf ohne pipx und ein
-scheiterndes `clitheme install`. Die Themes legt `installCliThemes` aus `make.lib.sh` an.
+`test/_testSetup.sh` prüft `make setup` in einer Kopie des Checkouts mit
+nachgebautem Starter `devtools` (installiert, scheitert, fehlt) und dem echten
+`clitheme` in eigenem `XDG_CONFIG_HOME`, dazu ein scheiterndes
+`clitheme install`. Die Themes legt `installCliThemes` aus `make.lib.sh` an.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeTargets`, `printMakeHeading`,
 `printMakeValue`, `requireMakeSetup` in einem Wegwerf-Repo) mit
@@ -156,6 +165,34 @@ Python ab 3.11 (`PYTHON=…`, sonst `python3`) und Zugriff auf den
 Paketindex für setuptools. Das `python/*.egg-info`, das pip dabei im Checkout
 anlegt, entfernt der Test wieder. Ein schon vorhandenes bleibt bestehen;
 `pip install -e` aktualisiert dabei aber seinen Inhalt auf den aktuellen Stand.
+
+## Paket bauen
+
+```bash
+make build
+make build-check
+```
+
+`make build` baut Wheel und sdist nach `dist/` und prüft sie mit
+`devtools check-dist`: eine Abhängigkeit mit lokalem Pfad bricht ab, ein
+ungepushter Tag gibt einen Hinweis. Fehlt die `.venv`, richtet `make build`
+sie selbst ein. `make build-check` (`scripts/build-check.sh`) installiert das
+Wheel mit pipx in ein leeres `PIPX_HOME`, ohne rechnerlokale Zuordnung und
+ohne Zugriff auf GitHub, und ruft `bashlib --version` und `bashlib-path` auf,
+wie ein User ohne Klon.
+
+## Jenkins
+
+`build.jenkins` ruft nacheinander `make setup`, `make check`, `make build` und
+`make build-check` auf. Der Agent braucht dafür:
+
+- Bash 5 vor `/bin/bash` im `PATH`, Git, GNU Make, `python3` und pipx;
+- den Starter `devtools` (`pipx install` aus `DEVTOOLS_SOURCE` am
+  `DEVTOOLS_TAG`, beide in `.dev-tools.conf.sh`);
+- Zugriff auf GitHub und den Paketindex. Ohne rechnerlokale Zuordnung holt
+  `make setup` ProjectTools und CLITheme am Tag aus `.dev-tools.conf.sh` von
+  GitHub; jeder dieser Tags muss dort liegen (`git push --follow-tags` im
+  jeweiligen Repo).
 
 ## Version und Release
 

@@ -6,3 +6,8 @@ build/
 __pycache__/
 /_tickets/
 /.worktrees/
+
+# Werkzeuge, venv und Paket aus make setup und make build
+/.tools/
+/.venv/
+/dist/

@@ -9,8 +9,10 @@
 # für die Installation: die Git-URL (dann gilt der Tag) oder der Pfad einer Arbeitskopie.
 # EDITABLE=yes bindet eine Arbeitskopie bearbeitbar ein (pipx install -e), no als festen Stand.
 
-# DevTools selbst (devtools status|check), aufgerufen mit pipx run.
-DEVTOOLS_TAG=v0.3.0+261102.1831.3723d
+# DevTools selbst: der einmal je Rechner installierte Starter `devtools` gibt an diesen Tag
+# weiter, wenn er abweicht; fehlt er, nennt das Makefile `pipx install` mit Quelle und Tag.
+DEVTOOLS_TAG=v0.7.0+261119.1249.b3946
+DEVTOOLS_SOURCE=git+https://github.com/MikeMitterer/python-devtools.git
 
 # ProjectTools (docs-check, repo-status, changelog, repo-info ab 0.5.0;
 # tag-version ab 0.7.0, das make tag-* seit T-65 aufruft).
@@ -24,6 +26,6 @@ PROJECTTOOLS_EDITABLE=yes
 # Makefile (help, hints, info) und colors.lib.sh nehmen Farben und Abstände aus clitheme export.
 CLITHEME_PACKAGE=mmit-clitheme
 CLITHEME_LABEL=CLITheme
-CLITHEME_TAG=v0.5.0+261106.1232.efc7c
+CLITHEME_TAG=v0.13.0+261124.1051.a8560
 CLITHEME_SOURCE=git+https://github.com/MikeMitterer/python-clitheme.git
 CLITHEME_EDITABLE=yes

@@ -21,18 +21,29 @@ BASH_LIBS    := $(WORKSPACE)/src
 # Werte von außen nur über die Umgebung in Rezepte geben ("$${VAR}")
 export WORKSPACE WORKSPACE_SQ PROJECT_NAME BASH_LIBS
 
-# Release-Tags der pipx-Werkzeuge (ProjectTools)
+# Release-Tags und Quellen der Werkzeuge (ProjectTools, CLITheme) und von DevTools selbst stehen
+# nur in .dev-tools.conf.sh. Aufgerufen wird das einmal je Rechner installierte devtools
+# (Starter); es gibt an DEVTOOLS_TAG weiter, wenn dieser abweicht (Konzept DevTools T-20). Mit
+# --project installiert und prüft es die Werkzeuge in .tools/ dieses Checkouts.
 include .dev-tools.conf.sh
+# Ohne die Git-Variablen eines Hooks (make docs-check im pre-commit): pip und pipx schrieben
+# sonst in den Index dieses Repositorys.
+DEV_TOOLS := env -u GIT_INDEX_FILE -u GIT_DIR -u GIT_WORK_TREE devtools --project
+# Bricht ab, wenn der Starter fehlt, und nennt seinen Installationsbefehl mit Quelle und Tag aus
+# .dev-tools.conf.sh. Im Rezept vor jedem Aufruf von devtools: @$(REQUIRE_STARTER) && …
+REQUIRE_STARTER = source "$${BASH_LIBS}/apps.lib.sh" && \
+	requireCommand devtools "pipx install '$(DEVTOOLS_SOURCE)@$(DEVTOOLS_TAG)'"
+# Werkzeuge aus .tools/ im Checkout (make setup) vorn im PATH; ein global installiertes
+# ProjectTools oder clitheme zählt nicht.
+export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 
-# ProjectTools und CLITheme: Tag und Quelle stehen nur in .dev-tools.conf.sh; devtools (Paket
-# mmit-devtools) liest sie, prüft die Mindestversion und nennt den Installationsbefehl. pipx run
-# holt devtools am Tag aus DEVTOOLS_TAG; der Tag geht über die Umgebung in den Befehl.
-export DEVTOOLS_SPEC := git+https://github.com/MikeMitterer/python-devtools.git@$(DEVTOOLS_TAG)
-# --no-path-check: ohne Warnung, wenn devtools zusätzlich im PATH installiert ist
-DEV_TOOLS = pipx run --no-path-check --spec "$$DEVTOOLS_SPEC" devtools
-# devtools braucht pipx: eine Meldung, wenn es fehlt, und der Grund, wenn devtools nichts liefert.
-PIPX_URL := https://pipx.pypa.io
-devtools_unavailable = $$(command -v pipx >/dev/null && echo 'pipx run devtools gescheitert' || echo 'pipx fehlt ($(PIPX_URL))')
+# Entwicklungs-venv für make build (python -m build). BashLib hat keine Laufzeit-Abhängigkeiten;
+# PYTHON_BOOTSTRAP=… überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
+PYTHON_BOOTSTRAP ?= python3
+export PYTHON_BOOTSTRAP
+VENV         := .venv
+PYTHON       := $(VENV)/bin/python
+SETUP_STAMPS := $(VENV)/.installed
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
@@ -85,7 +96,7 @@ info: ## Umgebungsvariablen anzeigen
 	@printMakeValue VERSION      "$$(readProjectVersion 2>/dev/null || echo 'keine Versionsdatei')"
 	@printMakeValue THEME        "$${THEME_NAME:-ohne clitheme (clitheme export)}"
 	@echo
-	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
+	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: devtools fehlt (make hints)"
 	@echo
 
 # Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
@@ -94,6 +105,7 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeHeading "Alltag"
 	@printMakeValue   "Neuer Checkout" "make setup"
 	@printMakeValue   "Vor dem Commit" "make check"
+	@printMakeValue   "Starter"        "pipx install '$(DEVTOOLS_SOURCE)@$(DEVTOOLS_TAG)'"
 	@printMakeHeading "BashLib in anderen Projekten"
 	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
 	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
@@ -120,47 +132,56 @@ precheck:
 		exit 1; \
 	fi
 
-# Ohne `##`: verlangt ProjectTools in Mindestversion und nennt sonst den Installationsbefehl.
+# Ohne `##`: verlangt ProjectTools in .tools/ in Mindestversion und nennt sonst den Grund.
 .PHONY: require-tools
 require-tools:
-	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"
-	@$(DEV_TOOLS) check projecttools
+	@$(REQUIRE_STARTER) && $(DEV_TOOLS) check projecttools
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
 ##@ Setup
 
-# Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die
-# versionierten Git-Hooks und legt mit clitheme install fehlende Theme-Dateien
-# an. Fehlt ProjectTools oder clitheme, nennt setup den Installationsbefehl und läuft weiter.
-# Wiederholbar und ohne Rückfrage.
-.PHONY: setup
-setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
-	@git config core.hooksPath .githooks
-	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
-	@$(MAKE) --no-print-directory setup-themes
-
-# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne die Werkzeuge durchläuft.
-# devtools meldet fehlendes oder zu altes ProjectTools und CLITheme samt Installationsbefehl;
-# installCliThemes (make.lib.sh) legt fehlende Theme-Dateien an. Ohne clitheme bleibt
-# die Ausgabe der Skripte farblos.
-check_tools = $(foreach tool,projecttools clitheme,$(DEV_TOOLS) check $(tool) >&2 || true;)
-.PHONY: setup-themes
-setup-themes:
-	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(check_tools) fi
-	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
-
 # Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus
 # make.lib.sh): die Befehle aus [project.scripts] zeigen danach auf src/ dieses
-# Checkouts.
+# Checkouts. BashLib hat keine Abhängigkeiten aus Git und braucht darum kein devtools exec.
 .PHONY: install
 install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
 	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
 
+# Der einzige Einrichtungsweg, auch für agent-lessons (worktree_setup); wiederholbar und ohne
+# Rückfrage. Die Tests brauchen Bash, Git und python3 (Theme-Test). setup aktiviert die
+# versionierten Git-Hooks, legt die .venv an, bringt ProjectTools und CLITheme mit den Tags aus
+# .dev-tools.conf.sh nach .tools/ und legt mit clitheme install fehlende Theme-Dateien an
+# (installCliThemes scheitert nie; ohne Themes bleibt die Ausgabe farblos). Außerhalb des
+# Checkouts ändert setup nur Paket-Caches, core.hooksPath und die Theme-Dateien.
+.PHONY: setup
+setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in .tools/, Themes
+	@git config core.hooksPath .githooks
+	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
+	@$(REQUIRE_STARTER) && $(DEV_TOOLS) install
+	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
+
+# Stempeldatei: nur setup legt sie an. Ohne Voraussetzung, weil BashLib keine Abhängigkeiten
+# hat; ein Versionssprung in pyproject.toml macht die Einrichtung so nicht veraltet.
+$(SETUP_STAMPS):
+	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt"
+	@test -x $(PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
+	@source "$${BASH_LIBS}/cli.lib.sh" && { $(PYTHON) -m pip install -q --disable-pip-version-check build || { \
+		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
+	@touch "$@"
+	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "$(VENV) eingerichtet" OK
+
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
 require-setup:
-	@source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks
+	@source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks --make "$(MAKE)" $(SETUP_STAMPS)
+
+# Setzt den Checkout zurück; make setup richtet ihn wieder ein. Die Installation beim User
+# (install) und die Git-Konfiguration bleiben.
+.PHONY: clean
+clean: ## Checkout zurücksetzen: .venv, .tools/, dist/ und build/ entfernen
+	@rm -rf -- "$${WORKSPACE}/$(VENV)" "$${WORKSPACE}/.tools" "$${WORKSPACE}/dist" "$${WORKSPACE}/build"
+	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Checkout zurückgesetzt, neu einrichten: make setup" OK
 
 # ─── Status ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +212,26 @@ docs-check: require-tools ## Nutzerdoku gegen das Projekt prüfen (Links, Befehl
 .PHONY: test-package
 test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prüfen
 	@./test/package.test.sh
+
+# ─── Paket ───────────────────────────────────────────────────────────────────
+
+##@ Paket
+
+# Paket für externe User: Wheel und sdist unter dist/; devtools prüft danach die Metadaten auf
+# lokale Pfade (Fehler) und ungepushte Git-Tags (Hinweis), Konzept DevTools T-20. build hängt
+# an den Stempeln von setup und richtet so selbst ein, was ihm fehlt.
+.PHONY: build
+build: $(SETUP_STAMPS) ## Wheel und sdist für externe User unter dist/ bauen und prüfen
+	@rm -rf -- "$${WORKSPACE}/dist"
+	@source "$${BASH_LIBS}/cli.lib.sh" && { out=$$($(PYTHON) -m build --outdir dist . 2>&1) || { \
+		printf '%s\n' "$$out" >&2; printThemeStatus "✗" "Paket nicht gebaut: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
+	@$(REQUIRE_STARTER) && $(DEV_TOOLS) check-dist dist/*
+
+# Wie ein User ohne Klon oder CI: pipx in leerem PIPX_HOME, ohne rechnerlokale Zuordnung und
+# ohne GitHub (scripts/build-check.sh).
+.PHONY: build-check
+build-check: ## Gebautes Paket wie ein User ohne Klon installieren und aufrufen
+	@./scripts/build-check.sh
 
 # ─── Versionierung ───────────────────────────────────────────────────────────
 

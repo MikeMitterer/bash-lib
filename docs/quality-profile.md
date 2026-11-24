@@ -93,7 +93,8 @@ Es gilt die Regel `schlanke-tests`. Für BashLib heißt das:
 - **Echte Läufe zuerst:** Versionen und Tags werden gegen echte Git-Repos im
   temporären Ordner geprüft (`test/_testVersionPush.sh`, `test/_testMakeTag.sh`).
 - **Nachbau nur, wo der echte Ablauf nicht geht:** Ein nachgebautes `pipx` deckt
-  Installationsfehler ab (`test/_testMakeInstall.sh`, `test/_testSetupThemes.sh`),
+  Installationsfehler ab (`test/_testMakeInstall.sh`), ein nachgebauter Starter
+  `devtools` die Einrichtung (`test/_testSetup.sh`),
   `false` an der Stelle von clitheme einen scheiternden Export (`test/_testTheme.sh`).
 - **Fremde Eingaben:** Ein Test mit `$(…)` belegt, dass nichts ausgeführt wird,
   nicht nur, dass der Text ankommt (`test/_testMakeTag.sh`).
@@ -146,7 +147,7 @@ ihre Zeile im README. Das ist eine Konvention; kein Werkzeug prüft es.
 | Ausnahme | Grund steht in |
 |---|---|
 | `make tag-*` zeigt nur stderr von `changelog --commit` | Kommentar am Rezept im `Makefile` |
-| `setup-themes` scheitert nie | Kommentar am Target im `Makefile` |
+| `clitheme install` in `make setup` scheitert nie | Kommentar am Target `setup` im `Makefile` |
 | `make test-package` ist nicht Teil von `make check` | Kommentar am Target im `Makefile` |
 | pre-commit warnt ohne ProjectTools nur | Kommentar in `.githooks/pre-commit` |
 | `# shellcheck disable=…` | Begründung an der jeweiligen Stelle |

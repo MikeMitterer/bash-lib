@@ -1,8 +1,9 @@
+// Voraussetzungen des Agents: docs/development.md, Abschnitt „Jenkins“.
 pipeline {
     agent { label 'linux' }
 
     stages {
-        stage('Prepare') {
+        stage('Setup') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
                     ansiColor('xterm') {
@@ -11,19 +12,25 @@ pipeline {
                 }
             }
         }
-        stage('CLI-Test') {
-            
+        stage('Check') {
             steps {
                 ansiColor('xterm') {
-                    sh 'make test'
+                    sh 'make check'
                 }
             }
         }
-    }
-    post {
-        always {
-            ansiColor('xterm') {
-                // Platzhalter
+        stage('Build') {
+            steps {
+                ansiColor('xterm') {
+                    sh 'make build'
+                }
+            }
+        }
+        stage('Build-Check') {
+            steps {
+                ansiColor('xterm') {
+                    sh 'make build-check'
+                }
             }
         }
     }
