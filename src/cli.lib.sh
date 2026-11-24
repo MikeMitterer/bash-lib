@@ -347,8 +347,7 @@ themeAccent() {
     themeInline "${THEME_COLOR_ACCENT}" "${1}" "${2-${THEME_COLOR_DESC}}"
 }
 
-# Markierung im Text (Rolle C_MARK: Sonderstellung wie Maintainer oder Server,
-# Herkunft eines Werts), sonst wie themeAccent: nur an die Theme-Helfer oder
+# Markierung im Text (Rolle C_MARK: Sonderstellung wie Server, Herkunft eines Werts), sonst wie themeAccent: nur an die Theme-Helfer oder
 # themeStyle geben, nicht an echo/printf.
 #
 # Usage:
