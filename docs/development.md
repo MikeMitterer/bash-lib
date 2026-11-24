@@ -6,8 +6,8 @@ steht im [README](../README.de.md).
 ## Voraussetzungen
 
 - Bash 5, Git, `python3` und [pipx](https://pipx.pypa.io).
-- Der Starter [DevTools](https://github.com/MikeMitterer/python-devtools)
-  (Befehl `devtools`), einmal je Rechner installiert. Fehlt er, nennen
+- Der Starter DevTools (Befehl `devtools`, Quelle `DEVTOOLS_SOURCE` in
+  `.dev-tools.conf.sh`), einmal je Rechner installiert. Fehlt er, nennen
   `make setup` und `make hints` den `pipx install` mit Quelle und Tag aus
   `.dev-tools.conf.sh`. Verlangt das Repo einen anderen `DEVTOOLS_TAG`, gibt
   der Starter an diesen weiter.
