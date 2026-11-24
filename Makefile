@@ -88,9 +88,6 @@ info: ## Umgebungsvariablen anzeigen
 	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: $(devtools_unavailable)"
 	@echo
 
-# Installationsbefehle von ProjectTools und CLITheme nennt devtools (Tag aus .dev-tools.conf.sh).
-tool_command = $$($(DEV_TOOLS) command $(1) 2>/dev/null || echo "nicht abrufbar: $(devtools_unavailable)")
-
 # Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
 .PHONY: hints
 hints: ## Nützliche Links und Hinweise anzeigen
@@ -103,9 +100,9 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
 	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
 	@printMakeHeading "ProjectTools (docs-check, status, changelog, tag-version)"
-	@printMakeValue   "Installieren"   "$(call tool_command,projecttools)"
+	@printMakeValue   "Einrichten"     "make setup"
 	@printMakeHeading "CLITheme (Farben und Abstände der Ausgabe)"
-	@printMakeValue   "Installieren"   "$(call tool_command,clitheme)"
+	@printMakeValue   "Einrichten"     "make setup"
 	@printMakeValue   "Themes anlegen" "clitheme install (macht make setup)"
 	@printMakeValue   "Auswahl"        "export CLI_THEME=ocean"
 	@printMakeHeading "Links"
@@ -135,7 +132,7 @@ require-tools:
 
 # Die Tests brauchen Bash, Git und python3 (Theme-Test); setup aktiviert die
 # versionierten Git-Hooks und legt mit clitheme install fehlende Theme-Dateien
-# an. Fehlt clitheme, nennt setup den Installationsbefehl und läuft weiter.
+# an. Fehlt ProjectTools oder clitheme, nennt setup den Installationsbefehl und läuft weiter.
 # Wiederholbar und ohne Rückfrage.
 .PHONY: setup
 setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
@@ -143,13 +140,14 @@ setup: ## Git-Hooks aktiv (pre-commit: docs-check), fehlende CLI-Themes angelegt
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
 	@$(MAKE) --no-print-directory setup-themes
 
-# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne clitheme durchläuft.
-# devtools meldet fehlendes oder zu altes CLITheme samt Installationsbefehl;
+# Ohne `##`: Teil von setup; scheitert nie, damit setup ohne die Werkzeuge durchläuft.
+# devtools meldet fehlendes oder zu altes ProjectTools und CLITheme samt Installationsbefehl;
 # installCliThemes (make.lib.sh) legt fehlende Theme-Dateien an. Ohne clitheme bleibt
 # die Ausgabe der Skripte farblos.
+check_tools = $(foreach tool,projecttools clitheme,$(DEV_TOOLS) check $(tool) >&2 || true;)
 .PHONY: setup-themes
 setup-themes:
-	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(DEV_TOOLS) check clitheme >&2 || true; fi
+	@if source "$${BASH_LIBS}/apps.lib.sh" && requireCommand pipx "$(PIPX_URL)"; then $(check_tools) fi
 	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
 
 # Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus

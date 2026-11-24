@@ -3,7 +3,7 @@
 # _testSetupThemes.sh — make setup legt die CLI-Themes mit clitheme install an
 #
 # Ruft make setup-themes (Teil von make setup) auf. Ein nachgebautes pipx spielt
-# devtools (check clitheme: in Ordnung, zu alt, fehlt); die Themes legt das
+# devtools (check projecttools und clitheme: in Ordnung, zu alt, fehlt); die Themes legt das
 # echte clitheme in einem eigenen XDG_CONFIG_HOME an. setup-themes endet immer mit Exit 0, damit
 # make setup ohne clitheme oder pipx durchläuft.
 #
@@ -29,7 +29,7 @@ INSTALL_CMD="pipx install --force git+https://github.com/MikeMitterer/python-cli
 mkdir -p "${work}/pipx-bin" "${work}/theme-bin"
 cat > "${work}/pipx-bin/pipx" <<EOF
 #!/usr/bin/env bash
-printf '%s\n' "\$*" > "\${FAKE_PIPX_LOG}"
+printf '%s\n' "\$*" >> "\${FAKE_PIPX_LOG}"
 case "\${FAKE_CHECK:-ok}" in
     ok) exit 0 ;;
     old) echo "  ✗ CLITheme 0.0.1 is too old (requires 0.5.0 or later): ${INSTALL_CMD}" >&2; exit 1 ;;
@@ -66,8 +66,9 @@ echo
 
 runSetup "${TOOLS}" FAKE_CHECK=ok
 assertEquals "0" "${status}" "vorhanden: Exit 0"
-assertEquals "run --no-path-check --spec git+https://github.com/MikeMitterer/python-devtools.git@${DEVTOOLS_TAG} devtools check clitheme" \
-    "$(cat "${work}/pipx")" "vorhanden: devtools prüft clitheme am Tag aus .dev-tools.conf.sh"
+devtools="run --no-path-check --spec git+https://github.com/MikeMitterer/python-devtools.git@${DEVTOOLS_TAG} devtools"
+assertEquals "${devtools} check projecttools"$'\n'"${devtools} check clitheme" \
+    "$(cat "${work}/pipx")" "vorhanden: devtools prüft ProjectTools und clitheme am Tag aus .dev-tools.conf.sh"
 assertEquals "yes" "$([[ -f ${work}/config/clitheme/classic.theme ]] && echo yes)" "vorhanden: clitheme install legt classic an"
 assertContains "✓ CLI-Themes in ${work}/config/clitheme" "${output}" "vorhanden: Statuszeile nennt den Ordner"
 

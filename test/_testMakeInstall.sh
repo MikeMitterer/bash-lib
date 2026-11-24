@@ -139,8 +139,8 @@ output="$(env -i HOME="${work}" PATH="${work}/bin:${BASE_PATH}" FAKE_LOG="${work
     make --no-print-directory -C "${ROOT}" info 2>&1)"
 assertContains "Werkzeugstand nicht abrufbar: pipx run devtools gescheitert" "${output}" "info, pipx run scheitert: Hinweis"
 runTarget hints
-assertContains "nicht abrufbar: pipx fehlt" "${output}" "hints ohne pipx: Grund statt Verweis auf make info"
-assertNotContains "nicht abrufbar: make info" "${output}" "hints ohne pipx: kein Verweis im Kreis"
+assertEquals "0" "${status}" "hints ohne pipx: Exit 0, braucht devtools nicht"
+assertNotContains "nicht abrufbar" "${output}" "hints ohne pipx: keine Zeile ‚nicht abrufbar‘"
 
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 assertContains "install" "$(grep -E '^ +install ' <<< "${help}")" "make help nennt install"
