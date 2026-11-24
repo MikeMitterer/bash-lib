@@ -128,13 +128,20 @@ mkdir -p "${work}/plain"
 printf '0.1.0\n' > "${work}/plain/VERSION"
 git init -q -b main "${work}/empty"
 printf '0.1.0\n' > "${work}/empty/VERSION"
+# Bare-Repo: git läuft, aber es gibt keinen Arbeitsbaum (rev-parse --is-inside-work-tree: false)
+git init -q --bare "${work}/bare.git"
 for bump in "semVerBump patch VERSION" "bumpVer patch VERSION" "calVerBump VERSION" "gitUpdateVersionTag patch"; do
     name="${bump%% *}"
     # shellcheck disable=SC2086  # Funktion und Argumente bewusst getrennt
     runIn plain ${bump}
     assertEquals "8" "${rc}" "${name} ohne Git-Repo: Exit 8"
-    assertContains "${name}: ${work}/plain liegt in keinem Git-Repo" "${err}" "${name} ohne Git-Repo: Meldung nennt den Ordner"
+    assertContains "${name}: ${work}/plain liegt in keinem Git-Arbeitsbaum" "${err}" "${name} ohne Git-Repo: Meldung nennt den Ordner"
     assertNotContains "Commit" "${err}" "${name} ohne Git-Repo: keine Rede von Commits"
+    # shellcheck disable=SC2086
+    runIn bare.git ${bump}
+    assertEquals "8" "${rc}" "${name} im Bare-Repo: Exit 8"
+    assertContains "${name}: ${work}/bare.git liegt in keinem Git-Arbeitsbaum" "${err}" "${name} im Bare-Repo: Meldung nennt den Ordner"
+    assertNotContains "Commit" "${err}" "${name} im Bare-Repo: keine Rede von Commits"
     # shellcheck disable=SC2086
     runIn empty ${bump}
     assertEquals "4" "${rc}" "${name} ohne Commit: Exit 4"

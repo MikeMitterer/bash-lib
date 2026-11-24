@@ -714,7 +714,7 @@ _gitCalcNextVersion() {
 # Exit:
 #   0  bereit
 #   4  das Repo hat noch keinen Commit
-#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   8  git fehlt oder der Ordner liegt in keinem Git-Arbeitsbaum (auch Bare-Repo)
 #
 _requireVersionRepo() {
   local _name="${1:?_requireVersionRepo: NAME fehlt}"
@@ -722,8 +722,10 @@ _requireVersionRepo() {
       printf '%s: git ist nicht installiert.\n' "$_name" >&2
       return 8
   fi
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      printf '%s: %s liegt in keinem Git-Repo – im Ordner des Projekts aufrufen.\n' "$_name" "$PWD" >&2
+  # Außerhalb eines Repos scheitert rev-parse; in einem Bare-Repo oder in .git endet es mit 0
+  # und gibt false aus. Beides heißt: kein Arbeitsbaum, in dem eine Versionsdatei liegen kann.
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+      printf '%s: %s liegt in keinem Git-Arbeitsbaum – im Ordner des Projekts aufrufen.\n' "$_name" "$PWD" >&2
       return 8
   fi
   if ! git rev-parse --verify --quiet HEAD >/dev/null; then
@@ -855,7 +857,7 @@ _gitSetVersionTag() {
 #   2  ungültiger year-Parameter
 #   3  nicht vorgemerkte Änderungen an versionierten Dateien (nicht beim Reuse)
 #   4  das Repo hat noch keinen Commit
-#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   8  git fehlt oder der Ordner liegt in keinem Git-Arbeitsbaum (auch Bare-Repo)
 #   sonst der Code von git tag
 #
 _gitUpdateVersionTag() {
@@ -906,7 +908,7 @@ gitUVT() { _gitUpdateVersionTag "$@"; }
 #   4  das Repo hat noch keinen Commit
 #   5  keine Versionsdatei gefunden
 #   6  unbekannte Quelldatei
-#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   8  git fehlt oder der Ordner liegt in keinem Git-Arbeitsbaum (auch Bare-Repo)
 #   sonst der Code von git commit bzw. git tag
 #
 bumpVer() {
@@ -1033,7 +1035,7 @@ _semVerIncrement() {
 #   5  keine Versionsdatei gefunden
 #   6  unbekannte Quelldatei
 #   7  Version aus der Versionsdatei nicht lesbar
-#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   8  git fehlt oder der Ordner liegt in keinem Git-Arbeitsbaum (auch Bare-Repo)
 #   sonst der Code von git commit bzw. git tag
 #
 # Usage:
@@ -1221,7 +1223,7 @@ _calVerCalcNextVersion() {
 #   4  das Repo hat noch keinen Commit
 #   5  keine Versionsdatei gefunden
 #   6  unbekannte Quelldatei
-#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   8  git fehlt oder der Ordner liegt in keinem Git-Arbeitsbaum (auch Bare-Repo)
 #   sonst der Code von git commit bzw. git tag
 #
 calVerBump() {
