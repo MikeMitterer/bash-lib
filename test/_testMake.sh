@@ -101,12 +101,12 @@ expected="
                               Länger als W_KEY
 
   Release
-       tag-major              Major-Release 1.4.9 → 2.0.0 [Maintainer]
+       tag-major              Major-Release 1.4.9 → 2.0.0 — Maintainer
        tag-minor              Minor-Release x.y.z → x.Y+1.0, {unknown} bleibt
 
 "
 assertEquals "${expected}" "${out}" \
-    "Gruppen, Spalten nach W_KEY und GAP, langes Target auf eigener Zeile, [Maintainer], --set vor der Version, ohne Versionsdatei Ersatz, Leerzeile am Ende"
+    "Gruppen, Spalten nach W_KEY und GAP, langes Target auf eigener Zeile, — Maintainer als Text ohne Markierung, --set vor der Version, ohne Versionsdatei Ersatz, Leerzeile am Ende"
 assertNotContains "VERSION" "${out}" "Zuweisung NAME := … zählt nicht"
 assertNotContains "NAME" "${out}" "Zuweisung NAME:= … zählt nicht"
 assertNotContains ".PHONY" "${out}" ".PHONY zählt nicht"
@@ -134,7 +134,7 @@ runMake showMakeTargets "${work}/first.mk" "${work}/second.mk"
 assertEquals "one Extra two" "$(awk 'NF { printf "%s%s", sep, $1; sep = " " }' <<< "${out}")" \
     "mehrere Dateien wie aus MAKEFILE_LIST: Einträge in der Reihenfolge der Dateien"
 
-# Server-Targets: ##R schreibend, ##D destruktiv; Platzhalter und — Maintainer wie bei ##
+# Server-Targets: ##R schreibend, ##D destruktiv; Platzhalter und Text wie bei ##
 cat > "${work}/server.mk" <<'EOF'
 ##@ Server
 server-update: ##R Stack aktualisieren {major}
@@ -146,11 +146,11 @@ assertEquals "0" "${rc}" "##R und ##D: Exit 0"
 expected="
   Server
        server-update          Stack aktualisieren 1.4.9 → 2.0.0
-       server-DANGER-restore  Backup einspielen [Maintainer]
+       server-DANGER-restore  Backup einspielen — Maintainer
        local                  Lokal
 
 "
-assertEquals "${expected}" "${out}" "##R und ##D wie ##: Platzhalter, [Maintainer], ohne Farben schlicht"
+assertEquals "${expected}" "${out}" "##R und ##D wie ##: Platzhalter, Text unverändert, ohne Farben schlicht"
 # Farben des Themes, wie make.lib.sh sie setzt
 # shellcheck disable=SC2016  # die Farben setzt erst make.lib.sh in der inneren Bash
 runMake eval 'printf "%b|%b|%b" "${THEME_COLOR_TARGET}" "${THEME_COLOR_SERVER}" "${THEME_COLOR_DANGER}"'
@@ -180,7 +180,8 @@ assertContains "Wert ${hostile}" "${out}" "Wert aus --set wörtlich, auch \$(…
 
 runInTerminal showMakeTargets --set "major=1.4.9 → 2.0.0" "${work}/Makefile"
 assertContains "${ESC}[" "${out}" "im Terminal die Farben des Themes"
-assertContains "[Maintainer]" "${out}" "im Terminal mit [Maintainer]"
+# Die Kennzeichnung „— Maintainer“ ist abgeschafft (T-78): der Text bleibt, wie er dasteht
+assertContains "2.0.0 — Maintainer" "$(sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g' <<< "${out}")" "im Terminal: — Maintainer als Text"
 printf 'x: ## %s\n' "$(printf 'Wort %.0s' {1..30})" > "${work}/long.mk"
 COLUMNS=60 runInTerminal plain showMakeTargets "${work}/long.mk"
 assertEquals "1" "$(grep -c . <<< "${out}")" "Terminal mit 60 Spalten: lange Beschreibung bleibt in einer Zeile (wie printThemeRow)"
@@ -346,7 +347,6 @@ plain() { sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g'; }
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | plain)"
 assertContains "  Setup" "${help}" "make help: Gruppe Setup"
 # Die Kennzeichnung „— Maintainer“ ist abgeschafft (T-78): die echte Hilfe trägt sie nicht mehr
-assertNotContains "[Maintainer]" "${help}" "make help: kein [Maintainer]"
 assertNotContains "— Maintainer" "${help}" "make help: keine Endung — Maintainer"
 assertNotContains "awk" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefile: help ohne awk"
 assertNotContains "hint_row" "$(cat "${ROOT}/Makefile")" "Makefile: hints ohne hint_row"

@@ -54,9 +54,6 @@ if [[ "${__CLI_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/cli.lib.sh"; fi
 # shellcheck source=SCRIPTDIR/version.lib.sh
 if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
 
-# Endet eine Beschreibung so, steht dafür die Markierung [Maintainer] in der Rolle C_MARK.
-readonly MAKE_MAINTAINER_SUFFIX=" — Maintainer"
-
 # Kopfzeilen der Makefile-Hilfe: Leerzeile, „Please use `make <target>' where <target>
 # is one of“, Leerzeile, „Project: NAME“; target und NAME in der Gruppenfarbe des
 # Themes. Bei deutscher Sprache (_isGermanLocale) deutsch: „Verwende `make <target>',
@@ -119,9 +116,8 @@ _isGermanLocale() {
 # Gruppen (`##@ Gruppe`) als Überschrift, Targets mit `## Beschreibung` als Zeile,
 # aus den Makefiles in der angegebenen Reihenfolge. Server-Targets mit `##R` (schreibend)
 # und `##D` (destruktiv) stehen ebenso da, der Name in der Server- bzw. Danger-Farbe des
-# Themes. Zuweisungen (NAME := …) und Targets ohne `##` zählen nicht. Eine
-# Beschreibung, die auf „ — Maintainer“ endet,
-# bekommt die Markierung [Maintainer]. {version}, {major}, {minor} und {patch} zeigen
+# Themes. Zuweisungen (NAME := …) und Targets ohne `##` zählen nicht. Die Beschreibung
+# erscheint als Text, wie sie dasteht. {version}, {major}, {minor} und {patch} zeigen
 # die Version aus dem Arbeitsverzeichnis (readProjectVersion) und für die drei
 # Release-Arten davor und danach, etwa „0.6.0 → 0.7.0“; ohne Versionsdatei einen
 # Ersatz wie „x.y.z → x.Y+1.0“. Weitere {NAME} ersetzt --set NAME=WERT, es gewinnt
@@ -143,7 +139,7 @@ _isGermanLocale() {
 #
 showMakeTargets() {
     local -a _settings=() _files=()
-    local _file _line _setting _target _description _maintainer _version _bump _next _color
+    local _file _line _setting _target _description _version _bump _next _color
     # Leerzeichen am Rand des Namens bzw. der Beschreibung fangen die Muster nicht ein
     local -r _GROUP='^##@[[:space:]]*(.*[^[:space:]])?[[:space:]]*$'
     local -r _TARGET='^([A-Za-z0-9_-]+):(.*)$'
@@ -205,13 +201,7 @@ showMakeTargets() {
                 esac
                 [[ -z ${_color} ]] || _target="$(themeInline "${_color}" "${_target}" "")"
                 _description="${BASH_REMATCH[2]}"
-                _maintainer=""
-                if [[ ${_description} == *"${MAKE_MAINTAINER_SUFFIX}" ]]; then
-                    _description="${_description%"${MAKE_MAINTAINER_SUFFIX}"}"
-                    _maintainer=" $(themeMark "[Maintainer]")"
-                fi
-                printThemeRow "${_target}" \
-                    "$(themeEscape "$(makeFill "${_description}" "${_settings[@]}")")${_maintainer}"
+                printThemeRow "${_target}" "$(themeEscape "$(makeFill "${_description}" "${_settings[@]}")")"
             fi
         done < "${_file}"
     done

@@ -177,10 +177,9 @@ one output line**, so the recipe reads like its output:
   (`defaults read -g AppleLanguages`).
 - **`showMakeTargets [--set NAME=VALUE]… FILE…`** reads `##@ Group` and
   `target: … ## Description` from the Makefiles. Server targets with `##R`
-  (writing) and `##D` (destructive) are listed the same way, placeholders and
-  “— Maintainer” included, with the target name in the theme's server or
-  danger color. A description that ends in
-  “— Maintainer” gets the mark **[Maintainer]**. `{version}`, `{major}`,
+  (writing) and `##D` (destructive) are listed the same way, placeholders
+  included, with the target name in the theme's server or danger color. The
+  description appears as text, exactly as written. `{version}`, `{major}`,
   `{minor}` and `{patch}` show the project version and the version before and
   after each release kind, for example “0.6.0 → 0.7.0”; `--set` fills further
   placeholders, unknown ones stay as they are.
