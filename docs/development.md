@@ -33,12 +33,20 @@ make check
 Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
-Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` für
-`make build` an und bringt ProjectTools und CLITheme nach `.tools/`. Fehlt der
-Starter oder scheitert die Installation der Werkzeuge, bricht `make setup`
-ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
+Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` an, mit
+`build` für `make build` und bashlib dieses Checkouts editierbar, und bringt
+ProjectTools und CLITheme nach `.tools/`. Fehlt der Starter oder scheitert die
+Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
+
+`make docs-check` prüft neben der Doku auch die Ausgabe von `bashlib --skill`
+(`SKILLS` in `.docs-check.conf.sh`): Optionen gegen `--help` und die Namen
+hinter „Wichtig:“ unter „Bibliotheken“ gegen die jeweilige `*.lib.sh`. Der
+Aufruf nimmt bashlib aus der `.venv` mit `PYTHONPATH=python`, damit auch der
+pre-commit-Hook den vorgemerkten Stand prüft; der Hook verlinkt dafür `.venv`
+und `.tools/` in seine Kopie. Bibliotheken, die nur in ihrem Einsatzumfeld
+laden, stehen mit Grund in `KNOWN_SKILL_NAMES`.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
 (`installEditablePackage` aus `make.lib.sh`); die Befehle des Pakets zeigen

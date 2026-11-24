@@ -52,8 +52,11 @@ readonly OUTPUT
 trap 'command rm -rf -- "${SNAPSHOT}" "${OUTPUT}"' EXIT
 
 git checkout-index --all --prefix="${SNAPSHOT}/"
-# Die Werkzeuge aus .tools/ dieses Checkouts gelten auch in der Kopie.
-[[ -d "${ROOT}/.tools" ]] && ln -s "${ROOT}/.tools" "${SNAPSHOT}/.tools"
+# Die Werkzeuge aus .tools/ und die .venv dieses Checkouts (bashlib --skill für SKILLS in
+# .docs-check.conf.sh) gelten auch in der Kopie.
+for dir in .tools .venv; do
+    if [[ -d "${ROOT}/${dir}" ]]; then ln -s "${ROOT}/${dir}" "${SNAPSHOT}/${dir}"; fi
+done
 
 GIT_DIR="$(git rev-parse --absolute-git-dir)"
 export GIT_DIR

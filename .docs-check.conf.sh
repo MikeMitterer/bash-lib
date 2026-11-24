@@ -176,3 +176,20 @@ DEPENDS_HINT=(
 TRANSLATIONS=(
     "README.md|README.de.md|deutsche Fassung des README"
 )
+
+# ─── Beschreibung für Agenten (--skill) ────────────────────────────────────────
+
+# Aufrufe, deren Ausgabe gegen das Paket geprüft wird, je "<aufruf>|<grund>". Die .venv
+# (make setup) hat bashlib dieses Checkouts editierbar; PYTHONPATH=python geht ihr vor, damit
+# auch der pre-commit-Hook den vorgemerkten Stand ausgibt. NAMESPACE und NAME verlangt
+# build.lib.sh beim Laden; die Zuweisungen gelten auch dafür.
+SKILLS=(
+    "NAMESPACE=example NAME=example PYTHONPATH=python .venv/bin/bashlib --skill|Beschreibung der Befehle und Bibliotheken für Agenten"
+)
+
+# Optionen und Namen, die stimmen, obwohl die Prüfung sie nicht findet, je
+# "<befehl> --option|<grund>", "<name>|<grund>" oder "<datei>|<grund>"; Grund ist Pflicht.
+KNOWN_SKILL_NAMES=(
+    "webapp.lib.sh|lädt nur in einem npm-Projekt mit package.json im aktuellen Ordner"
+    "samples.lib.sh|lädt nur in einem Projekt mit Ordner example, samples oder dist im aktuellen Ordner"
+)

@@ -15,10 +15,10 @@ DEVTOOLS_TAG=v0.7.0+261119.1249.b3946
 DEVTOOLS_SOURCE=git+https://github.com/MikeMitterer/python-devtools.git
 
 # ProjectTools (docs-check, repo-status, changelog, repo-info ab 0.5.0;
-# tag-version ab 0.7.0, das make tag-* seit T-65 aufruft).
+# tag-version ab 0.7.0, das make tag-* seit T-65 aufruft; SKILLS in docs-check ab 0.13.0).
 PROJECTTOOLS_PACKAGE=mmit-projecttools
 PROJECTTOOLS_LABEL=ProjectTools
-PROJECTTOOLS_TAG=v0.8.0+261107.2230.e7553
+PROJECTTOOLS_TAG=v0.13.0+261124.1206.7d2cf
 PROJECTTOOLS_SOURCE=git+https://github.com/MikeMitterer/bash-ProjectTools.git
 PROJECTTOOLS_EDITABLE=yes
 
