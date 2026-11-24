@@ -608,7 +608,8 @@ gitDockerTag() {
 # _gitCalcNextVersion [bump=minor|patch] [prerelease] [year=current|last-tag|YY|YYYY]
 #
 # Berechnet die nächste Version basierend auf vorhandenen Git-Tags.
-# Setzt KEINEN Tag — nur Berechnung.
+# Setzt KEINEN Tag — nur Berechnung. Den Zustand des Repos prüft der Aufrufer
+# (_requireVersionRepo, _requireNothingUnstaged).
 #
 # Returns: Basis-Version z.B. "v26.3.0" oder "v26.3.0-rc1"
 #
@@ -648,15 +649,6 @@ _gitCalcNextVersion() {
   # --- Tags vom Remote holen ------------------------------------------------
   git fetch --tags --quiet 2>/dev/null || true
 
-  # --- Repo-Guards ----------------------------------------------------------
-  if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
-      printf 'Repo hat noch keinen Commit – bitte zuerst committen.\n' >&2
-      return 4
-  fi
-  if ! git diff --quiet --ignore-submodules -- 2>/dev/null; then
-      printf 'Working tree ist dirty – commit/stash vor dem Taggen.\n' >&2
-      return 3
-  fi
 
   # --- Hinweise -------------------------------------------------------------
   local _cur_year
@@ -710,6 +702,62 @@ _gitCalcNextVersion() {
   [[ -n "$_pre" ]] && _base="${_base}-${_pre}"
 
   printf '%s\n' "$_base"
+}
+
+#------------------------------------------------------------------------------
+# _requireVersionRepo NAME
+#
+# Erste Prüfung der Bump- und Tag-Funktionen: Der aktuelle Ordner liegt in einem Git-Repo,
+# und das Repo hat einen Commit, auf den ein Tag zeigen kann. NAME ist die aufgerufene
+# Funktion; sie steht vorn in der Meldung auf stderr.
+#
+# Exit:
+#   0  bereit
+#   4  das Repo hat noch keinen Commit
+#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#
+_requireVersionRepo() {
+  local _name="${1:?_requireVersionRepo: NAME fehlt}"
+  if ! command -v git >/dev/null 2>&1; then
+      printf '%s: git ist nicht installiert.\n' "$_name" >&2
+      return 8
+  fi
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      printf '%s: %s liegt in keinem Git-Repo – im Ordner des Projekts aufrufen.\n' "$_name" "$PWD" >&2
+      return 8
+  fi
+  if ! git rev-parse --verify --quiet HEAD >/dev/null; then
+      printf '%s: Das Repo hat noch keinen Commit – zuerst committen.\n' "$_name" >&2
+      return 4
+  fi
+}
+
+#------------------------------------------------------------------------------
+# _requireNothingUnstaged NAME [bump|tag]
+#
+# Zweite Prüfung: Versionierte Dateien haben keine nicht vorgemerkten Änderungen. Was mit
+# git add vorgemerkt ist, zählt nicht (bump: es geht in den Bump-Commit, siehe semVerBump);
+# unversionierte Dateien zählen nicht. Die Meldung nennt jede betroffene Datei und den
+# nächsten Schritt; bei bump auch git add.
+#
+# Exit:
+#   0  nichts offen
+#   3  nicht vorgemerkte Änderungen (Dateien auf stderr)
+#
+_requireNothingUnstaged() {
+  local _name="${1:?_requireNothingUnstaged: NAME fehlt}" _kind="${2:-bump}" _files
+  _files="$(git diff --name-only --ignore-submodules --)"
+  [[ -z "$_files" ]] && return 0
+  {
+      printf '%s: Nicht vorgemerkte Änderungen an versionierten Dateien:\n' "$_name"
+      printf '  %s\n' "${_files//$'\n'/$'\n'  }"
+      if [[ "$_kind" == "bump" ]]; then
+          printf 'Mit git add in den Bump-Commit nehmen, sonst committen oder mit git restore verwerfen.\n'
+      else
+          printf 'Committen oder mit git restore verwerfen; der Tag zeigt auf den letzten Commit.\n'
+      fi
+  } >&2
+  return 3
 }
 
 #------------------------------------------------------------------------------
@@ -801,10 +849,21 @@ _gitSetVersionTag() {
 #   gitUpdateVersionTag "" "" last-tag  # noch einen Patch fürs Vorjahres-Release (falls nötig)
 #   gitUpdateVersionTag minor rc1 2024  # RC im Jahr 2026
 #
+# Exit
+# ----
+#   0  Tag gesetzt oder vorhandener Tag auf HEAD wiederverwendet
+#   2  ungültiger year-Parameter
+#   3  nicht vorgemerkte Änderungen an versionierten Dateien (nicht beim Reuse)
+#   4  das Repo hat noch keinen Commit
+#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   sonst der Code von git tag
+#
 _gitUpdateVersionTag() {
   local _bump="${1:-patch}"
   local _pre="${2:-}"
   local _year_sel="${3:-current}"
+
+  _requireVersionRepo gitUpdateVersionTag || return $?
 
   # --- Reuse: Falls HEAD bereits im Zieljahr getaggt ist -------------------
   local _yy
@@ -817,6 +876,7 @@ _gitUpdateVersionTag() {
       return 0
   fi
 
+  _requireNothingUnstaged gitUpdateVersionTag tag || return $?
   local _base
   _base="$(_gitCalcNextVersion "$_bump" "$_pre" "$_year_sel")" || return $?
   _gitSetVersionTag "$_base"
@@ -837,6 +897,18 @@ gitUVT() { _gitUpdateVersionTag "$@"; }
 #   bumpVer patch auto "" current "msg"   # Patch mit expliziter Tag-Message
 #   bumpVer minor pyproject.toml rc1      # Minor mit Prerelease
 #
+# Vorgemerktes (git add) geht mit in den Bump-Commit, wie bei semVerBump.
+#
+# Exit:
+#   0  Version geschrieben, committet und getaggt
+#   2  ungültiger year-Parameter
+#   3  nicht vorgemerkte Änderungen an versionierten Dateien
+#   4  das Repo hat noch keinen Commit
+#   5  keine Versionsdatei gefunden
+#   6  unbekannte Quelldatei
+#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   sonst der Code von git commit bzw. git tag
+#
 bumpVer() {
   local _bump="${1:-patch}"
   local _source="${2:-auto}"
@@ -844,7 +916,10 @@ bumpVer() {
   local _year_sel="${4:-current}"
   local _msg="${5:-}"
 
-  # 1. Nächste Version berechnen (noch kein Tag — dirty check passiert hier)
+  _requireVersionRepo bumpVer || return $?
+  _requireNothingUnstaged bumpVer || return $?
+
+  # 1. Nächste Version berechnen (noch kein Tag)
   local _base
   _base="$(_gitCalcNextVersion "$_bump" "$_pre" "$_year_sel")" || return $?
 
@@ -947,8 +1022,19 @@ _semVerIncrement() {
 # Weitere Dateien im Bump-Commit: Was vor dem Aufruf mit git add vorgemerkt ist,
 # geht mit in den Commit „chore: bump version to X“, etwa ein vorab geschriebenes
 # CHANGELOG.md. Der Tag liegt dann auf diesem Commit, also auf HEAD. Nicht
-# vorgemerkte Änderungen an versionierten Dateien brechen mit Exit 3 ab;
+# vorgemerkte Änderungen an versionierten Dateien brechen ab;
 # unversionierte Dateien bleiben außen vor.
+#
+# Exit:
+#   0  Version geschrieben, committet und getaggt
+#   2  unbekannter bump-Typ
+#   3  nicht vorgemerkte Änderungen an versionierten Dateien (Dateien auf stderr)
+#   4  das Repo hat noch keinen Commit
+#   5  keine Versionsdatei gefunden
+#   6  unbekannte Quelldatei
+#   7  Version aus der Versionsdatei nicht lesbar
+#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   sonst der Code von git commit bzw. git tag
 #
 # Usage:
 #   semVerBump                            # Patch, auto-detect
@@ -964,14 +1050,8 @@ semVerBump() {
   local _msg="${4:-}"
 
   # --- Guards ------------------------------------------------------------------
-  if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
-      printf 'semVerBump: Repo hat noch keinen Commit.\n' >&2
-      return 4
-  fi
-  if ! git diff --quiet --ignore-submodules --; then
-      printf 'semVerBump: Working tree ist dirty – commit/stash vor dem Taggen.\n' >&2
-      return 3
-  fi
+  _requireVersionRepo semVerBump || return $?
+  _requireNothingUnstaged semVerBump || return $?
 
   # --- Quelldatei auto-detect --------------------------------------------------
   if [[ "$_source" == "auto" ]]; then
@@ -1045,7 +1125,7 @@ semVerBump() {
 }
 
 #------------------------------------------------------------------------------
-# _calVerCalcNextVersion [prerelease] [year=current|last-tag|YY|YYYY] [skip_guards=0|1]
+# _calVerCalcNextVersion [prerelease] [year=current|last-tag|YY|YYYY]
 #
 # Berechnet die nächste CalVer-Version: YY.Q.BUILD
 # Jahr und Quartal kommen IMMER aus dem Kalender, BUILD inkrementiert automatisch.
@@ -1053,15 +1133,13 @@ semVerBump() {
 #
 # Kein bump-Parameter — im Gegensatz zu _gitCalcNextVersion gibt es keine
 # major/minor/patch-Unterscheidung. Jedes Release im selben Quartal erhöht BUILD.
-#
-# skip_guards=1 überspringt Dirty-Check (nützlich für Dry-Run).
+# Den Zustand des Repos prüft der Aufrufer (_requireVersionRepo).
 #
 # Returns: z.B. "v26.2.0" oder "v26.2.3-rc1"
 #
 _calVerCalcNextVersion() {
   local _pre="${1:-}"
   local _year_sel="${2:-current}"
-  local _skip_guards="${3:-0}"
 
   # --- Jahr bestimmen -------------------------------------------------------
   local _yy
@@ -1098,15 +1176,6 @@ _calVerCalcNextVersion() {
   # --- Tags vom Remote holen ------------------------------------------------
   git fetch --tags --quiet 2>/dev/null || true
 
-  # --- Repo-Guards ----------------------------------------------------------
-  if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
-      printf 'Repo hat noch keinen Commit – bitte zuerst committen.\n' >&2
-      return 4
-  fi
-  if [[ "$_skip_guards" != "1" ]] && ! git diff --quiet --ignore-submodules -- 2>/dev/null; then
-      printf 'Working tree ist dirty – commit/stash vor dem Taggen.\n' >&2
-      return 3
-  fi
 
   # --- Höchsten BUILD im aktuellen YY.Q finden -----------------------------
   local _last_build=-1
@@ -1143,11 +1212,26 @@ _calVerCalcNextVersion() {
 #   calVerBump auto rc1                      # Release Candidate
 #   calVerBump VERSION "" current ""         # explizit VERSION-Datei
 #
+# Vorgemerktes (git add) geht mit in den Bump-Commit, wie bei semVerBump.
+#
+# Exit:
+#   0  Version geschrieben, committet und getaggt
+#   2  ungültiger year-Parameter
+#   3  nicht vorgemerkte Änderungen an versionierten Dateien
+#   4  das Repo hat noch keinen Commit
+#   5  keine Versionsdatei gefunden
+#   6  unbekannte Quelldatei
+#   8  git fehlt oder der Ordner liegt in keinem Git-Repo
+#   sonst der Code von git commit bzw. git tag
+#
 calVerBump() {
   local _source="${1:-auto}"
   local _pre="${2:-}"
   local _year_sel="${3:-current}"
   local _msg="${4:-}"
+
+  _requireVersionRepo calVerBump || return $?
+  _requireNothingUnstaged calVerBump || return $?
 
   # 1. Nächste Version berechnen
   local _base

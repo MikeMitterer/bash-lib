@@ -84,7 +84,10 @@ Verfügung.
 einem temporären Ordner: Mit und ohne lokales Remote taggen sie nur lokal,
 und erst `git push --follow-tags` bringt Tag und Commit ins Remote. Ein vorher
 vorgemerktes `CHANGELOG.md` landet im Bump-Commit von `semVerBump`, und der
-Tag zeigt auf HEAD. Außerdem
+Tag zeigt auf HEAD. Vor dem Bump prüfen alle vier dasselbe und melden die
+Ursache: kein Git-Repo (Exit 8), kein Commit (Exit 4), nicht vorgemerkte
+Änderungen mit Dateiliste (Exit 3); unversionierte Dateien zählen nicht.
+Außerdem
 prüft es `gitReleaseTag`: Ein Tag wie `deploy-2026-11` näher am Commit zählt
 nicht, `gitVersion`, `semVerWithDate`, `gitDockerTag` und `getPackageName`
 nehmen den v-Tag. `test/_testMakeTag.sh` prüft dasselbe für `make hints`
