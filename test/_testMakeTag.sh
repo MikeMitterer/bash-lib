@@ -220,7 +220,8 @@ makeRepo dirty
 printf '\n' >> "${work}/dirty/README.md"
 runMake dirty tag-patch
 assertEquals "1" "$(( rc != 0 ))" "Exit ungleich 0 bei dirty Working Tree"
-assertContains "dirty" "${out}" "Fehlermeldung nennt den dirty Working Tree"
+assertContains "Nicht vorgemerkte Änderungen an versionierten Dateien" "${out}" "Fehlermeldung nennt die Ursache"
+assertContains "  README.md" "${out}" "Fehlermeldung nennt die geänderte Datei"
 assertEquals "" "$(git -C "${work}/dirty" tag)" "kein Tag angelegt"
 
 echo

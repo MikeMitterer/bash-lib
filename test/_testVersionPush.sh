@@ -118,6 +118,53 @@ assertEquals $'CHANGELOG.md\nVERSION' "$(git -C "${work}/sem-changelog" show --n
 assertEquals "${out}" "$(git -C "${work}/sem-changelog" tag --points-at HEAD)" "semVerBump mit Changelog: Tag zeigt auf HEAD"
 assertEquals "" "$(git -C "${work}/sem-changelog" status --porcelain)" "semVerBump mit Changelog: nichts bleibt offen"
 
+echo
+echo "Bump-Funktionen: Prüfungen vor dem Bump"
+echo
+
+# Jede Prüfung meldet, was sie geprüft hat; dieselbe Ursache hat in allen Bump-Funktionen
+# denselben Code (8 kein Git-Repo, 4 kein Commit, 3 nicht vorgemerkte Änderungen).
+mkdir -p "${work}/plain"
+printf '0.1.0\n' > "${work}/plain/VERSION"
+git init -q -b main "${work}/empty"
+printf '0.1.0\n' > "${work}/empty/VERSION"
+# Bare-Repo: git läuft, aber es gibt keinen Arbeitsbaum (rev-parse --is-inside-work-tree: false)
+git init -q --bare "${work}/bare.git"
+for bump in "semVerBump patch VERSION" "bumpVer patch VERSION" "calVerBump VERSION" "gitUpdateVersionTag patch"; do
+    name="${bump%% *}"
+    # shellcheck disable=SC2086  # Funktion und Argumente bewusst getrennt
+    runIn plain ${bump}
+    assertEquals "8" "${rc}" "${name} ohne Git-Repo: Exit 8"
+    assertContains "${name}: ${work}/plain liegt in keinem Git-Arbeitsbaum" "${err}" "${name} ohne Git-Repo: Meldung nennt den Ordner"
+    assertNotContains "Commit" "${err}" "${name} ohne Git-Repo: keine Rede von Commits"
+    # shellcheck disable=SC2086
+    runIn bare.git ${bump}
+    assertEquals "8" "${rc}" "${name} im Bare-Repo: Exit 8"
+    assertContains "${name}: ${work}/bare.git liegt in keinem Git-Arbeitsbaum" "${err}" "${name} im Bare-Repo: Meldung nennt den Ordner"
+    assertNotContains "Commit" "${err}" "${name} im Bare-Repo: keine Rede von Commits"
+    # shellcheck disable=SC2086
+    runIn empty ${bump}
+    assertEquals "4" "${rc}" "${name} ohne Commit: Exit 4"
+    assertContains "${name}: Das Repo hat noch keinen Commit" "${err}" "${name} ohne Commit: Meldung"
+done
+
+makeRepo sem-dirty none
+printf '0.1.0\n# geändert\n' > "${work}/sem-dirty/VERSION"
+printf 'neu\n' > "${work}/sem-dirty/untracked.txt"
+runIn sem-dirty semVerBump patch VERSION
+assertEquals "3" "${rc}" "semVerBump mit nicht vorgemerkter Änderung: Exit 3"
+assertContains "  VERSION" "${err}" "nicht vorgemerkt: Meldung nennt die Datei"
+assertNotContains "untracked.txt" "${err}" "nicht vorgemerkt: unversionierte Datei zählt nicht"
+assertContains "git add" "${err}" "nicht vorgemerkt: nächster Schritt nennt git add"
+assertEquals "${base}" "$(git -C "${work}/sem-dirty" rev-parse HEAD)" "nicht vorgemerkt: kein Commit"
+
+makeRepo sem-untracked none
+printf 'neu\n' > "${work}/sem-untracked/untracked.txt"
+runIn sem-untracked semVerBump patch VERSION
+assertEquals "0" "${rc}" "semVerBump mit unversionierter Datei: Exit 0"
+assertEquals "VERSION" "$(git -C "${work}/sem-untracked" show --name-only --format= HEAD)" \
+    "unversionierte Datei bleibt außerhalb des Bump-Commits"
+
 makeRepo bump-ok ok
 runIn bump-ok bumpVer patch VERSION
 assertEquals "0" "${rc}" "bumpVer: Exit 0"
