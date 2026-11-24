@@ -144,22 +144,23 @@ require-tools:
 # Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus
 # make.lib.sh): die Befehle aus [project.scripts] zeigen danach auf src/ dieses
 # Checkouts. BashLib hat keine Abhängigkeiten aus Git und braucht darum kein devtools exec.
+# Danach legt clitheme install fehlende Theme-Dateien für den User an (installCliThemes);
+# das scheitert nie, ohne Themes bleibt die Ausgabe farblos.
 .PHONY: install
-install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
+install: ## Befehle aus dieser Arbeitskopie (pipx, editierbar) und CLI-Themes
 	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
+	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
 
 # Der einzige Einrichtungsweg, auch für agent-lessons (worktree_setup); wiederholbar und ohne
 # Rückfrage. Die Tests brauchen Bash, Git und python3 (Theme-Test). setup aktiviert die
 # versionierten Git-Hooks, legt die .venv an, bringt ProjectTools und CLITheme mit den Tags aus
-# .dev-tools.conf.sh nach .tools/ und legt mit clitheme install fehlende Theme-Dateien an
-# (installCliThemes scheitert nie; ohne Themes bleibt die Ausgabe farblos). Außerhalb des
-# Checkouts ändert setup nur Paket-Caches, core.hooksPath und die Theme-Dateien.
+# .dev-tools.conf.sh nach .tools/. Außerhalb des Checkouts ändert setup nur Paket-Caches und
+# core.hooksPath; die Theme-Dateien des Users legt make install an.
 .PHONY: setup
-setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in .tools/, Themes
+setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in .tools/
 	@git config core.hooksPath .githooks
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
 	@$(REQUIRE_STARTER) && $(DEV_TOOLS) install
-	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
 
 # Stempeldatei: nur setup legt sie an. Ohne Voraussetzung, weil BashLib keine Abhängigkeiten
 # hat; ein Versionssprung in pyproject.toml macht die Einrichtung so nicht veraltet.

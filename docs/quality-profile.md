@@ -147,7 +147,7 @@ ihre Zeile im README. Das ist eine Konvention; kein Werkzeug prüft es.
 | Ausnahme | Grund steht in |
 |---|---|
 | `make tag-*` zeigt nur stderr von `changelog --commit` | Kommentar am Rezept im `Makefile` |
-| `clitheme install` in `make setup` scheitert nie | Kommentar am Target `setup` im `Makefile` |
+| `clitheme install` in `make install` scheitert nie | Kommentar am Target `install` im `Makefile` |
 | `make test-package` ist nicht Teil von `make check` | Kommentar am Target im `Makefile` |
 | pre-commit warnt ohne ProjectTools nur | Kommentar in `.githooks/pre-commit` |
 | `# shellcheck disable=…` | Begründung an der jeweiligen Stelle |

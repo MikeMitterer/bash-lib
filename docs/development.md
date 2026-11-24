@@ -34,19 +34,18 @@ Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` für
-`make build` an, bringt ProjectTools und CLITheme nach `.tools/` und legt mit
-`clitheme install` fehlende CLI-Theme-Dateien an, aus denen `cli.lib.sh` das
-Theme nimmt; vorhandene bleiben unverändert. Scheitert `clitheme install`,
-läuft `make setup` weiter, und die Ausgabe der Skripte bleibt ohne Farben.
-Fehlt der Starter oder scheitert die Installation der Werkzeuge, bricht
-`make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb
-des Checkouts ändert `make setup` nur die Paket-Caches, `core.hooksPath` und
-die Theme-Dateien; `make clean` entfernt `.venv`, `.tools/`, `dist/` und
-`build/` wieder.
+`make build` an und bringt ProjectTools und CLITheme nach `.tools/`. Fehlt der
+Starter oder scheitert die Installation der Werkzeuge, bricht `make setup`
+ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
+ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
+entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
 (`installEditablePackage` aus `make.lib.sh`); die Befehle des Pakets zeigen
-danach auf `src/`. Nach einem Update erneut aufrufen, denn neue Befehle legt
+danach auf `src/`. Danach legt es mit `clitheme install` fehlende
+CLI-Theme-Dateien an, aus denen `cli.lib.sh` das Theme nimmt; vorhandene
+bleiben unverändert. Scheitert `clitheme install`, endet `make install`
+trotzdem erfolgreich, und die Ausgabe der Skripte bleibt ohne Farben. Nach einem Update erneut aufrufen, denn neue Befehle legt
 pipx nur beim Installieren an. `test/_testMakeInstall.sh` prüft die Funktion
 und das Target mit einem nachgebauten pipx und die Zeilenbreite von
 `make help`.
@@ -117,9 +116,11 @@ Pseudoterminal; dafür braucht es `python3`. Ohne installiertes clitheme schläg
 der Test fehl.
 
 `test/_testSetup.sh` prüft `make setup` in einer Kopie des Checkouts mit
-nachgebautem Starter `devtools` (installiert, scheitert, fehlt) und dem echten
-`clitheme` in eigenem `XDG_CONFIG_HOME`, dazu ein scheiterndes
-`clitheme install`. Die Themes legt `installCliThemes` aus `make.lib.sh` an.
+nachgebautem Starter `devtools` (installiert, scheitert, fehlt); dabei bleibt
+`XDG_CONFIG_HOME` leer. Dazu prüft es die Theme-Dateien von `make install`
+mit nachgebautem `pipx` und dem echten `clitheme` in eigenem
+`XDG_CONFIG_HOME`, auch mit scheiterndem `clitheme install`. Die Themes legt
+`installCliThemes` aus `make.lib.sh` an.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeTargets`, `printMakeHeading`,
 `printMakeValue`, `requireMakeSetup` in einem Wegwerf-Repo) mit
