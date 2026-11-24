@@ -2,6 +2,33 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.15.0+261124.1611.6224d — 2026-11-24
+
+make setup bringt Werkzeuge nach .tools/, make build und build-check, docs-check prüft bashlib --skill, Kennzeichnung — Maintainer entfällt
+
+### Inkompatible Änderungen
+
+- showMakeTargets wertet „— Maintainer“ nicht mehr aus (T-85) (`223d5ca`)
+
+### Neue Funktionen
+
+- setup bringt Werkzeuge nach .tools/, build und build-check (T-77) (`c6b349f`)
+- Ausgabe von bashlib --skill über SKILLS prüfen (T-82) (`d0f1576`)
+
+### Fehlerkorrekturen
+
+- hints ohne devtools command, Werkzeuge über make setup (T-79) (`69b3c77`)
+- Theme-Dateien legt make install an, nicht make setup (T-77, R1-F2) (`b253d90`)
+
+### Weitere Änderungen
+
+- Kennzeichnung „— Maintainer“ entfernt (T-84) (`f6df7b0`)
+
+### Dokumentation
+
+- semVerBump nimmt Vorgemerktes in den Bump-Commit (T-83) (`43e5fa0`)
+- Quelle von DevTools nur in .dev-tools.conf.sh (T-77) (`101b705`)
+
 ## v0.14.0+261119.1230.2ace6 — 2026-11-19
 
 bashlib --skill beschreibt Befehle und Bibliotheken für Agenten als Markdown, --help nennt die Option
