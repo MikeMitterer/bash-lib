@@ -46,8 +46,10 @@ makeRepo() {
     ( cd "${ROOT}" && git ls-files -z --cached --others --exclude-standard \
         | while IFS= read -r -d '' file; do [[ -e "${file}" ]] && printf '%s\0' "${file}"; done \
         | tar --null -T - -cf - ) | tar -xf - -C "${repo}"
-    # ProjectTools aus .tools/ dieses Checkouts (make setup); .gitignore nimmt den Link aus
+    # ProjectTools aus .tools/ und bashlib aus .venv dieses Checkouts (make setup); docs-check
+    # im pre-commit-Hook braucht beide. .gitignore nimmt die Links aus
     ln -s "${ROOT}/.tools" "${repo}/.tools"
+    ln -s "${ROOT}/.venv" "${repo}/.venv"
     git init -q -b master "${repo}"
     git -C "${repo}" config user.name "Test"
     git -C "${repo}" config user.email "test@example.invalid"

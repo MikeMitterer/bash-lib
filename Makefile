@@ -37,13 +37,15 @@ REQUIRE_STARTER = source "$${BASH_LIBS}/apps.lib.sh" && \
 # ProjectTools oder clitheme zählt nicht.
 export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 
-# Entwicklungs-venv für make build (python -m build). BashLib hat keine Laufzeit-Abhängigkeiten;
-# PYTHON_BOOTSTRAP=… überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
+# Entwicklungs-venv für make build (python -m build) und mit bashlib dieses Checkouts für
+# make docs-check (SKILLS). BashLib hat keine Laufzeit-Abhängigkeiten; PYTHON_BOOTSTRAP=…
+# überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
 PYTHON_BOOTSTRAP ?= python3
 export PYTHON_BOOTSTRAP
 VENV         := .venv
 PYTHON       := $(VENV)/bin/python
-SETUP_STAMPS := $(VENV)/.installed
+VENV_STAMP   := $(VENV)/.installed
+SETUP_STAMPS := $(VENV_STAMP) $(VENV)/bin/bashlib
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
@@ -164,13 +166,23 @@ setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in 
 
 # Stempeldatei: nur setup legt sie an. Ohne Voraussetzung, weil BashLib keine Abhängigkeiten
 # hat; ein Versionssprung in pyproject.toml macht die Einrichtung so nicht veraltet.
-$(SETUP_STAMPS):
+$(VENV_STAMP):
 	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt"
 	@test -x $(PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
 	@source "$${BASH_LIBS}/cli.lib.sh" && { $(PYTHON) -m pip install -q --disable-pip-version-check build || { \
 		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "$(VENV) eingerichtet" OK
+
+# bashlib dieses Checkouts editierbar in der .venv: docs-check prüft damit die Ausgabe von
+# bashlib --skill (SKILLS in .docs-check.conf.sh), auch in der Kopie des pre-commit-Hooks.
+# Editierbar nur mit pyproject.toml verlangt pip ab 21.3; das pip eines älteren Pythons
+# (macOS: 3.9) wird dafür zuerst angehoben.
+$(VENV)/bin/bashlib: $(VENV_STAMP)
+	@source "$${BASH_LIBS}/cli.lib.sh" && { { $(PYTHON) -m pip install -q --disable-pip-version-check --upgrade pip && \
+		$(PYTHON) -m pip install -q --disable-pip-version-check -e .; } || { \
+		printThemeStatus "✗" "bashlib nicht in $(VENV) installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
+	@touch "$@"
 
 # Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
 .PHONY: require-setup
