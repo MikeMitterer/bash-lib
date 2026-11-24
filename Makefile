@@ -62,8 +62,7 @@ help info hints: export BASH_ENV := $${BASH_LIBS}/make.lib.sh
 clitheme_export = $(eval clitheme_export := $$(shell clitheme export --bash 2>/dev/null))$(clitheme_export)
 help info hints: export CLITHEME_EXPORT = $(clitheme_export)
 
-# „— Maintainer“ am Ende wird zu [Maintainer]; {major}, {minor} und {patch} füllt
-# showMakeTargets mit der Version davor und danach.
+# {major}, {minor} und {patch} füllt showMakeTargets mit der Version davor und danach.
 .PHONY: help
 help: ## Alle verfügbaren Befehle anzeigen
 	@showMakeHeader "$${PROJECT_NAME}"
@@ -201,7 +200,7 @@ clean: ## Checkout zurücksetzen: .venv, .tools/, dist/ und build/ entfernen
 ##@ Status
 
 .PHONY: status
-status: require-tools ## Git-Status des Repos und offene Blocker-Issues — Maintainer
+status: require-tools ## Git-Status des Repos und offene Blocker-Issues
 	@repo-status --show
 
 # ─── Tests ───────────────────────────────────────────────────────────────────
@@ -257,7 +256,7 @@ build-check: ## Gebautes Paket wie ein User ohne Klon installieren und aufrufen
 ##@ Versionierung
 
 .PHONY: version
-version: precheck ## Version aus pyproject.toml und Release-Tag anzeigen — Maintainer
+version: precheck ## Version aus pyproject.toml und Release-Tag anzeigen
 	@echo
 	@source "$${BASH_LIBS}/make.lib.sh" && showProjectVersion
 	@echo
@@ -278,9 +277,9 @@ changelog: require-tools ## CHANGELOG.md aus Tags und Commits schreiben, ohne Co
 	@LANGUAGE="$${CHANGELOG_LANGUAGE}" changelog --generate
 
 .PHONY: tag-major tag-minor tag-patch
-tag-major: ## Major {major}, inkompatibel  [MSG="..."] — Maintainer
-tag-minor: ## Minor {minor}, neue Funktion  [MSG="..."] — Maintainer
-tag-patch: ## Patch {patch}, Fehlerbehebung  [MSG="..."] — Maintainer
+tag-major: ## Major {major}, inkompatibel  [MSG="..."]
+tag-minor: ## Minor {minor}, neue Funktion  [MSG="..."]
+tag-patch: ## Patch {patch}, Fehlerbehebung  [MSG="..."]
 
 # Version heben und lokal taggen, CHANGELOG.md committen, develop vorspulen; alles nur
 # lokal, veröffentlicht wird mit git push --follow-tags. Prüfung (nur auf master, develop

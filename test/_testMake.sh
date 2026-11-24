@@ -345,8 +345,9 @@ echo
 plain() { sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g'; }
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | plain)"
 assertContains "  Setup" "${help}" "make help: Gruppe Setup"
-assertContains "[Maintainer]" "$(grep -E '^ +tag-patch ' <<< "${help}")" "make help: tag-patch mit [Maintainer]"
-assertNotContains "— Maintainer" "${help}" "make help: Endung durch [Maintainer] ersetzt"
+# Die Kennzeichnung „— Maintainer“ ist abgeschafft (T-78): die echte Hilfe trägt sie nicht mehr
+assertNotContains "[Maintainer]" "${help}" "make help: kein [Maintainer]"
+assertNotContains "— Maintainer" "${help}" "make help: keine Endung „— Maintainer“"
 assertNotContains "awk" "$(sed -n '/^help:/,/^$/p' "${ROOT}/Makefile")" "Makefile: help ohne awk"
 assertNotContains "hint_row" "$(cat "${ROOT}/Makefile")" "Makefile: hints ohne hint_row"
 assertNotContains "DEV_MAKE" "$(cat "${ROOT}/Makefile")" "Makefile: ohne MakeLib (DEV_MAKE)"
