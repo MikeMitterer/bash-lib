@@ -8,6 +8,6 @@ __pycache__/
 /.worktrees/
 
 # Werkzeuge, venv und Paket aus make setup und make build
-/.tools/
-/.venv/
-/dist/
+/.tools
+/.venv
+/dist
