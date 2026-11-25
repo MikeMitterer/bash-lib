@@ -119,7 +119,8 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeValue   "Starter"        "pipx install '$(DEVTOOLS_SOURCE)@$(DEVTOOLS_TAG)'"
 	@printMakeHeading "BashLib in anderen Projekten"
 	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
-	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
+	@printMakeValue   "Im Projekt"     "BASHLIB_* in .dev-tools.conf.sh, dann make setup"
+	@printMakeValue   "Ohne Klon"      "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
 	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
 	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
 	@printMakeHeading "ProjectTools (docs-check, status, changelog, tag-version)"
