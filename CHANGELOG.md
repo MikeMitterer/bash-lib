@@ -2,6 +2,18 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.16.0+261125.1306.5dfd6 — 2026-11-25
+
+Prüf-Targets richten selbst ein (requireMakeSetup, require-tools), make uninstall mit uninstallPackage, Einrichtungsstempel über devtools tstamp, Bump-Guards nennen Ursache
+
+### Fehlerkorrekturen
+
+- Bump-Funktionen melden, was ihre Prüfung gefunden hat (T-86) (`fd1d4d1`)
+- Bare-Repo gilt als kein Arbeitsbaum (T-86, R1-F1) (`de96b01`)
+- Makefile und make.lib.sh an die makefile-conventions angleichen (T-87) (`7aa9504`)
+- hints nennt für andere Projekte .dev-tools.conf.sh und make setup (T-87) (`73f9512`)
+- DEVTOOLS\_TAG auf v0.10.0, hints ohne Starter-Installation (T-87, R1-F1, R1-F2) (`0bd57ab`)
+
 ## v0.15.0+261124.1611.6224d — 2026-11-24
 
 make setup bringt Werkzeuge nach .tools/, make build und build-check, docs-check prüft bashlib --skill, Kennzeichnung — Maintainer entfällt
