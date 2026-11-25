@@ -17,7 +17,9 @@ export MSG
 WORKSPACE    := $(CURDIR)
 WORKSPACE_SQ := '$(subst ','\'',$(WORKSPACE))'
 PROJECT_NAME := $(shell basename -- $(WORKSPACE_SQ))
-BASH_LIBS    := $(WORKSPACE)/src
+# Mit = wie im Standard-Header (makefile-conventions), aber fest src/ dieses Checkouts statt
+# .tools/bin/bashlib-path: BashLib ist hier immer da, require-bash-libs braucht es nicht.
+BASH_LIBS     = $(WORKSPACE)/src
 # Werte von außen nur über die Umgebung in Rezepte geben ("$${VAR}")
 export WORKSPACE WORKSPACE_SQ PROJECT_NAME BASH_LIBS
 
