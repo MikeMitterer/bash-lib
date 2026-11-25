@@ -11,8 +11,9 @@
 
 # DevTools selbst: der einmal je Rechner installierte Starter `devtools` gibt an diesen Tag
 # weiter, wenn er abweicht; fehlt er, nennt das Makefile `pipx install` mit Quelle und Tag.
-# Ab v0.9.0 devtools tstamp, an dem der Einrichtungsstempel der .venv hängt (T-87).
-DEVTOOLS_TAG=v0.9.0+261125.1112.8ae5a
+# Ab v0.10.0 devtools tstamp mit [project.scripts] im Stempel: Der Einrichtungsstempel der .venv
+# hängt daran, ein neuer Befehl richtet so neu ein (T-87).
+DEVTOOLS_TAG=v0.10.0+261125.1148.45c77
 DEVTOOLS_SOURCE=git+https://github.com/MikeMitterer/python-devtools.git
 
 # ProjectTools (docs-check, repo-status, changelog, repo-info ab 0.5.0;

@@ -8,8 +8,8 @@ steht im [README](../README.de.md).
 - Bash 5, Git, `python3` und [pipx](https://pipx.pypa.io).
 - Der Starter DevTools (Befehl `devtools`, Quelle `DEVTOOLS_SOURCE` in
   `.dev-tools.conf.sh`), einmal je Rechner installiert. Fehlt er, nennen
-  `make setup` und `make hints` den `pipx install` mit Quelle und Tag aus
-  `.dev-tools.conf.sh`. Verlangt das Repo einen anderen `DEVTOOLS_TAG`, gibt
+  `make setup` und die Targets, die ihn brauchen, den `pipx install` mit Quelle
+  und Tag aus `.dev-tools.conf.sh`. Verlangt das Repo einen anderen `DEVTOOLS_TAG`, gibt
   der Starter an diesen weiter.
 - [ProjectTools](https://github.com/MikeMitterer/bash-ProjectTools) für
   `make docs-check`, `make test`, `make status` und `make changelog` und
@@ -41,7 +41,8 @@ Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` an, mit
 ProjectTools und CLITheme nach `.tools/`. Der Stempel der `.venv` hängt an
 `.venv/.dependencies`, den `devtools tstamp` aus `pyproject.toml` ohne die
 Version schreibt: Ein Release macht die Einrichtung nicht veraltet, eine
-geänderte Abhängigkeit schon. Fehlt der Starter oder scheitert die
+geänderte Abhängigkeit oder ein neuer Befehl in `[project.scripts]` schon
+(ab DevTools v0.10.0, `DEVTOOLS_TAG`). Fehlt der Starter oder scheitert die
 Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.

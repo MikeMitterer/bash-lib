@@ -165,8 +165,8 @@ output="$(env -i HOME="${work}" PATH="${work}/bin:${BASE_PATH}" FAKE_LOG="${work
 assertEquals $'uninstall\nmmit-bashlib' "$(cat "${work}/log")" "make uninstall: pipx uninstall mmit-bashlib"
 assertContains "✓ mmit-bashlib entfernt" "${output}" "make uninstall: Statuszeile"
 
-# Ohne den Starter devtools: require-tools nennt seinen Installationsbefehl, info und hints
-# laufen ohne rohe Fehler.
+# Ohne den Starter devtools: require-tools nennt seinen Installationsbefehl, info verweist
+# darauf, hints läuft ohne rohe Fehler.
 runTarget() {
     output="$(env -i HOME="${work}" PATH="${BASE_PATH}" make --no-print-directory -C "${ROOT}" "$1" 2>&1 < /dev/null)"
     status=$?
@@ -203,12 +203,14 @@ assertEquals $'--project check projecttools\n--project install\n--project check 
 assertContains "ProjectTools fehlt (Ersatz)" "${output}" "require-tools: nennt den Grund von devtools"
 
 runTarget info
-assertEquals "nicht abrufbar: devtools fehlt (make hints)" "$(sed -n 's/^ *Werkzeugstand  *//p' <<< "${output}")" \
+assertEquals "nicht abrufbar: devtools fehlt (make setup nennt den Installationsbefehl)" \
+    "$(sed -n 's/^ *Werkzeugstand  *//p' <<< "${output}")" \
     "info ohne devtools: Zeile Werkzeugstand mit Hinweis statt fehlender Zeilen"
 runTarget hints
 assertEquals "0" "${status}" "hints ohne devtools: Exit 0"
 assertNotContains "nicht abrufbar" "${output}" "hints ohne devtools: keine Zeile ‚nicht abrufbar‘"
-assertContains "pipx install '$(conf DEVTOOLS_SOURCE)@$(conf DEVTOOLS_TAG)'" "${output}" "hints nennt den Starter"
+# Installationsbefehle nennt hints nicht, auch nicht den des Starters (makefile-conventions)
+assertNotContains "$(conf DEVTOOLS_SOURCE)" "${output}" "hints nennt keinen Installationsbefehl des Starters"
 
 help="$(make --no-print-directory -C "${ROOT}" help 2>&1 | sed $'s/\033\\[[0-9;]*m//g; s/\033(B//g')"
 assertContains "install" "$(grep -E '^ +install ' <<< "${help}")" "make help nennt install"

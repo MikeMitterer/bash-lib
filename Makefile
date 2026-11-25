@@ -107,7 +107,7 @@ info: ## Umgebungsvariablen anzeigen
 	@printMakeValue VERSION      "$$(readProjectVersion 2>/dev/null || echo 'keine Versionsdatei')"
 	@printMakeValue THEME        "$${THEME_NAME:-ohne clitheme (clitheme export)}"
 	@echo
-	@set -o pipefail; $(TOOLS_STATUS) || printMakeValue "Werkzeugstand" "nicht abrufbar: devtools fehlt (make hints)"
+	@set -o pipefail; $(TOOLS_STATUS) || printMakeValue "Werkzeugstand" "nicht abrufbar: devtools fehlt (make setup nennt den Installationsbefehl)"
 	@echo
 
 # Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
@@ -116,7 +116,6 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeHeading "Alltag"
 	@printMakeValue   "Neuer Checkout" "make setup"
 	@printMakeValue   "Vor dem Commit" "make check"
-	@printMakeValue   "Starter"        "pipx install '$(DEVTOOLS_SOURCE)@$(DEVTOOLS_TAG)'"
 	@printMakeHeading "BashLib in anderen Projekten"
 	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
 	@printMakeValue   "Im Projekt"     "BASHLIB_* in .dev-tools.conf.sh, dann make setup"
