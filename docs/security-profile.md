@@ -116,7 +116,7 @@ gemessen, aber nicht durch einen Test abgesichert.
 
 | Vorgang | Stelle | Was läuft, wer legt es fest |
 |---|---|---|
-| Werkzeuge einrichten und prüfen | `DEV_TOOLS` im `Makefile`, genutzt von `setup`, `require-tools`, `info` und `build` | Der einmal je Rechner installierte Starter `devtools` läuft ohne die Git-Variablen eines Hooks; verlangt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` einen anderen Stand, lädt er diesen und gibt an ihn weiter. Ein Tag ist kein fester Commit |
+| Werkzeuge einrichten und prüfen | `DEV_TOOLS` im `Makefile`, genutzt von `setup`, `require-tools`, `info` und `build`; `devtools tstamp` beim Einlesen des Makefiles, also bei jedem `make`-Aufruf | Der einmal je Rechner installierte Starter `devtools` läuft ohne die Git-Variablen eines Hooks; verlangt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` einen anderen Stand, lädt er diesen und gibt an ihn weiter. Ein Tag ist kein fester Commit |
 | `make docs-check` | `SKILLS` in `.docs-check.conf.sh` | `docs-check` startet `.venv/bin/bashlib --skill` und `--help` der Befehle und lädt jede genannte `*.lib.sh` in einer eigenen Bash, mit denselben Rechten wie die Config |
 | ProjectTools, CLITheme | `.dev-tools.conf.sh` | `make setup` installiert sie mit `devtools --project install` am dortigen Tag nach `.tools/` des Checkouts, mit rechnerlokaler Zuordnung aus den lokalen Repos, sonst von GitHub; `.tools/bin` steht im Makefile vorn im `PATH`. `THEME_CLITHEME_INSTALL` in `cli.lib.sh` nennt nur den Befehl |
 | `make build`, `make build-check` | `Makefile`, `scripts/build-check.sh` | `build` holt die Build-Abhängigkeiten aus dem Paketindex; `build-check` installiert das Wheel mit pipx in ein temporäres `PIPX_HOME`, GitHub ist dabei auf eine ungültige Adresse umgelenkt |
@@ -131,7 +131,7 @@ gemessen, aber nicht durch einen Test abgesichert.
 |---|---|---|---|
 | `clitheme export --bash` | `themeLoad` in `cli.lib.sh`; mit der Konvention aus `make.lib.sh` einmal je make-Lauf im `Makefile` | kein `eval`: `themeImport` liest die Zuweisungen selbst; `test/_testTheme.sh` prüft das mit dem echten clitheme | geprüft; bei Fehler oder unpassender Ausgabe ohne Farben und ein Hinweis |
 | `docker-machine env` | `docker.lib.sh` | Ausgabe läuft durch `eval`, ohne Anführungszeichen | nicht geprüft |
-| `tag-version`, `changelog`, `docs-check`, `repo-status`, `repo-info` | Rezepte im `Makefile` | Rezeptzeile von Make | Make bricht beim ersten Fehler ab; `require-tools` prüft ProjectTools vorher |
+| `tag-version`, `changelog`, `docs-check`, `repo-status`, `repo-info` | Rezepte im `Makefile` | Rezeptzeile von Make | Make bricht beim ersten Fehler ab; `require-tools` prüft ProjectTools vorher und ruft bei Bedarf einmal `make setup` auf |
 | `docker`, `aws` | `docker.lib.sh` | direkt, ECR-Login als Pipe | nicht geprüft, außer das aufrufende Skript setzt `set -e` |
 | `rsync --delete`, `ssh` | `samples.lib.sh`, `webapp.lib.sh` | direkt, Ziel ohne Anführungszeichen; **löscht auf dem Zielrechner** | nicht geprüft, außer das aufrufende Skript setzt `set -e` |
 

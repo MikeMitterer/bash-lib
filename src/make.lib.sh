@@ -16,8 +16,8 @@ readonly __MAKE_LIB__="make.lib.sh";
 #
 # Für Agenten (bashlib --skill):
 #     Zweck:   Hilfe, Hinweise, Version und Einrichtung für Makefiles im CLI-Theme
-#     Wann:    `make help`, `make info` oder `make hints` ausgeben, Prüf-Targets an `make setup` binden, ein Paket editierbar mit pipx installieren
-#     Wichtig: showMakeHeader, showMakeTargets, printMakeHeading, printMakeValue, requireMakeSetup, installEditablePackage, showProjectVersion
+#     Wann:    `make help`, `make info` oder `make hints` ausgeben, Prüf-Targets bei Bedarf `make setup` aufrufen lassen, ein Paket editierbar mit pipx installieren und entfernen
+#     Wichtig: showMakeHeader, showMakeTargets, printMakeHeading, printMakeValue, requireMakeSetup, installEditablePackage, uninstallPackage, showProjectVersion
 #
 # Einbinden:
 #     if [[ "${__MAKE_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/make.lib.sh"; fi
@@ -246,19 +246,21 @@ printMakeValue() {
     printThemeValue "$(themeEscape "${1}")" "$(themeEscape "${2-}")"
 }
 
-# Prüft für Prüf-Targets (test, check), ob das Projekt mit make setup eingerichtet ist:
+# Richtet für Prüf-Targets (test, check, docs-check) bei Bedarf mit make setup ein:
 # --hooks DIR verlangt git config core.hooksPath = DIR, --make MAKE STEMPEL… verlangt,
-# dass `MAKE -q STEMPEL…` die Stempeldateien als aktuell meldet. Fehlt etwas, steht
-# „✗ Nicht eingerichtet“ und darunter `make setup` auf stderr; das Skript endet nicht.
+# dass `MAKE -q STEMPEL…` die Stempeldateien als aktuell meldet. Fehlt etwas oder ist es
+# veraltet, steht „Nicht eingerichtet oder veraltet, make setup läuft“ auf stderr, und
+# `MAKE setup` läuft im aktuellen Ordner; danach wird noch einmal geprüft. Ist alles
+# aktuell, startet nichts. setup bleibt der einzige Einrichtungsweg (makefile-conventions).
 #
 # Usage (im Makefile):
-#     @source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks
+#     @source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks --make "$(MAKE)"
 #     @source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --make "$(MAKE)" .venv/.installed
 #
 # Exit:
-#     0  eingerichtet
-#     1  nicht eingerichtet (Meldung auf stderr)
-#     2  Aufruf falsch: keine Prüfung, Stempel ohne --make oder unbekannte Option
+#     0  eingerichtet, schon vorher oder durch make setup
+#     1  make setup gescheitert oder danach weiter nicht eingerichtet (Meldung auf stderr)
+#     2  Aufruf falsch: keine Prüfung, kein --make oder unbekannte Option
 #
 requireMakeSetup() {
     local _hooks="" _make=""
@@ -281,27 +283,38 @@ requireMakeSetup() {
         esac
     done
     if [[ -z ${_hooks} && ${#_stamps[@]} -eq 0 ]]; then
-        printf 'requireMakeSetup: --hooks DIR oder --make MAKE STEMPEL… erwartet\n' >&2
+        printf 'requireMakeSetup: --hooks DIR oder STEMPEL… erwartet\n' >&2
         return 2
     fi
-    if (( ${#_stamps[@]} > 0 )) && [[ -z ${_make} ]]; then
-        printf 'requireMakeSetup: Stempel brauchen --make MAKE\n' >&2
+    # Das make des Aufrufers prüft die Stempel und startet setup
+    if [[ -z ${_make} ]]; then
+        printf 'requireMakeSetup: --make MAKE erwartet\n' >&2
         return 2
     fi
 
-    local _ready=yes
-    if [[ -n ${_hooks} && "$(git config core.hooksPath 2>/dev/null)" != "${_hooks}" ]]; then
-        _ready=no
+    _makeSetupReady "${_hooks}" "${_make}" "${_stamps[@]}" && return 0
+    printThemeStatus "→" "Nicht eingerichtet oder veraltet, make setup läuft" WARN >&2
+    if ! "${_make}" --no-print-directory setup; then
+        printThemeStatus "✗" "make setup gescheitert (siehe oben)" ERR >&2
+        return 1
     fi
-    if (( ${#_stamps[@]} > 0 )) && ! "${_make}" -q "${_stamps[@]}" >/dev/null 2>&1; then
-        _ready=no
-    fi
-    [[ ${_ready} == no ]] || return 0
-    {
-        printThemeStatus "✗" "Nicht eingerichtet" ERR
-        printThemeHint "make setup"
-    } >&2
+    _makeSetupReady "${_hooks}" "${_make}" "${_stamps[@]}" && return 0
+    printThemeStatus "✗" "Nach make setup weiter nicht eingerichtet: $(themeEscape "${_hooks:+core.hooksPath ${_hooks} }${_stamps[*]}")" ERR >&2
     return 1
+}
+
+# 0, wenn core.hooksPath gleich $1 ist (leer: nicht geprüft) und `$2 -q` die Stempel
+# ab $3 als aktuell meldet (keine: nicht geprüft). Für requireMakeSetup.
+_makeSetupReady() {
+    local -r _HOOKS="${1}" _MAKE="${2}"
+    shift 2
+    if [[ -n ${_HOOKS} && "$(git config core.hooksPath 2>/dev/null)" != "${_HOOKS}" ]]; then
+        return 1
+    fi
+    if (( $# > 0 )) && ! "${_MAKE}" -q "$@" >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
 }
 
 # Installiert die Arbeitskopie DIR editierbar mit pipx (`pipx install -e --force DIR`):
@@ -338,6 +351,46 @@ installEditablePackage() {
     fi
     _commands="$(readPackageCommands "${1}")" || _commands="Paket"
     printThemeStatus "✓" "${_commands//$'\n'/, } aus $(themeEscape "${1}")" OK
+}
+
+# Gegenstück zu installEditablePackage: entfernt das Paket der Arbeitskopie DIR (Name aus
+# DIR/pyproject.toml, readPackageName) mit `pipx uninstall`. Bei Erfolg steht „✓ NAME
+# entfernt“ da; ist es nicht installiert, „– NAME nicht installiert“, ohne Fehler. Fehlt
+# pipx oder der Paketname, oder scheitert pipx, steht der Grund auf stderr.
+#
+# Usage (im Makefile):
+#     uninstall: ## Befehle von make install entfernen (pipx)
+#         @source "$${BASH_LIBS}/make.lib.sh" && uninstallPackage "$${WORKSPACE}"
+#
+# Exit:
+#     0  entfernt oder nicht installiert
+#     1  kein Paketname, pipx fehlt oder pipx uninstall gescheitert (Meldung auf stderr)
+#     2  Aufruf falsch: kein DIR
+#
+uninstallPackage() {
+    if (( $# != 1 )) || [[ -z ${1} ]]; then
+        printf 'uninstallPackage: DIR erwartet\n' >&2
+        return 2
+    fi
+    local _name _output
+    if ! _name="$(readPackageName "${1}")"; then
+        printThemeStatus "✗" "kein Paketname in $(themeEscape "${1}")/pyproject.toml" ERR >&2
+        return 1
+    fi
+    # shellcheck source=SCRIPTDIR/apps.lib.sh
+    if [[ "${__APPS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/apps.lib.sh"; fi
+    requireCommand pipx "https://pipx.pypa.io" || return 1
+    # pipx list --short: je Paket „NAME VERSION“
+    if ! pipx list --short 2>/dev/null | awk -v name="${_name}" '$1 == name { found = 1 } END { exit !found }'; then
+        printThemeStatus "–" "${_name} nicht installiert" OK
+        return 0
+    fi
+    if ! _output="$(pipx uninstall "${_name}" 2>&1)"; then
+        printf '%s\n' "${_output}" >&2
+        printThemeStatus "✗" "pipx uninstall fehlgeschlagen" ERR >&2
+        return 1
+    fi
+    printThemeStatus "✓" "${_name} entfernt" OK
 }
 
 # Legt mit clitheme install fehlende Theme-Dateien an (vorhandene bleiben) und meldet den

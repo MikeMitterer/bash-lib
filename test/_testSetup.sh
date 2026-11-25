@@ -36,14 +36,18 @@ cp "${ROOT}/Makefile" "${ROOT}/.dev-tools.conf.sh" "${ROOT}/pyproject.toml" "${r
 ln -s "${ROOT}/src" "${repo}/src"
 mkdir "${repo}/.githooks"
 mkdir "${repo}/.venv/bin"
+# Reihenfolge der Stempel wie nach make setup: Abhängigkeiten, .venv, bashlib
+touch "${repo}/.venv/.dependencies"
 touch "${repo}/.venv/.installed"
 touch "${repo}/.venv/bin/bashlib"
 git init -q "${repo}"
 
-# Nachgebautes devtools (Starter): hält die Argumente fest, scheitert mit FAKE_FAIL
+# Nachgebautes devtools (Starter): hält die Argumente fest, scheitert mit FAKE_FAIL; tstamp
+# beim Einlesen des Makefiles lässt den Stempel der Abhängigkeiten, wie er ist
 mkdir -p "${work}/devtools-bin" "${work}/pipx-bin" "${work}/theme-bin"
 cat > "${work}/devtools-bin/devtools" <<'EOF'
 #!/usr/bin/env bash
+[[ ${1:-} != tstamp ]] || exit 0
 printf '%s\n' "$*" >> "${FAKE_LOG}"
 [[ -z ${FAKE_FAIL:-} ]] || { echo "  ✗ ProjectTools nicht installiert" >&2; exit 1; }
 EOF

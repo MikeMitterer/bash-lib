@@ -68,7 +68,10 @@ runHints tagged
 assertEquals "0" "${rc}" "Exit 0"
 assertEquals "https://github.com/Example/demo" "$(row Repository Links)" "Repository: SSH-Remote als https-Adresse"
 assertEquals "pipx install 'git+https://github.com/Example/demo.git@v1.2.3'" \
-    "$(row Installieren 'BashLib in anderen Projekten')" "Installieren: v-Tag, nicht der neuere deploy-Tag"
+    "$(row 'Ohne Klon' 'BashLib in anderen Projekten')" "Ohne Klon: v-Tag, nicht der neuere deploy-Tag"
+# In einem Projekt kommt BashLib über .dev-tools.conf.sh und make setup, nicht über pipx
+assertEquals "BASHLIB_* in .dev-tools.conf.sh, dann make setup" \
+    "$(row 'Im Projekt' 'BashLib in anderen Projekten')" "Im Projekt: .dev-tools.conf.sh und make setup"
 # Werkzeuge richtet make setup ein; hints fragt devtools nicht nach Installationsbefehlen
 assertEquals "make setup" "$(row Einrichten 'ProjectTools')" "ProjectTools: Einrichten über make setup"
 assertEquals "make setup" "$(row Einrichten 'CLITheme')" "CLITheme: Einrichten über make setup"
@@ -79,8 +82,8 @@ runHints local
 assertEquals "0" "${rc}" "ohne Remote: Exit 0"
 noRemote="$(cd "${work}/local" && repo-info --url)"
 assertEquals "${noRemote}" "$(row Repository Links)" "ohne Remote: Ersatz von repo-info"
-assertEquals "${noRemote}" "$(row Installieren 'BashLib in anderen Projekten')" \
-    "ohne Remote: Installieren nennt den Ersatz, keinen kaputten pipx-Befehl"
+assertEquals "${noRemote}" "$(row 'Ohne Klon' 'BashLib in anderen Projekten')" \
+    "ohne Remote: Ohne Klon nennt den Ersatz, keinen kaputten pipx-Befehl"
 
 # Ohne ProjectTools (kein repo-info im PATH): Hinweis statt leerer Zeile
 runHints tagged PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin:$(dirname "$(command -v make)")"

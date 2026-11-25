@@ -47,6 +47,13 @@ PYTHON       := $(VENV)/bin/python
 VENV_STAMP   := $(VENV)/.installed
 SETUP_STAMPS := $(VENV_STAMP) $(VENV)/bin/bashlib
 
+# Abhängigkeiten aus pyproject.toml ohne Version als eigener Stempel (makefile-conventions,
+# Einrichtungsstempel): devtools tstamp schreibt ihn nur, wenn sie sich ändern; ein Release
+# macht die Einrichtung so nicht veraltet. Beim Einlesen, damit make -q (require-setup) den
+# neuen Stand sieht.
+DEPENDENCIES := $(VENV)/.dependencies
+$(shell devtools tstamp $(DEPENDENCIES) pyproject.toml 2>/dev/null)
+
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
 # Liste der Makefiles unausgewertet über die Umgebung (siehe Standard-Header)
@@ -85,8 +92,11 @@ PACKAGE_CMD  = $(firstword $(PACKAGE_CMDS))
 NO_PACKAGE   := nicht lesbar (pyproject.toml, [project] name)
 PACKAGE      = $(or $(PACKAGE_NAME),$(NO_PACKAGE))
 
-# Die Zeilen von devtools status rückt devtools um zwei Zeichen ein; fünf mehr stellen
-# sie unter die Werte oben.
+# Den Werkzeugstand gibt devtools status je Werkzeug als Name und Wert aus; printMakeValue
+# stellt ihn in dieselben Spalten wie die Werte darüber.
+TOOLS_STATUS = $(DEV_TOOLS) status 2>/dev/null | while read -r name value; do \
+	[[ -z "$$name" ]] || printMakeValue "$$name" "$$value"; done
+
 .PHONY: info
 info: ## Umgebungsvariablen anzeigen
 	@echo
@@ -97,7 +107,7 @@ info: ## Umgebungsvariablen anzeigen
 	@printMakeValue VERSION      "$$(readProjectVersion 2>/dev/null || echo 'keine Versionsdatei')"
 	@printMakeValue THEME        "$${THEME_NAME:-ohne clitheme (clitheme export)}"
 	@echo
-	@set -o pipefail; $(DEV_TOOLS) status 2>/dev/null | sed 's/^/     /' || echo "       Werkzeugstand nicht abrufbar: devtools fehlt (make hints)"
+	@set -o pipefail; $(TOOLS_STATUS) || printMakeValue "Werkzeugstand" "nicht abrufbar: devtools fehlt (make setup nennt den Installationsbefehl)"
 	@echo
 
 # Die Make-Werte in den Zeilen sind oben auf erlaubte Zeichen geprüft.
@@ -106,37 +116,31 @@ hints: ## Nützliche Links und Hinweise anzeigen
 	@printMakeHeading "Alltag"
 	@printMakeValue   "Neuer Checkout" "make setup"
 	@printMakeValue   "Vor dem Commit" "make check"
-	@printMakeValue   "Starter"        "pipx install '$(DEVTOOLS_SOURCE)@$(DEVTOOLS_TAG)'"
 	@printMakeHeading "BashLib in anderen Projekten"
 	@printMakeValue   "Paket"          '$(PACKAGE)$(if $(PACKAGE_CMD), (Befehl $(PACKAGE_CMD)))'
-	@printMakeValue   "Installieren"   "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
+	@printMakeValue   "Im Projekt"     "BASHLIB_* in .dev-tools.conf.sh, dann make setup"
+	@printMakeValue   "Ohne Klon"      "$(if $(filter https://%,$(REPO_URL)),pipx install 'git+$(REPO_URL).git@$(RELEASE_TAG)',$(REPO_URL))"
 	@printMakeValue   "Arbeitskopie"   "pipx install -e $${WORKSPACE_SQ}"
 	@printMakeValue   "Umgebung"       'export BASH_LIBS=$$(bashlib-path)'
 	@printMakeHeading "ProjectTools (docs-check, status, changelog, tag-version)"
 	@printMakeValue   "Einrichten"     "make setup"
 	@printMakeHeading "CLITheme (Farben und Abstände der Ausgabe)"
 	@printMakeValue   "Einrichten"     "make setup"
-	@printMakeValue   "Themes anlegen" "clitheme install (macht make setup)"
+	@printMakeValue   "Themes anlegen" "make install (ruft clitheme install)"
 	@printMakeValue   "Auswahl"        "export CLI_THEME=ocean"
 	@printMakeHeading "Links"
 	@printMakeValue   "Repository"     '$(REPO_URL)'
 	@echo
 
-# ─── Precheck ────────────────────────────────────────────────────────────────
+# ─── Werkzeuge ───────────────────────────────────────────────────────────────
 
-# Ohne `##`: nicht in der Hilfe, läuft als Abhängigkeit von version und tag-*.
-# Bewusst ohne printThemeStatus: precheck meldet gerade, dass BashLib fehlt.
-.PHONY: precheck
-precheck:
-	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
-		echo "Achtung: 'BASH_LIBS' fehlt oder enthält keine lesbare version.lib.sh!" >&2; \
-		exit 1; \
-	fi
-
-# Ohne `##`: verlangt ProjectTools in .tools/ in Mindestversion und nennt sonst den Grund.
+# Ohne `##`: verlangt ProjectTools in .tools/ in der Version aus .dev-tools.conf.sh. Fehlt es
+# oder ist es zu alt, läuft einmal make setup; reicht das nicht (etwa ein zu alter Tag in
+# .dev-tools.conf.sh), nennt devtools den Grund.
 .PHONY: require-tools
 require-tools:
-	@$(REQUIRE_STARTER) && $(DEV_TOOLS) check projecttools
+	@$(REQUIRE_STARTER) && { $(DEV_TOOLS) check projecttools >/dev/null 2>&1 || \
+		{ $(MAKE) --no-print-directory setup && $(DEV_TOOLS) check projecttools; }; }
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -152,6 +156,12 @@ install: ## Befehle aus dieser Arbeitskopie (pipx, editierbar) und CLI-Themes
 	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
 	@source "$${BASH_LIBS}/make.lib.sh" && installCliThemes || true
 
+# Gegenstück zu install: entfernt das Paket aus pyproject.toml mit pipx (uninstallPackage aus
+# make.lib.sh). Die CLI-Themes bleiben; sie gehören clitheme und anderen Werkzeugen.
+.PHONY: uninstall
+uninstall: ## Befehle von make install entfernen (pipx)
+	@source "$${BASH_LIBS}/make.lib.sh" && uninstallPackage "$${WORKSPACE}"
+
 # Der einzige Einrichtungsweg, auch für agent-lessons (worktree_setup); wiederholbar und ohne
 # Rückfrage. Die Tests brauchen Bash, Git und python3 (Theme-Test). setup aktiviert die
 # versionierten Git-Hooks, legt die .venv an, bringt ProjectTools und CLITheme mit den Tags aus
@@ -163,9 +173,9 @@ setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in 
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "Git-Hooks aus .githooks aktiv" OK
 	@$(REQUIRE_STARTER) && $(DEV_TOOLS) install
 
-# Stempeldatei: nur setup legt sie an. Ohne Voraussetzung, weil BashLib keine Abhängigkeiten
-# hat; ein Versionssprung in pyproject.toml macht die Einrichtung so nicht veraltet.
-$(VENV_STAMP):
+# Stempeldatei: nur setup legt sie an. Sie hängt an den Abhängigkeiten ohne Version
+# (DEPENDENCIES); ein Versionssprung in pyproject.toml macht die Einrichtung nicht veraltet.
+$(VENV_STAMP): $(DEPENDENCIES)
 	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt"
 	@test -x $(PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
 	@source "$${BASH_LIBS}/cli.lib.sh" && { $(PYTHON) -m pip install -q --disable-pip-version-check build || { \
@@ -183,7 +193,12 @@ $(VENV)/bin/bashlib: $(VENV_STAMP)
 		printThemeStatus "✗" "bashlib nicht in $(VENV) installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
 
-# Prüf-Targets richten nichts ein; setup ist der einzige Weg (worktree_setup).
+# Fehlt der Stempel (etwa ohne devtools beim Einlesen), legt diese Regel ihn an.
+$(DEPENDENCIES):
+	@$(REQUIRE_STARTER) && devtools tstamp "$@" pyproject.toml
+
+# Ohne `##`: Fehlt die Einrichtung oder ist sie veraltet, läuft make setup (requireMakeSetup),
+# sonst nichts. Eingerichtet wird weiter nur über setup (worktree_setup).
 .PHONY: require-setup
 require-setup:
 	@source "$${BASH_LIBS}/make.lib.sh" && requireMakeSetup --hooks .githooks --make "$(MAKE)" $(SETUP_STAMPS)
@@ -211,12 +226,18 @@ status: require-tools ## Git-Status des Repos und offene Blocker-Issues
 .PHONY: check
 check: test ## Voller Prüflauf — Doku und alle Bash-Tests
 
+# require-setup zuerst: Es richtet bei Bedarf ein, bevor etwas anläuft.
 .PHONY: test
-test: docs-check require-setup ## Doku prüfen und Bash-Tests ausführen (test/testAll.sh)
+test: require-setup require-tools docs-check-only ## Doku prüfen und Bash-Tests ausführen (test/testAll.sh)
 	@./test/testAll.sh
 
 .PHONY: docs-check
-docs-check: require-tools ## Nutzerdoku gegen das Projekt prüfen (Links, Befehle, Begriffe)
+docs-check: require-setup require-tools docs-check-only ## Nutzerdoku gegen das Projekt prüfen (Links, Befehle, Begriffe)
+
+# Ohne `##`: die Prüfung ohne Einrichtung, für test und die Kopie im pre-commit-Hook; beide
+# rufen vorher require-setup und require-tools im Checkout auf.
+.PHONY: docs-check-only
+docs-check-only:
 	@docs-check --run
 
 # Installiert Pakete in temporäre venvs und braucht den Paketindex; deshalb
@@ -254,6 +275,15 @@ build-check: ## Gebautes Paket wie ein User ohne Klon installieren und aufrufen
 # dieser BashLib nutzt (BASH_LIBS oben); das Rezept steht am Ende des Abschnitts.
 
 ##@ Versionierung
+
+# Ohne `##`: nicht in der Hilfe, läuft als Abhängigkeit von version, tags und tag-*.
+# Bewusst ohne printThemeStatus: precheck meldet gerade, dass BashLib fehlt.
+.PHONY: precheck
+precheck:
+	@if [[ ! -r "$${BASH_LIBS:-}/version.lib.sh" ]]; then \
+		echo "Achtung: 'BASH_LIBS' fehlt oder enthält keine lesbare version.lib.sh!" >&2; \
+		exit 1; \
+	fi
 
 .PHONY: version
 version: precheck ## Version aus pyproject.toml und Release-Tag anzeigen

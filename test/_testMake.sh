@@ -292,11 +292,18 @@ echo
 echo "requireMakeSetup"
 echo
 
-# Wegwerf-Repo: setup legt .stamp an; die Prüfung läuft im Repo (git, make -q)
+# Wegwerf-Repo: setup legt .stamp an, setzt core.hooksPath und zählt seine Läufe in
+# setup.count. SETUP_FAIL lässt setup scheitern, SETUP_SKIP lässt den Stempel aus.
 setup="${work}/setup"
 mkdir -p "${setup}"
 git init -q "${setup}"
-printf '.stamp: input\n\ttouch .stamp\n' > "${setup}/Makefile"
+printf '%s\n' \
+    '.stamp: input' \
+    $'\t@test -n "$${SETUP_SKIP:-}" || touch .stamp' \
+    'setup: .stamp' \
+    $'\t@echo lief >> setup.count' \
+    $'\t@test -z "$${SETUP_FAIL:-}"' \
+    $'\t@git config core.hooksPath .githooks' > "${setup}/Makefile"
 touch "${setup}/input"
 # Setzt rc, out und err für requireMakeSetup "$@", aufgerufen im Wegwerf-Repo
 readSetup() {
@@ -305,29 +312,50 @@ readSetup() {
      printf '%s' "${err}" > "${work}/setup.err")
     rc="$(cat "${work}/setup.rc")"; out="$(cat "${work}/setup.out")"; err="$(cat "${work}/setup.err")"
 }
+# Anzahl der setup-Läufe seit dem letzten Aufruf; leert danach den Zähler
+setupRuns() {
+    touch "${setup}/setup.count"
+    wc -l < "${setup}/setup.count" | tr -d ' '
+    : > "${setup}/setup.count"
+}
 
-readSetup --hooks .githooks
-assertEquals "1" "${rc}" "hooksPath fehlt: Rückgabe 1"
-assertContains "Nicht eingerichtet" "${err}" "hooksPath fehlt: Meldung auf stderr"
-assertContains $'\n       make setup' "${err}" "hooksPath fehlt: nächster Schritt in eigener Zeile"
-assertEquals "" "${out}" "hooksPath fehlt: nichts auf stdout"
-git -C "${setup}" config core.hooksPath .githooks
-readSetup --hooks .githooks
-assertEquals "0" "${rc}" "hooksPath gesetzt: Rückgabe 0"
-assertEquals "" "${err}" "hooksPath gesetzt: keine Meldung"
-
-readSetup --make make .stamp
-assertEquals "1" "${rc}" "Stempel fehlt: Rückgabe 1"
-assertContains "Nicht eingerichtet" "${err}" "Stempel fehlt: Meldung"
-(cd "${setup}" && make -s .stamp)
-readSetup --make make .stamp
-assertEquals "0" "${rc}" "Stempel aktuell: Rückgabe 0"
-sleep 1; touch "${setup}/input"
 readSetup --hooks .githooks --make make .stamp
-assertEquals "1" "${rc}" "Stempel veraltet: Rückgabe 1, auch wenn hooksPath stimmt"
+assertEquals "0" "${rc}" "nicht eingerichtet: make setup läuft, Rückgabe 0"
+assertEquals "1" "$(setupRuns)" "nicht eingerichtet: genau ein make setup"
+assertContains "Nicht eingerichtet oder veraltet, make setup läuft" "${err}" "nicht eingerichtet: Meldung auf stderr"
+assertEquals ".githooks" "$(git -C "${setup}" config core.hooksPath)" "nach make setup: core.hooksPath gesetzt"
+assertEquals "yes" "$([[ -e ${setup}/.stamp ]] && echo yes || echo no)" "nach make setup: Stempel da"
+
+readSetup --hooks .githooks --make make .stamp
+assertEquals "0" "${rc}" "eingerichtet: Rückgabe 0"
+assertEquals "0" "$(setupRuns)" "eingerichtet: kein make setup"
+assertEquals "" "${err}" "eingerichtet: keine Meldung"
+
+sleep 1; touch "${setup}/input"
+readSetup --make make .stamp
+assertEquals "0" "${rc}" "Stempel veraltet: Rückgabe 0 nach make setup"
+assertEquals "1" "$(setupRuns)" "Stempel veraltet: genau ein make setup"
+
+git -C "${setup}" config --unset core.hooksPath
+export SETUP_FAIL=1
+readSetup --hooks .githooks --make make
+unset SETUP_FAIL
+assertEquals "1" "${rc}" "make setup scheitert: Rückgabe 1"
+assertContains "make setup gescheitert" "${err}" "make setup scheitert: Meldung"
+setupRuns >/dev/null
+
+sleep 1; touch "${setup}/input"
+export SETUP_SKIP=1
+readSetup --hooks .githooks --make make .stamp
+unset SETUP_SKIP
+assertEquals "1" "${rc}" "Stempel fehlt nach make setup: Rückgabe 1"
+assertContains "Nach make setup weiter nicht eingerichtet: core.hooksPath .githooks .stamp" "${err}" \
+    "Stempel fehlt nach make setup: nennt Prüfungen"
+setupRuns >/dev/null
 
 readSetup .stamp
-assertEquals "2" "${rc}" "Stempel ohne --make: Aufruffehler Exit 2"
+assertEquals "2" "${rc}" "ohne --make: Aufruffehler Exit 2"
+assertEquals "0" "$(setupRuns)" "ohne --make: kein make setup"
 readSetup
 assertEquals "2" "${rc}" "ohne Prüfung: Aufruffehler Exit 2"
 # Option ohne Wert am Ende (etwa aus einer leeren Make-Variable): Exit 2, keine Endlosschleife
