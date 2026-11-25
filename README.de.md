@@ -143,7 +143,7 @@ statt abzubrechen.
 | `tools.lib.sh` | Allzweck-Helfer (`trim`, `repeat`, `scriptToDoc`, `logFileStatus`, `showModuleLinks`); lädt die Bibliotheken rechts | cli, apps, dtime, version |
 | `cli.lib.sh` | Ausgabe im CLI-Theme: Theme von clitheme, `printThemeHeading`, `printThemeRow`, `printThemeValue`, `printThemeOption`, `printThemeExample`, `printThemeHint`, `printThemeStatus`, `usageLine`, `showMenu` | colors |
 | `colors.lib.sh` | Feste ANSI-Farbpalette (`RED`, `GREEN`, `NC` …) | – |
-| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), Einrichtung für Prüf-Targets prüfen (`requireMakeSetup`), editierbar mit pipx installieren (`installEditablePackage`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | cli, version |
+| `make.lib.sh` | Hilfe und Hinweise für Makefiles im CLI-Theme (`printMakeHeading`, `printMakeValue`, `showMakeHeader`, `showMakeTargets`), Prüf-Targets bei Bedarf einrichten (`requireMakeSetup`), editierbar mit pipx installieren und entfernen (`installEditablePackage`, `uninstallPackage`), Version und Release-Tags (`showProjectVersion`, `showReleaseTags`) | cli, version |
 | `apps.lib.sh` | Pfade der verwendeten Werkzeuge, `checkIfToolIsAvailable`, fehlender Befehl mit Hinweis (`requireCommand`) | logging, os, cli |
 | `logging.lib.sh` | Logging für Skripte | – |
 | `os.lib.sh` | Betriebssystem erkennen | – |
@@ -185,10 +185,12 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   `{major}`, `{minor}` und `{patch}` zeigen die Projektversion und die Version
   vor und nach jeder Release-Art, etwa „0.6.0 → 0.7.0“; `--set` füllt weitere
   Platzhalter, unbekannte bleiben stehen.
-- **`requireMakeSetup --hooks DIR` / `--make MAKE STAMP…`** meldet
-  „Nicht eingerichtet“ und `make setup` auf stderr, wenn `core.hooksPath` nicht
-  `DIR` ist oder `MAKE -q` die Stempeldateien als veraltet meldet, etwa
-  `requireMakeSetup --make "$(MAKE)" .venv/.installed`.
+- **`requireMakeSetup [--hooks DIR] --make MAKE [STAMP…]`** ruft
+  `MAKE setup` auf, wenn `core.hooksPath` nicht `DIR` ist oder `MAKE -q` die
+  Stempeldateien als fehlend oder veraltet meldet, mit „Nicht eingerichtet
+  oder veraltet, make setup läuft“ auf stderr; ist alles aktuell, startet es
+  nichts. Scheitert `make setup` oder die Prüfung danach, endet es mit Exit 1;
+  etwa `requireMakeSetup --hooks .githooks --make "$(MAKE)" .venv/.installed`.
 - **`installEditablePackage DIR`** installiert die Arbeitskopie `DIR`
   editierbar mit pipx (`pipx install -e --force DIR`) und meldet
   „✓ BEFEHLE aus DIR“ mit den Befehlen aus `[project.scripts]`. Ohne pipx
@@ -200,6 +202,11 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   install: ## Befehle des Pakets aus dieser Arbeitskopie (pipx, editierbar)
   	@source "$${BASH_LIBS}/make.lib.sh" && installEditablePackage "$${WORKSPACE}"
   ```
+
+- **`uninstallPackage DIR`** entfernt das Paket aus `DIR/pyproject.toml` mit
+  `pipx uninstall` und meldet „✓ NAME entfernt“; ist es nicht installiert,
+  „– NAME nicht installiert“ mit Exit 0. Ohne Paketname oder pipx, oder
+  scheitert pipx, steht der Grund auf stderr, mit Exit 1.
 
 `BASH_ENV` lädt `make.lib.sh` nur in die Rezeptzeilen der Anzeige-Targets.
 Bash wertet den Wert von `BASH_ENV` aus, deshalb nennt er `$${BASH_LIBS}`

@@ -17,8 +17,9 @@ steht im [README](../README.de.md).
   `clitheme`) für Farben und Abstände der Ausgabe. Beide bringt `make setup`
   über `devtools --project install` nach `.tools/` des Checkouts, mit den Tags
   aus `.dev-tools.conf.sh`; ein global installiertes zählt nicht. `make info`
-  zeigt den Stand. Fehlt ProjectTools oder ist es zu alt, brechen diese
-  Targets ab und nennen den Grund. `make hints` nimmt Repo-Adresse und letzten
+  zeigt den Stand. Fehlt ProjectTools oder ist es zu alt, rufen diese
+  Targets einmal `make setup` auf; reicht das nicht, brechen sie ab und nennen
+  den Grund von devtools. `make hints` nimmt Repo-Adresse und letzten
   Release-Tag aus `repo-info`; ohne ProjectTools nennt es den Grund statt der
   Werte.
 
@@ -29,13 +30,18 @@ make setup
 make check
 ```
 
-`make setup` aktiviert die Git-Hooks aus `.githooks`: pre-commit prüft die
-Doku des vorgemerkten Stands mit `make docs-check`, post-commit ruft einen
+`make setup` aktiviert die Git-Hooks aus `.githooks`: pre-commit richtet im
+Checkout bei Bedarf ein (`require-setup`, `require-tools`) und prüft dann die
+Doku des vorgemerkten Stands mit `make docs-check-only`; scheitert die
+Einrichtung, bricht der Commit ab. post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` an, mit
 `build` für `make build` und bashlib dieses Checkouts editierbar, und bringt
-ProjectTools und CLITheme nach `.tools/`. Fehlt der Starter oder scheitert die
+ProjectTools und CLITheme nach `.tools/`. Der Stempel der `.venv` hängt an
+`.venv/.dependencies`, den `devtools tstamp` aus `pyproject.toml` ohne die
+Version schreibt: Ein Release macht die Einrichtung nicht veraltet, eine
+geänderte Abhängigkeit schon. Fehlt der Starter oder scheitert die
 Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
@@ -54,12 +60,14 @@ danach auf `src/`. Danach legt es mit `clitheme install` fehlende
 CLI-Theme-Dateien an, aus denen `cli.lib.sh` das Theme nimmt; vorhandene
 bleiben unverändert. Scheitert `clitheme install`, endet `make install`
 trotzdem erfolgreich, und die Ausgabe der Skripte bleibt ohne Farben. Nach einem Update erneut aufrufen, denn neue Befehle legt
-pipx nur beim Installieren an. `test/_testMakeInstall.sh` prüft die Funktion
-und das Target mit einem nachgebauten pipx und die Zeilenbreite von
-`make help`.
+pipx nur beim Installieren an. `make uninstall` entfernt das Paket wieder
+(`uninstallPackage`); die CLI-Themes bleiben. `test/_testMakeInstall.sh` prüft beide Funktionen
+und Targets mit einem nachgebauten pipx, `require-tools` mit einem devtools,
+dessen Prüfung scheitert (einmal `make setup`, dann erneut prüfen), und die
+Zeilenbreite von `make help`.
 
-`make check` ist der volle Prüflauf (Doku und alle Bash-Tests); ohne
-`make setup` oder ohne `.venv` bricht er mit einem Hinweis ab. `make help` listet alle Targets,
+`make check` ist der volle Prüflauf (Doku und alle Bash-Tests); fehlt die
+Einrichtung oder ist sie veraltet, ruft er vorher `make setup` auf. `make help` listet alle Targets,
 `make hints` die Befehle für den ersten Start.
 
 `make test` prüft die Doku und startet `test/testAll.sh`. Die Tests laden
@@ -136,7 +144,8 @@ mit nachgebautem `pipx` und dem echten `clitheme` in eigenem
 `installCliThemes` aus `make.lib.sh` an.
 
 `test/_testMake.sh` prüft `make.lib.sh` (`showMakeHeader`, `showMakeTargets`, `printMakeHeading`,
-`printMakeValue`, `requireMakeSetup` in einem Wegwerf-Repo) mit
+`printMakeValue`, `requireMakeSetup` mit einem `make setup`, das einrichtet, scheitert oder den
+Stempel auslässt, in einem Wegwerf-Repo) mit
 denselben Fällen wie `make-help` und `rows` in CLITheme, dazu `make help`, `make info`, `make hints` und das Minimal-Makefile aus
 dem README in einem Ordner `it's $(uname)`.
 
