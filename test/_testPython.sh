@@ -73,6 +73,26 @@ runLib readRequiresPython fehlt.toml
 assertEquals "1" "${rc}" "Datei fehlt: Exit 1"
 runLib readRequiresPython
 assertEquals "2" "${rc}" "ohne DATEI: Aufruffehler Exit 2"
+# Übliche Formatierungen, die TOML erlaubt: eingerückter Schlüssel, Kommentar und Leerzeichen
+# im Kopf des Abschnitts, CRLF-Zeilenenden
+printf '[project]\nname = "demo"\n    requires-python = ">=3.12"\n' > "${work}/indent.toml"
+printf '[ project ] # Paket\nrequires-python = ">=3.12"\n' > "${work}/header.toml"
+printf '[project]\r\nname = "demo"\r\nrequires-python = ">=3.12"\r\n' > "${work}/crlf.toml"
+for file in indent.toml header.toml crlf.toml; do
+    runLib readRequiresPython "${file}"
+    assertEquals "0|3.12" "${rc}|${out}" "pyproject.toml ${file%.toml}: X.Y"
+done
+# METADATA: Der Kopf endet an der ersten Leerzeile, auch mit CRLF; die Beschreibung zählt nicht
+printf 'Metadata-Version: 2.1\r\nName: demo\r\n\r\nBeispiel:\r\nRequires-Python: >=3.99\r\n' > "${work}/crlf-meta"
+runLib readRequiresPython crlf-meta
+assertEquals "1|" "${rc}|${out}" "METADATA mit CRLF, Angabe nur in der Beschreibung: Exit 1, keine Ausgabe"
+printf 'Metadata-Version: 2.1\r\nRequires-Python: >=3.10\r\n\r\n' > "${work}/crlf-meta-ok"
+runLib readRequiresPython crlf-meta-ok
+assertEquals "0|3.10" "${rc}|${out}" "METADATA mit CRLF: X.Y aus dem Kopf"
+# Führende Null: dezimal, wie Python sie liest
+printf '[project]\nrequires-python = ">=3.09"\n' > "${work}/zero.toml"
+runLib readRequiresPython zero.toml
+assertEquals "0|3.9" "${rc}|${out}" "führende Null: dezimal 3.9"
 
 echo
 echo "findPython"
@@ -102,6 +122,8 @@ assertEquals "1|" "${rc}|${out}" "kein passender Interpreter: Exit 1, keine Ausg
 assertContains "kein Python ab 3.22" "${err}" "kein passender Interpreter: Meldung nennt die Mindestversion"
 runLib findPython 3
 assertEquals "2" "${rc}" "MIN ohne Minor: Aufruffehler Exit 2"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPython 3.09
+assertEquals "0|${work}/b/python3.21|" "${rc}|${out}|${err}" "MIN mit führender Null: dezimal, ohne Bash-Fehler"
 if [[ $(uname -s) == Darwin && -x /usr/bin/python3 ]]; then
     # /usr/bin/python3 von macOS nur mit Command Line Tools (xcode-select -p)
     fake tools-fehlen/xcode-select 'exit 2'
@@ -110,6 +132,11 @@ if [[ $(uname -s) == Darwin && -x /usr/bin/python3 ]]; then
     assertEquals "1|" "${rc}|${out}" "macOS ohne Command Line Tools: /usr/bin/python3 nicht aufgerufen"
     LIB_PATH="${work}/tools-da:/usr/bin:/bin" runLib findPython 3.0
     assertEquals "0|/usr/bin/python3" "${rc}|${out}" "macOS mit Command Line Tools: /usr/bin/python3 zählt"
+    # Derselbe Starter unter anderer Schreibweise oder über einen Link
+    mkdir -p "${work}/link"
+    ln -s /usr/bin/python3 "${work}/link/python3.9"
+    LIB_PATH="${work}/tools-fehlen:/usr/bin/:${work}/link:/bin" runLib findPython 3.0
+    assertEquals "1|" "${rc}|${out}" "macOS ohne Command Line Tools: auch /usr/bin/ und Link auf den Starter nicht aufgerufen"
 fi
 
 echo

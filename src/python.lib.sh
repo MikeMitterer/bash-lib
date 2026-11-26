@@ -120,34 +120,44 @@ readRequiresPython() {
         printThemeStatus "✗" "${_file} nicht lesbar" ERR >&2
         return 1
     fi
-    # pyproject.toml: nur im Abschnitt [project], Wert in "…" oder '…'; METADATA: Kopfzeile
+    # METADATA (erste Zeile Metadata-Version:): nur der Kopf bis zur ersten Leerzeile.
+    # pyproject.toml: nur im Abschnitt [project], Schlüssel auch eingerückt, Kopf mit
+    # Leerzeichen und Kommentar, Wert in "…" oder '…'. CRLF-Zeilenenden zählen wie LF.
     _spec="$(awk '
-        /^\[/ { s = $0; next }
-        s == "[project]" && /^requires-python[ \t]*=/ {
+        { sub(/\r$/, "") }
+        NR == 1 && /^Metadata-Version:/ { meta = 1 }
+        meta && /^$/ { exit }
+        meta {
+            if ($0 ~ /^Requires-Python:/) { v = $0; sub(/^Requires-Python:[ \t]*/, "", v); sub(/[ \t]+$/, "", v); print v; exit }
+            next
+        }
+        /^[ \t]*\[/ { s = $0; sub(/[ \t]*#.*$/, "", s); gsub(/[ \t]/, "", s); next }
+        s == "[project]" && /^[ \t]*requires-python[ \t]*=/ {
             v = $0; sub(/^[^=]*=[ \t]*/, "", v); sub(/[ \t]*(#.*)?$/, "", v)
             if (v ~ /^".*"$/ || v ~ /^\047.*\047$/) v = substr(v, 2, length(v) - 2)
             print v; exit
         }
-        /^Requires-Python:/ { v = $0; sub(/^Requires-Python:[ \t]*/, "", v); sub(/[ \t\r]+$/, "", v); print v; exit }
-        /^$/ && FILENAME ~ /METADATA$/ { exit }
     ' "${_file}")"
     if [[ -z ${_spec} ]]; then
         printThemeStatus "✗" "${_file}: keine Angabe requires-python" ERR >&2
         return 1
     fi
-    if [[ ! ${_spec} =~ ^\>=[[:space:]]*([0-9]+\.[0-9]+)$ ]]; then
+    if [[ ! ${_spec} =~ ^\>=[[:space:]]*([0-9]+)\.([0-9]+)$ ]]; then
         printThemeStatus "✗" "${_file}: requires-python \"${_spec}\" nicht verstanden, erwartet >=X.Y" ERR >&2
         return 1
     fi
-    printf '%s\n' "${BASH_REMATCH[1]}"
+    # Dezimal wie in Python: 3.09 ist 3.9
+    printf '%d.%d\n' "$((10#${BASH_REMATCH[1]}))" "$((10#${BASH_REMATCH[2]}))"
 }
 
 # Pfad des neuesten Interpreters im PATH mit mindestens Version MIN (X.Y). Kandidaten
 # sind python3 und python3.N in jedem Ordner des PATH; tote Links, Fehlschläge und zu
 # alte übergeht sie still. Die Versionsabfrage ist gültiges Python 2 und 3, auch ein
-# sehr altes Python antwortet also. /usr/bin/python3 von macOS ruft sie nur auf, wenn
-# die Command Line Tools da sind (xcode-select -p); sonst öffnete er ein
-# Installationsfenster. Bei gleicher Version gewinnt der erste im PATH.
+# sehr altes Python antwortet also. Den Starter /usr/bin/python3 von macOS ruft sie
+# nur auf, wenn die Command Line Tools da sind (xcode-select -p); sonst öffnete er ein
+# Installationsfenster. Erkannt wird er am Ziel, nicht an der Schreibweise: auch über
+# /usr/bin/ im PATH oder einen Link darauf. MIN ist dezimal (3.09 ist 3.9). Bei
+# gleicher Version gewinnt der erste im PATH.
 #
 # Usage:
 #     python="$(findPython 3.14)" || exit 1
@@ -162,7 +172,7 @@ findPython() {
         printf 'findPython: MIN als X.Y erwartet\n' >&2
         return 2
     fi
-    local -r _wantMajor="${BASH_REMATCH[1]}" _wantMinor="${BASH_REMATCH[2]}"
+    local -r _wantMajor="$((10#${BASH_REMATCH[1]}))" _wantMinor="$((10#${BASH_REMATCH[2]}))"
     local _dir _candidate _version _best="" _bestMajor=-1 _bestMinor=-1 _major _minor _tools=""
     local -a _dirs
     IFS=':' read -r -a _dirs <<<"${PATH}"
@@ -170,13 +180,13 @@ findPython() {
         [[ -n ${_dir} && -d ${_dir} ]] || continue
         for _candidate in "${_dir}/python3" "${_dir}"/python3.[0-9]*; do
             [[ ${_candidate##*/} =~ ^python3(\.[0-9]+)?$ && -f ${_candidate} && -x ${_candidate} ]] || continue
-            if [[ $(uname -s) == Darwin && ${_candidate} == /usr/bin/python3* ]]; then
+            if [[ $(uname -s) == Darwin && ${_candidate} -ef /usr/bin/python3 ]]; then
                 [[ -n ${_tools} ]] || { xcode-select -p >/dev/null 2>&1 && _tools=yes || _tools=no; }
                 [[ ${_tools} == yes ]] || continue
             fi
             _version="$(readPythonVersion "${_candidate}" </dev/null)" || continue
             [[ ${_version} =~ ^([0-9]+)\.([0-9]+)$ ]] || continue
-            _major="${BASH_REMATCH[1]}" _minor="${BASH_REMATCH[2]}"
+            _major="$((10#${BASH_REMATCH[1]}))" _minor="$((10#${BASH_REMATCH[2]}))"
             (( _major > _wantMajor || ( _major == _wantMajor && _minor >= _wantMinor ) )) || continue
             if (( _major > _bestMajor || ( _major == _bestMajor && _minor > _bestMinor ) )); then
                 _best="${_candidate}" _bestMajor="${_major}" _bestMinor="${_minor}"
