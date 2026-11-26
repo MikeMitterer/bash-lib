@@ -2,6 +2,18 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.18.0+261126.1918.612e2 — 2026-11-26
+
+requires-python mit Obergrenze (\>=X.Y,\<X.Y) und findPythonFor in python.lib.sh
+
+### Neue Funktionen
+
+- Obergrenze in requires-python, findPythonFor (T-92) (`4a5cee1`)
+
+### Fehlerkorrekturen
+
+- findPythonFor unabhängig vom IFS, Beispiele korrekt (T-92, R1-F1, R1-F2) (`c4fa9c7`)
+
 ## v0.17.0+261126.1747.f2d4c — 2026-11-26
 
 Befehle bashlib und bashlib-path ohne Python-Starter; readRequiresPython und findPython in python.lib.sh
