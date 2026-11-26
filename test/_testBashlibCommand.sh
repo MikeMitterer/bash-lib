@@ -227,6 +227,10 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
     out, err = run(code=1, command=[str(base / 'leer' / 'bin' / 'bashlib-path')])
     assert not out and 'keine tools.lib.sh' in err, err
 
+    # Relativ aus dem Checkout aufgerufen, mit exportiertem CDPATH=. (cd gibt dann den Pfad aus).
+    assert run(command=['bin/bashlib-path'], cwd=root, extra={'CDPATH': '.'})[0] == f'{root.resolve()}/src\n'
+    assert run('--skill', command=['bin/bashlib'], cwd=root, extra={'CDPATH': '.'})[0].startswith('# bashlib\n')
+
     # Im Checkout (nicht installiert): Version und Befehle aus pyproject.toml.
     version = re.search(r'^version = "(.*)"$', (root / 'pyproject.toml').read_text(), re.M).group(1)
     out, _ = run(command=[str(root / 'bin' / 'bashlib')])

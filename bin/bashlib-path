@@ -19,6 +19,8 @@
 # Exit: 0 Verzeichnis auf stdout, 1 nichts gefunden, 2 Aufruf falsch
 #------------------------------------------------------------------------------
 set -u
+# Ein exportiertes CDPATH ließe cd den Pfad ausgeben und in _root landen
+unset CDPATH
 
 # Pfad dieses Skripts ohne Links (readlink ohne -f, wie unter macOS vor 12.3)
 _self="${BASH_SOURCE[0]}"

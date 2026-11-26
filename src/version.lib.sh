@@ -302,8 +302,9 @@ packageVersion() {
 # Befehle sind die Schlüssel von [project.scripts] und die Dateinamen aus
 # script-files in [tool.setuptools] (Skripte ohne Python-Starter, etwa in Bash).
 # Ausgegeben wird nur, was aus [A-Za-z0-9._-] besteht. Kein vollständiger
-# TOML-Parser: nur `schlüssel = "wert"` in einer Zeile und Listen aus "…"-Strings,
-# keine Inline-Tabellen, keine mehrzeiligen Strings, keine '…'-Strings.
+# TOML-Parser: nur `schlüssel = "wert"` in einer Zeile und Listen aus "…"-Strings
+# (Kommentare mit # außerhalb der Strings zählen nicht), keine Inline-Tabellen, keine
+# mehrzeiligen Strings, keine '…'-Strings, keine \" in Strings.
 #
 # Usage:
 #   name="$(readPackageName)"
@@ -330,13 +331,22 @@ readPackageCommands() {
         s == "[project.scripts]" && /=/ { sub(/ *=.*/, ""); print; next }
         s == "[tool.setuptools]" && /^script-files *=/ { list = 1 }
         list {
-            # "pfad/zum/befehl" → befehl; die Liste endet mit ]
+            # "pfad/zum/befehl" → befehl; die Liste endet mit ] außerhalb der Strings. Ein #
+            # außerhalb der Strings beginnt einen Kommentar: Was danach steht, zählt nicht.
             line = $0
-            while (match(line, /"[^"]*"/)) {
-                name = substr(line, RSTART + 1, RLENGTH - 2)
+            while (line != "") {
+                quote = index(line, "\"")
+                hash = index(line, "#")
+                if (hash && (!quote || hash < quote)) line = substr(line, 1, hash - 1)
+                if (!quote || (hash && hash < quote)) break
+                if (index(substr(line, 1, quote), "]")) break
+                rest = substr(line, quote + 1)
+                end = index(rest, "\"")
+                if (!end) { line = ""; break }
+                name = substr(rest, 1, end - 1)
                 sub(/.*\//, "", name)
                 print name
-                line = substr(line, RSTART + RLENGTH)
+                line = substr(rest, end + 1)
             }
             if (line ~ /\]/) list = 0
         }' "${_file}" \
