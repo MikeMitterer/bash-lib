@@ -168,10 +168,15 @@ ein zweites Einbinden ohne Guard nicht abbricht.
 `readPackageCommands` an Beispiel-`pyproject.toml` mit ungültigen Namen, mit
 `[project.scripts]` und mit mehrzeiligem `script-files`.
 
-`test/_testPython.sh` prüft `ensurePythonVenv` mit `python3.14` und einem
-älteren `python3`: Interpreter fehlt oder ist zu alt, venv anlegen und
-unverändert lassen, vorhandene venv zu alt, pip scheitert (offline mit
-`--no-index`) und Aufruffehler.
+`test/_testPython.sh` prüft `readRequiresPython` an `pyproject.toml` und
+`METADATA`, auch mit unverständlichen Angaben. `findPython` prüft es mit
+nachgebauten Interpretern in einem eigenen PATH: mehrere Kandidaten, toter
+Link, zu alt, scheiternd, kein passender; unter macOS auch `/usr/bin/python3`
+mit und ohne Command Line Tools. `ensurePythonVenv` läuft mit dem Python ab
+3.14, das `findPython` findet, und einem älteren aus dem PATH: Interpreter
+fehlt oder ist zu alt, venv ohne `--python`, venv anlegen und unverändert
+lassen, vorhandene venv zu alt, pip scheitert (offline mit `--no-index`) und
+Aufruffehler.
 
 `test/_testMakeHints.sh` prüft `make hints` in Wegwerf-Repos: SSH-Remote als
 https-Adresse, der Release-Tag `v…` statt eines neueren deploy-Tags, der
