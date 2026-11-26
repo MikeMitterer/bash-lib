@@ -19,15 +19,18 @@ readonly __PYTHON_LIB__="python.lib.sh";
 if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 
 # Stellt eine venv bereit: Der Interpreter muss vorhanden und (mit --min) neu genug
-# sein; eine vorhandene venv ebenso. Ohne --python nimmt sie den neuesten passenden
-# aus dem PATH (findPython mit --min). Fehlt die venv, legt sie `PYTHON -m venv` an.
+# sein; eine vorhandene venv ebenso (nur gegen --min, eine Obergrenze prüft sie nicht:
+# die venv behält ihren Interpreter, auch wenn --python ein anderer ist). Ohne --python
+# nimmt sie den neuesten passenden aus dem PATH (findPython mit --min). Fehlt die venv,
+# legt sie `PYTHON -m venv` an.
 # Mit PIP-ARGUMENTEN installiert pip in der venv (leise); seine Ausgabe erscheint nur
 # bei einem Fehler. Bei Erfolg keine Ausgabe. Projektspezifisches (Stempeldatei,
 # Links) bleibt beim Aufrufer; das Skript endet nicht.
 #
 # Usage:
 #     ensurePythonVenv --python python3.14 --venv .venv --min 3.14 -- -e '.[dev]'
-#     ensurePythonVenv --python "$(findPythonFor pyproject.toml)" --venv .venv -- -e .
+#     # Neue venv im Bereich aus requires-python; eine vorhandene behält ihren Interpreter
+#     python="$(findPythonFor pyproject.toml)" && ensurePythonVenv --python "${python}" --venv .venv-neu -- -e .
 #
 # Params:
 #     --python PYTHON   Interpreter für die neue venv (Befehl oder Pfad); ohne: findPython MIN
@@ -105,8 +108,9 @@ ensurePythonVenv() {
 # Ausgabe: MIN, mit Obergrenze „MIN MAX“, passend als Argumente für findPython.
 #
 # Usage:
-#     read -r min max <<<"$(readRequiresPython pyproject.toml)" || exit 1
-#     python="$(findPythonFor pyproject.toml)"      # dasselbe samt findPython
+#     bounds="$(readRequiresPython pyproject.toml)" || exit 1
+#     IFS=' ' read -r min max <<<"${bounds}"
+#     python="$(findPythonFor pyproject.toml)" || exit 1    # Grenzen lesen und suchen
 #
 # Exit:
 #     0  „X.Y“ oder „X.Y A.B“ (A.B exklusiv) auf stdout
@@ -190,7 +194,8 @@ findPythonFor() {
     local _bounds
     local -a _args
     _bounds="$(readRequiresPython "${1}")" || return 1
-    read -r -a _args <<<"${_bounds}"
+    # Eigenes Trennzeichen: Das IFS des Aufrufers hat vielleicht kein Leerzeichen
+    IFS=' ' read -r -a _args <<<"${_bounds}"
     findPython "${_args[@]}"
 }
 

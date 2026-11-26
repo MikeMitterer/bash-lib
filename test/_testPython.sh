@@ -22,12 +22,14 @@ cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
 # Führt die Funktion "$@" aus python.lib.sh in ${work} aus; setzt rc, out und err.
-# Mit LIB_PATH gesetzt gilt dieser PATH in der Funktion (Bash über ihren Pfad).
+# Mit LIB_PATH gesetzt gilt dieser PATH in der Funktion (Bash über ihren Pfad), mit
+# LIB_IFS dieses IFS (die Bash übernimmt IFS nicht aus der Umgebung).
 # shellcheck disable=SC2016  # der Ausdruck läuft erst in der inneren Bash
 runLib() {
     rc=0
     out="$(cd "${work}" && NO_COLOR=1 BASH_LIBS="${ROOT}/src" \
-        "${BASH}" -c '. "${BASH_LIBS}/python.lib.sh"; [[ -z ${LIB_PATH:-} ]] || PATH="${LIB_PATH}"; "$@"' _ "$@" \
+        "${BASH}" -c '. "${BASH_LIBS}/python.lib.sh"; [[ -z ${LIB_PATH:-} ]] || PATH="${LIB_PATH}"
+            [[ -z ${LIB_IFS:-} ]] || IFS="${LIB_IFS}"; "$@"' _ "$@" \
         2>"${work}/err")" || rc=$?
     err="$(cat "${work}/err")"
 }
@@ -156,6 +158,8 @@ assertEquals "2" "${rc}" "MAX keine Version: Aufruffehler Exit 2"
 printf 'Metadata-Version: 2.1\nRequires-Python: <3.21,>=3.8\n\n' > "${work}/for-meta"
 LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for-meta
 assertEquals "0|${work}/a/python3.20" "${rc}|${out}" "findPythonFor METADATA mit Obergrenze: Interpreter darunter"
+LIB_IFS=$'\n\t' LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for-meta
+assertEquals "0|${work}/a/python3.20" "${rc}|${out}" "findPythonFor mit IFS des Aufrufers ohne Leerzeichen: gleiches Ergebnis"
 printf '[project]\nrequires-python = ">=3.21"\n' > "${work}/for.toml"
 LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for.toml
 assertEquals "0|${work}/b/python3.21" "${rc}|${out}" "findPythonFor pyproject.toml nur mit Untergrenze: wie findPython MIN"
