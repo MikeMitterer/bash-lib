@@ -157,7 +157,7 @@ instead of aborting.
 | `assert.lib.sh` | Asserts for Bash tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); replaces the former `test.lib.sh` | – |
 | `samples.lib.sh` | Publish Dart samples | tools |
 | `webapp.lib.sh` | Publish Node and TypeScript apps | colors, fs |
-| `python.lib.sh` | Minimum version from `requires-python` (`readRequiresPython`), newest matching interpreter in `PATH` (`findPython`), Python venv with minimum version and packages (`ensurePythonVenv`) | tools |
+| `python.lib.sh` | Version bounds from `requires-python`, `>=X.Y` with an optional exclusive `<X.Y` (`readRequiresPython`), newest matching interpreter in `PATH` (`findPython`, both in one step: `findPythonFor`), Python venv with minimum version and packages (`ensurePythonVenv`) | tools |
 
 [↑ Contents](#contents)
 
