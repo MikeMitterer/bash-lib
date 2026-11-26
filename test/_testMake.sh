@@ -409,6 +409,15 @@ assertContains "→" "$(grep -E '^ +tag-minor ' <<< "${help}")" "make help: tag-
 # shellcheck disable=SC2016  # Make-Text, wörtlich
 printf 'include %s\nshow-env:\n\t@printf "[%%s]" "$${BASH_ENV-}"\n' "${ROOT}/Makefile" > "${work}/env.mk"
 assertEquals "[]" "$(make -s -C "${ROOT}" -f "${work}/env.mk" show-env 2>/dev/null)" "anderes Target: kein BASH_ENV"
+# PYTHON aus der Umgebung (make test-package) erreicht die Rezepte unverändert; make build
+# nimmt trotzdem das Python der .venv
+# shellcheck disable=SC2016  # Make-Text, wörtlich
+printf 'include %s\nshow-python:\n\t@printf "[%%s]" "$${PYTHON-}"\n' "${ROOT}/Makefile" > "${work}/python.mk"
+assertEquals "[${work}/py/python3]" "$(PYTHON="${work}/py/python3" make -s -C "${ROOT}" -f "${work}/python.mk" show-python 2>/dev/null)" \
+    "PYTHON aus der Umgebung: im Rezept unverändert"
+build="$(PYTHON="${work}/py/python3" make -n --no-print-directory -C "${ROOT}" build 2>/dev/null)"
+assertContains ".venv/bin/python -m build" "${build}" "PYTHON aus der Umgebung: make build nimmt das Python der .venv"
+assertNotContains "${work}/py/python3" "${build}" "PYTHON aus der Umgebung: make build nimmt es nicht"
 info="$(make --no-print-directory -C "${ROOT}" info 2>&1 | plain)"
 assertContains "BASH_LIBS              ${ROOT}/src" "${info}" "make info: Zeile BASH_LIBS"
 assertContains "VERSION                $(cd "${ROOT}" && BASH_LIBS="${ROOT}/src" bash -c '. src/version.lib.sh; readProjectVersion')" "${info}" "make info: Zeile VERSION"
