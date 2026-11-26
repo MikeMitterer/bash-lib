@@ -6,7 +6,9 @@
 # Wheel mit seinem eigenen Python in ein leeres PIPX_HOME, ohne rechnerlokale
 # Zuordnung und ohne Zugriff auf GitHub. Danach müssen `bashlib --version` und
 # `bashlib-path` laufen und tools.lib.sh aus dem installierten Paket ladbar
-# sein. Nach dem Vorbild von scripts/build-check.sh in CLITheme.
+# sein. Beide Befehle sind Bash-Skripte; sie laufen auch noch, wenn danach der
+# Interpreter der venv fehlt (wie nach einem Python-Wechsel von Homebrew).
+# Nach dem Vorbild von scripts/build-check.sh in CLITheme.
 #
 #   make build && make build-check
 #
@@ -42,12 +44,24 @@ main() {
         pipx install --quiet "${built[0]}" >/dev/null \
         || fail "${wheel} lässt sich mit pipx ohne lokale Repos und GitHub nicht installieren"
 
-    local version libs
+    local version libs name link
     version="$("${home}/bin/bashlib" --version 2>&1)" || fail "bashlib --version scheitert nach der Installation von ${wheel}"
     libs="$("${home}/bin/bashlib-path")" || fail "bashlib-path scheitert nach der Installation von ${wheel}"
     BASH_LIBS="${libs}" bash -c '. "${BASH_LIBS}/tools.lib.sh" && [[ -n "${__TOOLS_LIB__:-}" ]]' \
         || fail "tools.lib.sh aus ${libs} lässt sich nicht laden"
-    printThemeStatus "✓" "bashlib ${version%%$'\n'*} aus ${wheel}, mit pipx ohne lokale Repos und GitHub" OK
+    for name in bashlib bashlib-path; do
+        [[ "$(head -n 1 "${home}/bin/${name}")" == "#!/usr/bin/env bash" ]] \
+            || fail "${name} aus ${wheel} startet nicht als Bash-Skript"
+    done
+    # Interpreter der venv entfernen: Die Links zeigen danach ins Leere.
+    for link in "${home}"/pipx/venvs/mmit-bashlib/bin/python*; do
+        ln -sfn "${home}/entfernt/${link##*/}" "${link}"
+    done
+    [[ "$("${home}/bin/bashlib-path" 2>&1)" == "${libs}" ]] \
+        || fail "bashlib-path scheitert ohne den Interpreter der venv"
+    [[ "$("${home}/bin/bashlib" --version 2>&1)" == "${version}" ]] \
+        || fail "bashlib --version scheitert ohne den Interpreter der venv"
+    printThemeStatus "✓" "bashlib ${version%%$'\n'*} aus ${wheel}, mit pipx ohne lokale Repos und GitHub, auch ohne Interpreter" OK
 }
 
 main "$@"

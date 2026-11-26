@@ -84,7 +84,9 @@ export BASH_LIBS="$(bashlib-path)"
 
 `bashlib-path` gibt das Verzeichnis der installierten Bibliotheken aus. Mit
 `pip install -e <clone>` zeigt es auf `src` des Klons, Änderungen wirken dann
-ohne Neuinstallation. `bashlib` zeigt Aufruf, Version und Kurzbeschreibung,
+ohne Neuinstallation. Beide Befehle sind Bash-Skripte ohne Python-Starter: Sie
+laufen weiter, wenn der Interpreter ihrer venv fehlt, etwa nachdem Homebrew auf
+ein neues Python umgestellt hat. `bashlib` zeigt Aufruf, Version und Kurzbeschreibung,
 je Befehl des Pakets eine Zeile sowie die Optionen, im gewählten CLI-Theme
 ([Farben und Themes](#farben-und-themes)); `bashlib --version` gibt nur die
 Version aus.
@@ -151,7 +153,7 @@ statt abzubrechen.
 | `fs.lib.sh` | Datei- und Verzeichnisfunktionen | – |
 | `net.lib.sh` | IP- und Netzfunktionen, `isLocalPortOpen` | os |
 | `docker.lib.sh` | Docker-Images bauen und pushen (Docker Hub, GHCR, ECR) | colors |
-| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`), Paketname und Befehle aus `pyproject.toml` (`readPackageName`, `readPackageCommands`; nur einzeilige `key = "value"`, kein vollständiger TOML-Parser) | – |
+| `version.lib.sh` | Versionen lesen und erhöhen, taggen (`semVerBump`), nächste Version ohne Schreiben (`semVerNext`), Release-Tag eines Commits (`gitReleaseTag`), Release-Tags als Liste (`gitListReleaseTags`), Paketname und Befehle aus `pyproject.toml` (`readPackageName`, `readPackageCommands` mit `[project.scripts]` und `script-files`; nur einzeilige `key = "value"` und Listen aus `"…"`-Strings, kein vollständiger TOML-Parser) | – |
 | `build.lib.sh` | Hilfen für Build-Skripte | apps, tools |
 | `assert.lib.sh` | Asserts für Bash-Tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); ersetzt das frühere `test.lib.sh` | – |
 | `samples.lib.sh` | Dart-Beispiele veröffentlichen | tools |
@@ -193,7 +195,7 @@ eine Ausgabezeile**, das Rezept liest sich also wie seine Ausgabe:
   etwa `requireMakeSetup --hooks .githooks --make "$(MAKE)" .venv/.installed`.
 - **`installEditablePackage DIR`** installiert die Arbeitskopie `DIR`
   editierbar mit pipx (`pipx install -e --force DIR`) und meldet
-  „✓ BEFEHLE aus DIR“ mit den Befehlen aus `[project.scripts]`. Ohne pipx
+  „✓ BEFEHLE aus DIR“ mit den Befehlen aus `[project.scripts]` und `script-files`. Ohne pipx
   scheitert es mit „pipx fehlt“ und https://pipx.pypa.io, scheitert pipx, mit
   dessen Ausgabe; in beiden Fällen mit Exit 1. Nach einem Update erneut
   aufrufen, denn neue Befehle legt pipx nur beim Installieren an:

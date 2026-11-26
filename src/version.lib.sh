@@ -298,10 +298,13 @@ packageVersion() {
 #------------------------------------------------------------------------------
 # readPackageName [repo=.] / readPackageCommands [repo=.]
 #
-# Paketname ([project] name) bzw. Befehle (Schlüssel von [project.scripts]) aus
-# pyproject.toml, je Zeile einer. Ausgegeben wird nur, was aus [A-Za-z0-9._-]
-# besteht. Kein vollständiger TOML-Parser: nur `schlüssel = "wert"` in einer Zeile,
-# keine Inline-Tabellen, keine mehrzeiligen Strings, keine '…'-Strings.
+# Paketname ([project] name) bzw. Befehle aus pyproject.toml, je Zeile einer.
+# Befehle sind die Schlüssel von [project.scripts] und die Dateinamen aus
+# script-files in [tool.setuptools] (Skripte ohne Python-Starter, etwa in Bash).
+# Ausgegeben wird nur, was aus [A-Za-z0-9._-] besteht. Kein vollständiger
+# TOML-Parser: nur `schlüssel = "wert"` in einer Zeile und Listen aus "…"-Strings
+# (Kommentare mit # außerhalb der Strings zählen nicht), keine Inline-Tabellen, keine
+# mehrzeiligen Strings, keine '…'-Strings, keine \" in Strings.
 #
 # Usage:
 #   name="$(readPackageName)"
@@ -323,7 +326,30 @@ readPackageName() {
 readPackageCommands() {
     local -r _file="${1:-.}/pyproject.toml"
     [[ -r ${_file} ]] || return 1
-    awk -F' *= *' '/^\[/ { s = $0; next } s == "[project.scripts]" && NF > 1 { print $1 }' "${_file}" \
+    awk '
+        /^\[/ { s = $0; list = 0; next }
+        s == "[project.scripts]" && /=/ { sub(/ *=.*/, ""); print; next }
+        s == "[tool.setuptools]" && /^script-files *=/ { list = 1 }
+        list {
+            # "pfad/zum/befehl" → befehl; die Liste endet mit ] außerhalb der Strings. Ein #
+            # außerhalb der Strings beginnt einen Kommentar: Was danach steht, zählt nicht.
+            line = $0
+            while (line != "") {
+                quote = index(line, "\"")
+                hash = index(line, "#")
+                if (hash && (!quote || hash < quote)) line = substr(line, 1, hash - 1)
+                if (!quote || (hash && hash < quote)) break
+                if (index(substr(line, 1, quote), "]")) break
+                rest = substr(line, quote + 1)
+                end = index(rest, "\"")
+                if (!end) { line = ""; break }
+                name = substr(rest, 1, end - 1)
+                sub(/.*\//, "", name)
+                print name
+                line = substr(rest, end + 1)
+            }
+            if (line ~ /\]/) list = 0
+        }' "${_file}" \
         | grep -xE '[A-Za-z0-9._-]+'
 }
 

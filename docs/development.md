@@ -37,12 +37,11 @@ Einrichtung, bricht der Commit ab. post-commit ruft einen
 lokalen Hook aus `.git/hooks/post-commit` weiter auf, falls es einen gibt.
 Ohne Probleme bleiben beide still; Probleme der Doku und Fehler des lokalen
 Hooks erscheinen vollständig. Danach legt `make setup` die `.venv` an, mit
-`build` für `make build` und bashlib dieses Checkouts editierbar, und bringt
+`build` für `make build`, und bringt
 ProjectTools und CLITheme nach `.tools/`. Der Stempel der `.venv` hängt an
 `.venv/.dependencies`, den `devtools tstamp` aus `pyproject.toml` ohne die
 Version schreibt: Ein Release macht die Einrichtung nicht veraltet, eine
-geänderte Abhängigkeit oder ein neuer Befehl in `[project.scripts]` schon
-(ab DevTools v0.10.0, `DEVTOOLS_TAG`). Fehlt der Starter oder scheitert die
+geänderte Abhängigkeit schon. Fehlt der Starter oder scheitert die
 Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
@@ -50,9 +49,9 @@ entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
 `make docs-check` prüft neben der Doku auch die Ausgabe von `bashlib --skill`
 (`SKILLS` in `.docs-check.conf.sh`): Optionen gegen `--help` und die Namen
 hinter „Wichtig:“ unter „Bibliotheken“ gegen die jeweilige `*.lib.sh`. Der
-Aufruf nimmt bashlib aus der `.venv` mit `PYTHONPATH=python`, damit auch der
-pre-commit-Hook den vorgemerkten Stand prüft; der Hook verlinkt dafür `.venv`
-und `.tools/` in seine Kopie. Bibliotheken, die nur in ihrem Einsatzumfeld
+Aufruf nimmt `bin/bashlib` des Checkouts, der `src/` daneben liest; so prüft
+auch der pre-commit-Hook den vorgemerkten Stand. Der Hook verlinkt `.venv` und
+`.tools/` in seine Kopie. Bibliotheken, die nur in ihrem Einsatzumfeld
 laden, stehen mit Grund in `KNOWN_SKILL_NAMES`.
 
 `make install` installiert die Arbeitskopie editierbar mit pipx
@@ -116,16 +115,18 @@ Dazu kommen `MSG` mit Sonderzeichen, `develop` in einem Worktree und ein Repo
 ohne `develop`. Es prüft außerdem, dass die Hooks ohne Probleme still bleiben
 und Fehler zeigen. Es braucht ProjectTools wie `make check`.
 
-`test/_testBashlibCommand.sh` ruft den Befehl `bashlib` ohne Installation
-auf. Ein nachgebautes `dist-info` liefert Version und Befehle wie nach
-`pip install`, dazu einen Befehl, der nur dort steht: Er erscheint ohne
-weitere Pflegestelle. Die Beschreibung je Befehl ist die erste Zeile des
-Docstrings seiner Funktion; die Befehle selbst stehen nur in
-`[project.scripts]`. Für `bashlib --skill` nennt derselbe Docstring in den
-Zeilen `Wirkung:` (liest, schreibt, beendet, git, veröffentlicht) und `Wann:`,
-was der Befehl ändert und für welche Aufgabe er da ist. Der Test prüft auch die
-Gliederung von `--skill`, eine Zeile je Bibliothek und eine Ausgabe ohne
-Farben am Terminal.
+`test/_testBashlibCommand.sh` ruft die Befehle `bashlib` und `bashlib-path`
+(Bash-Skripte unter `bin/`) ohne Installation auf. Eine nachgebaute venv, deren
+Interpreter-Link ins Leere zeigt, mit Links wie in `~/.local/bin` liefert Version und Befehle
+wie nach `pipx install`, dazu einen Befehl, der nur in ihrem `RECORD` steht: Er
+erscheint ohne weitere Pflegestelle. Die Befehle selbst stehen nur in
+`script-files` in `pyproject.toml`. Was ein Befehl tut, steht im Block „Für
+Agenten (bashlib --skill):“ im Kopf seines Skripts: `Zweck:` ist seine Zeile in
+der Übersicht, `Wirkung:` (liest, schreibt, beendet, git, veröffentlicht) und
+`Wann:` nennen für `bashlib --skill`, was er ändert und für welche Aufgabe er
+da ist. Der Test prüft auch die Gliederung von `--skill`, eine Zeile je
+Bibliothek, eine Ausgabe ohne Farben am Terminal und `bashlib-path` in einer
+editierbaren venv (auch unter `/bin/bash`) sowie ohne Paket.
 
 `test/_testTheme.sh` prüft, wie `cli.lib.sh` das Theme aus
 `clitheme export --bash` übernimmt, mit dem echten clitheme in eigenem
@@ -164,7 +165,8 @@ ein zweites Einbinden ohne Guard nicht abbricht.
 
 `test/_testHelpers.sh` prüft `requireCommand` (vorhanden, fehlt, Hinweis mit
 `$(…)` wörtlich, Aufruffehler, Skript läuft weiter) sowie `readPackageName` und
-`readPackageCommands` an einer Beispiel-`pyproject.toml` mit ungültigen Namen.
+`readPackageCommands` an Beispiel-`pyproject.toml` mit ungültigen Namen, mit
+`[project.scripts]` und mit mehrzeiligem `script-files`.
 
 `test/_testPython.sh` prüft `ensurePythonVenv` mit `python3.14` und einem
 älteren `python3`: Interpreter fehlt oder ist zu alt, venv anlegen und

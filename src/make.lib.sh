@@ -318,7 +318,7 @@ _makeSetupReady() {
 }
 
 # Installiert die Arbeitskopie DIR editierbar mit pipx (`pipx install -e --force DIR`):
-# die Befehle aus [project.scripts] zeigen danach auf DIR. Bei Erfolg steht
+# die Befehle des Pakets ([project.scripts], script-files) zeigen danach auf DIR. Bei Erfolg steht
 # „✓ BEFEHLE aus DIR“ da, die Befehle aus DIR/pyproject.toml (readPackageCommands),
 # ohne Einträge „Paket“; die rohe Ausgabe von pipx bleibt verborgen. Fehlt pipx,
 # stehen „✗ pipx fehlt“ und https://pipx.pypa.io auf stderr; scheitert pipx, dessen

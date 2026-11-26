@@ -11,3 +11,6 @@ __pycache__/
 /.tools
 /.venv
 /dist
+
+# Befehle des Pakets (script-files); eine globale .gitignore mit bin/ gilt hier nicht
+!/bin/

@@ -39,16 +39,15 @@ REQUIRE_STARTER = source "$${BASH_LIBS}/apps.lib.sh" && \
 # ProjectTools oder clitheme zählt nicht.
 export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 
-# Entwicklungs-venv für make build (python -m build) und mit bashlib dieses Checkouts für
-# make docs-check (SKILLS). BashLib hat keine Laufzeit-Abhängigkeiten; PYTHON_BOOTSTRAP=…
-# überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
+# Entwicklungs-venv für make build (python -m build). BashLib hat keine Laufzeit-Abhängigkeiten;
+# PYTHON_BOOTSTRAP=… überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
 PYTHON_BOOTSTRAP ?= python3
 export PYTHON_BOOTSTRAP
 VENV         := .venv
 # Nicht PYTHON: Das wählt aus der Umgebung den Interpreter für make test-package.
 VENV_PYTHON  := $(VENV)/bin/python
 VENV_STAMP   := $(VENV)/.installed
-SETUP_STAMPS := $(VENV_STAMP) $(VENV)/bin/bashlib
+SETUP_STAMPS := $(VENV_STAMP)
 
 # Abhängigkeiten aus pyproject.toml ohne Version als eigener Stempel (makefile-conventions,
 # Einrichtungsstempel): devtools tstamp schreibt ihn nur, wenn sie sich ändern; ein Release
@@ -150,7 +149,7 @@ require-tools:
 ##@ Setup
 
 # Installiert diese Arbeitskopie editierbar mit pipx (installEditablePackage aus
-# make.lib.sh): die Befehle aus [project.scripts] zeigen danach auf src/ dieses
+# make.lib.sh): die Befehle aus script-files (bin/) zeigen danach auf src/ dieses
 # Checkouts. BashLib hat keine Abhängigkeiten aus Git und braucht darum kein devtools exec.
 # Danach legt clitheme install fehlende Theme-Dateien für den User an (installCliThemes);
 # das scheitert nie, ohne Themes bleibt die Ausgabe farblos.
@@ -185,16 +184,6 @@ $(VENV_STAMP): $(DEPENDENCIES)
 		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "$(VENV) eingerichtet" OK
-
-# bashlib dieses Checkouts editierbar in der .venv: docs-check prüft damit die Ausgabe von
-# bashlib --skill (SKILLS in .docs-check.conf.sh), auch in der Kopie des pre-commit-Hooks.
-# Editierbar nur mit pyproject.toml verlangt pip ab 21.3; das pip eines älteren Pythons
-# (macOS: 3.9) wird dafür zuerst angehoben.
-$(VENV)/bin/bashlib: $(VENV_STAMP)
-	@source "$${BASH_LIBS}/cli.lib.sh" && { { $(VENV_PYTHON) -m pip install -q --disable-pip-version-check --upgrade pip && \
-		$(VENV_PYTHON) -m pip install -q --disable-pip-version-check -e .; } || { \
-		printThemeStatus "✗" "bashlib nicht in $(VENV) installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
-	@touch "$@"
 
 # Fehlt der Stempel (etwa ohne devtools beim Einlesen), legt diese Regel ihn an.
 $(DEPENDENCIES):

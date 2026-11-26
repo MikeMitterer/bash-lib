@@ -179,12 +179,11 @@ TRANSLATIONS=(
 
 # ─── Beschreibung für Agenten (--skill) ────────────────────────────────────────
 
-# Aufrufe, deren Ausgabe gegen das Paket geprüft wird, je "<aufruf>|<grund>". Die .venv
-# (make setup) hat bashlib dieses Checkouts editierbar; PYTHONPATH=python geht ihr vor, damit
-# auch der pre-commit-Hook den vorgemerkten Stand ausgibt. NAMESPACE und NAME verlangt
-# build.lib.sh beim Laden; die Zuweisungen gelten auch dafür.
+# Aufrufe, deren Ausgabe gegen das Paket geprüft wird, je "<aufruf>|<grund>". bin/bashlib
+# dieses Checkouts liest src/ daneben, so gibt auch der pre-commit-Hook den vorgemerkten Stand
+# aus. NAMESPACE und NAME verlangt build.lib.sh beim Laden; die Zuweisungen gelten auch dafür.
 SKILLS=(
-    "NAMESPACE=example NAME=example PYTHONPATH=python .venv/bin/bashlib --skill|Beschreibung der Befehle und Bibliotheken für Agenten"
+    "NAMESPACE=example NAME=example bin/bashlib --skill|Beschreibung der Befehle und Bibliotheken für Agenten"
 )
 
 # Optionen und Namen, die stimmen, obwohl die Prüfung sie nicht findet, je
