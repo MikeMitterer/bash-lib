@@ -54,8 +54,8 @@ readonly OUTPUT
 trap 'command rm -rf -- "${SNAPSHOT}" "${OUTPUT}"' EXIT
 
 git checkout-index --all --prefix="${SNAPSHOT}/"
-# Die Werkzeuge aus .tools/ und die .venv dieses Checkouts (bashlib --skill für SKILLS in
-# .docs-check.conf.sh) gelten auch in der Kopie.
+# Die Werkzeuge aus .tools/ und die .venv dieses Checkouts gelten auch in der Kopie; bashlib
+# --skill für SKILLS in .docs-check.conf.sh kommt aus bin/ der Kopie selbst.
 for dir in .tools .venv; do
     if [[ -d "${ROOT}/${dir}" ]]; then ln -s "${ROOT}/${dir}" "${SNAPSHOT}/${dir}"; fi
 done

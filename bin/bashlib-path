@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#------------------------------------------------------------------------------
+# bashlib-path — gibt das Verzeichnis der *.lib.sh aus (Wert für BASH_LIBS)
+#
+# Für Agenten (bashlib --skill):
+#     Zweck:   Verzeichnis der Bibliotheken ausgeben (Wert für BASH_LIBS)
+#     Wirkung: liest
+#     Wann:    eigene Skripte sollen BashLib einbinden, `BASH_LIBS` setzen oder eine Bibliothek nachlesen
+#
+# Reines Bash ohne Python, auch unter Bash 3.2 (macOS /bin/bash): Makefiles
+# ermitteln BASH_LIBS damit, auch wenn der Interpreter der venv fehlt, etwa nach
+# einem Python-Wechsel von Homebrew. Gesucht wird vom Ort dieses Skripts aus
+# (Links aufgelöst), in dieser Reihenfolge:
+#     ../src                                   Checkout (bin/ neben src/)
+#     ../lib/python*/site-packages/bashlib/lib Installation aus Wheel oder Git-Tag
+#     ../lib/python*/site-packages/mmit_bashlib-*.dist-info/direct_url.json
+#                                              editierbar (pip/pipx -e): src/ des Klons
+#
+# Exit: 0 Verzeichnis auf stdout, 1 nichts gefunden, 2 Aufruf falsch
+#------------------------------------------------------------------------------
+set -u
+
+# Pfad dieses Skripts ohne Links (readlink ohne -f, wie unter macOS vor 12.3)
+_self="${BASH_SOURCE[0]}"
+while [[ -L ${_self} ]]; do
+    _link="$(readlink "${_self}")"
+    case ${_link} in
+        /*) _self="${_link}" ;;
+        *) _self="$(dirname "${_self}")/${_link}" ;;
+    esac
+done
+_root="$(cd "$(dirname "${_self}")/.." && pwd -P)"
+
+# Verzeichnis der Bibliotheken auf stdout; Exit 1, wenn keine tools.lib.sh zu finden ist
+_findLibs() {
+    local _dir _info _url
+    if [[ -f ${_root}/src/tools.lib.sh ]]; then
+        printf '%s\n' "${_root}/src"
+        return 0
+    fi
+    for _dir in "${_root}"/lib/python*/site-packages/bashlib/lib; do
+        if [[ -f ${_dir}/tools.lib.sh ]]; then
+            printf '%s\n' "${_dir}"
+            return 0
+        fi
+    done
+    # PEP 610: pip schreibt Ort und Art der Quelle; bei -e ist url der Klon als file://-URL
+    for _info in "${_root}"/lib/python*/site-packages/mmit_bashlib-*.dist-info/direct_url.json; do
+        if [[ ! -f ${_info} ]] || ! grep -q '"editable": *true' "${_info}"; then
+            continue
+        fi
+        _url="$(sed -n 's/.*"url": *"file:\/\/\([^"]*\)".*/\1/p' "${_info}")"
+        _url="${_url#localhost}"
+        # Prozent-Kodierung der URL (%20 für Leerzeichen …) auflösen
+        _dir="$(printf '%b' "${_url//%/\\x}")/src"
+        if [[ -f ${_dir}/tools.lib.sh ]]; then
+            printf '%s\n' "${_dir}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+if (( $# > 0 )); then
+    echo "Aufruf: bashlib-path  (gibt das Verzeichnis der *.lib.sh aus)" >&2
+    case $1 in -h | --help) exit 0 ;; *) exit 2 ;; esac
+fi
+if ! _findLibs; then
+    echo "bashlib-path: keine tools.lib.sh unter ${_root} gefunden; BashLib neu installieren" >&2
+    exit 1
+fi

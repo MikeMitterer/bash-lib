@@ -62,7 +62,8 @@ flowchart LR
 | `tools.lib.sh` | Allzweck-Helfer; lädt die Grundbibliotheken |
 | `make.lib.sh` | Hilfe, Hinweise und Installation für Makefiles |
 | `Makefile` | Einstiegspunkte; Abläufe liegen in Bibliotheken oder ProjectTools |
-| `python/bashlib/` | Ort der Bibliotheken und Übersicht des Pakets, keine Bash-Logik außer der Anzeige |
+| `bin/` | Befehle des Pakets (`bashlib`, `bashlib-path`) als Bash-Skripte ohne Python-Starter; `bashlib-path` auch unter Bash 3.2 |
+| `python/bashlib/` | nur `lib_dir()` für Python-Werkzeuge, die BashLib als Abhängigkeit haben |
 
 Die übrigen Bibliotheken und ihre Abhängigkeiten stehen in der Tabelle im
 [README](../README.de.md). Tests nehmen `src/` des eigenen Checkouts, nicht ein
@@ -77,8 +78,8 @@ Bibliothek aussieht, steht in [Neue Bibliothek](development.md#neue-bibliothek).
 |---|---|---|
 | Version des Pakets | `pyproject.toml`, gelesen von `readProjectVersion` | Konvention |
 | Werkzeug-Stände | `.dev-tools.conf.sh` | Konvention; das `Makefile` bindet die Datei ein |
-| Befehle des Pakets | `[project.scripts]` in `pyproject.toml` | `test/_testBashlibCommand.sh` |
-| Wirkung und Anlass eines Befehls für `bashlib --skill` | Docstring seiner Funktion (`Wirkung:`, `Wann:`) | `test/_testBashlibCommand.sh` |
+| Befehle des Pakets | `script-files` in `pyproject.toml` | `test/_testBashlibCommand.sh` |
+| Zweck, Wirkung und Anlass eines Befehls für `bashlib` und `bashlib --skill` | Block „Für Agenten (bashlib --skill)“ im Kopf seines Skripts unter `bin/` | `test/_testBashlibCommand.sh` |
 | Beschreibung einer Bibliothek für `bashlib --skill` | Block „Für Agenten (bashlib --skill)“ im Kopf der `*.lib.sh` | `test/_testBashlibCommand.sh` |
 | Ablauf und Prüfung beim Taggen | `tag-version` (ProjectTools) | `test/_testMakeTag.sh` prüft das Rezept |
 | Farben und Abstände der Theme-Helfer | CLITheme | `test/_testTheme.sh` |

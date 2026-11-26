@@ -298,9 +298,11 @@ packageVersion() {
 #------------------------------------------------------------------------------
 # readPackageName [repo=.] / readPackageCommands [repo=.]
 #
-# Paketname ([project] name) bzw. Befehle (Schlüssel von [project.scripts]) aus
-# pyproject.toml, je Zeile einer. Ausgegeben wird nur, was aus [A-Za-z0-9._-]
-# besteht. Kein vollständiger TOML-Parser: nur `schlüssel = "wert"` in einer Zeile,
+# Paketname ([project] name) bzw. Befehle aus pyproject.toml, je Zeile einer.
+# Befehle sind die Schlüssel von [project.scripts] und die Dateinamen aus
+# script-files in [tool.setuptools] (Skripte ohne Python-Starter, etwa in Bash).
+# Ausgegeben wird nur, was aus [A-Za-z0-9._-] besteht. Kein vollständiger
+# TOML-Parser: nur `schlüssel = "wert"` in einer Zeile und Listen aus "…"-Strings,
 # keine Inline-Tabellen, keine mehrzeiligen Strings, keine '…'-Strings.
 #
 # Usage:
@@ -323,7 +325,21 @@ readPackageName() {
 readPackageCommands() {
     local -r _file="${1:-.}/pyproject.toml"
     [[ -r ${_file} ]] || return 1
-    awk -F' *= *' '/^\[/ { s = $0; next } s == "[project.scripts]" && NF > 1 { print $1 }' "${_file}" \
+    awk '
+        /^\[/ { s = $0; list = 0; next }
+        s == "[project.scripts]" && /=/ { sub(/ *=.*/, ""); print; next }
+        s == "[tool.setuptools]" && /^script-files *=/ { list = 1 }
+        list {
+            # "pfad/zum/befehl" → befehl; die Liste endet mit ]
+            line = $0
+            while (match(line, /"[^"]*"/)) {
+                name = substr(line, RSTART + 1, RLENGTH - 2)
+                sub(/.*\//, "", name)
+                print name
+                line = substr(line, RSTART + RLENGTH)
+            }
+            if (line ~ /\]/) list = 0
+        }' "${_file}" \
         | grep -xE '[A-Za-z0-9._-]+'
 }
 

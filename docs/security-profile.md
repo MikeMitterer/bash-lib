@@ -95,15 +95,17 @@ und Pfade, die BashLib ausführt, werden nicht geprüft.
 | Metavariablen in Hilfetexten | `printThemeOption` in `cli.lib.sh` | `test/_testHelpFormat.sh` |
 | Befehlsnamen aus `pyproject.toml` | `readPackageCommands` in `version.lib.sh`, ungültige Namen fallen weg | `test/_testHelpers.sh` |
 
-Der Befehl `bashlib` übergibt seine Anzeigewerte an ein festes Bash-Skript als
-Positionsargumente (`_render` in `python/bashlib/__init__.py`). Das ist einmalig
-gemessen, aber nicht durch einen Test abgesichert.
+Der Befehl `bashlib` (`bin/bashlib`) gibt Werte aus den Paket-Metadaten, aus
+`pyproject.toml` und aus den Skriptköpfen nur als Argumente an `printf` und die
+Theme-Helfer weiter, nie als Code. Das ist beim Lesen geprüft, aber nicht durch
+einen Test abgesichert.
 
 **Eingaben, denen BashLib voll vertraut** (keine Prüfung):
 
 | Eingabe | Stelle | Folge |
 |---|---|---|
-| `BASH_LIBS` | jede Einbindezeile in `src/` | Die Dateien dort werden gesourct. Das `Makefile` setzt es fest auf `src` des eigenen Checkouts, `bashlib` auf sein eigenes Paket |
+| `BASH_LIBS` | jede Einbindezeile in `src/` | Die Dateien dort werden gesourct. Das `Makefile` setzt es fest auf `src` des eigenen Checkouts, `bashlib` auf die Ausgabe von `bashlib-path` daneben |
+| `direct_url.json` im `dist-info` einer editierbaren Installation | `bin/bashlib-path`, `bin/bashlib` | pip schreibt den Ort des Klons beim Installieren; `bashlib-path` gibt dessen `src/` aus, `bashlib` startet `bin/bashlib` des Klons (`test/_testBashlibCommand.sh`) |
 | `.rsync` im Beispielordner | `samples.lib.sh` | wird gesourct |
 | `RSYNC_SETTINGS` | `webapp.lib.sh` | wird gesourct |
 | Maschinenname für `docker-machine` | `docker.lib.sh` | steht ohne Anführungszeichen im Befehl, dessen Ausgabe `eval` ausführt |
@@ -117,13 +119,13 @@ gemessen, aber nicht durch einen Test abgesichert.
 | Vorgang | Stelle | Was läuft, wer legt es fest |
 |---|---|---|
 | Werkzeuge einrichten und prüfen | `DEV_TOOLS` im `Makefile`, genutzt von `setup`, `require-tools`, `info` und `build`; `devtools tstamp` beim Einlesen des Makefiles, also bei jedem `make`-Aufruf | Der einmal je Rechner installierte Starter `devtools` läuft ohne die Git-Variablen eines Hooks; verlangt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` einen anderen Stand, lädt er diesen und gibt an ihn weiter. Ein Tag ist kein fester Commit |
-| `make docs-check` | `SKILLS` in `.docs-check.conf.sh` | `docs-check` startet `.venv/bin/bashlib --skill` und `--help` der Befehle und lädt jede genannte `*.lib.sh` in einer eigenen Bash, mit denselben Rechten wie die Config |
+| `make docs-check` | `SKILLS` in `.docs-check.conf.sh` | `docs-check` startet `bin/bashlib --skill` des Checkouts und `--help` der Befehle und lädt jede genannte `*.lib.sh` in einer eigenen Bash, mit denselben Rechten wie die Config |
 | ProjectTools, CLITheme | `.dev-tools.conf.sh` | `make setup` installiert sie mit `devtools --project install` am dortigen Tag nach `.tools/` des Checkouts, mit rechnerlokaler Zuordnung aus den lokalen Repos, sonst von GitHub; `.tools/bin` steht im Makefile vorn im `PATH`. `THEME_CLITHEME_INSTALL` in `cli.lib.sh` nennt nur den Befehl |
 | `make build`, `make build-check` | `Makefile`, `scripts/build-check.sh` | `build` holt die Build-Abhängigkeiten aus dem Paketindex; `build-check` installiert das Wheel mit pipx in ein temporäres `PIPX_HOME`, GitHub ist dabei auf eine ungültige Adresse umgelenkt |
 | `make install` | `installEditablePackage` und `installCliThemes` in `make.lib.sh` | `pipx install -e --force` mit dem eigenen Checkout; Fehler werden gemeldet (`test/_testMakeInstall.sh`). Danach legt `clitheme install` fehlende Theme-Dateien im Config-Ordner des Users an (`test/_testSetup.sh`) |
 | venv anlegen | `ensurePythonVenv` in `python.lib.sh` | `pip install` mit den Argumenten des Aufrufers; Fehler werden gemeldet (`test/_testPython.sh`) |
 | `make test-package` | `test/package.test.sh` | `pip` holt setuptools aus dem Paketindex, in temporäre venvs; nicht Teil von `make check` |
-| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`, `pip install -e .` mit bashlib dieses Checkouts) |
+| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`) |
 
 ### Fremde Befehle
 

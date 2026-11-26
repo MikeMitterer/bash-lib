@@ -83,7 +83,9 @@ export BASH_LIBS="$(bashlib-path)"
 
 `bashlib-path` prints the directory of the installed libraries. With
 `pip install -e <clone>` it points to the clone's `src`, so changes take
-effect without reinstalling. `bashlib` shows usage, version and short
+effect without reinstalling. Both commands are Bash scripts without a Python
+launcher: they keep working when the interpreter of their venv is gone, for
+example after Homebrew switched to a new Python. `bashlib` shows usage, version and short
 description, one line per command of the package and the options, in the
 chosen CLI theme ([Colors and themes](#colors-and-themes));
 `bashlib --version` prints only the version.
@@ -150,7 +152,7 @@ instead of aborting.
 | `fs.lib.sh` | File and directory functions | – |
 | `net.lib.sh` | IP and network functions, `isLocalPortOpen` | os |
 | `docker.lib.sh` | Build and push Docker images (Docker Hub, GHCR, ECR) | colors |
-| `version.lib.sh` | Read and bump versions, tag (`semVerBump`), next version without writing (`semVerNext`), release tag of a commit (`gitReleaseTag`), release tags as a list (`gitListReleaseTags`), package name and commands from `pyproject.toml` (`readPackageName`, `readPackageCommands`; one-line `key = "value"` only, no full TOML parser) | – |
+| `version.lib.sh` | Read and bump versions, tag (`semVerBump`), next version without writing (`semVerNext`), release tag of a commit (`gitReleaseTag`), release tags as a list (`gitListReleaseTags`), package name and commands from `pyproject.toml` (`readPackageName`, `readPackageCommands` with `[project.scripts]` and `script-files`; one-line `key = "value"` and lists of `"…"` strings only, no full TOML parser) | – |
 | `build.lib.sh` | Helpers for build scripts | apps, tools |
 | `assert.lib.sh` | Asserts for Bash tests (`assertEquals`, `assertContains`, `assertNotContains`, `finishTests`, `checkStatus`); replaces the former `test.lib.sh` | – |
 | `samples.lib.sh` | Publish Dart samples | tools |
@@ -192,7 +194,7 @@ one output line**, so the recipe reads like its output:
   `requireMakeSetup --hooks .githooks --make "$(MAKE)" .venv/.installed`.
 - **`installEditablePackage DIR`** installs the working copy `DIR` editable
   with pipx (`pipx install -e --force DIR`) and prints “✓ COMMANDS aus DIR”
-  with the commands from `[project.scripts]`. Without pipx it fails with
+  with the commands from `[project.scripts]` and `script-files`. Without pipx it fails with
   “pipx fehlt” and https://pipx.pypa.io, if pipx fails with its output; in
   both cases the exit code is 1. Call it again after an update, because pipx
   creates new commands only on install:

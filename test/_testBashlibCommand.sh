@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 #------------------------------------------------------------------------------
-# Prüft den Befehl bashlib (Version und Befehle des pip-Pakets) ohne Installation.
-# Ein nachgebautes dist-info-Verzeichnis stellt die Metadaten wie nach
-# pip install bereit, mit den Befehlen aus pyproject.toml und einem zusätzlichen
-# bashlib-demo: Er muss ohne zweite Pflegestelle in der Ausgabe erscheinen.
+# Prüft die Befehle bashlib und bashlib-path (Bash-Skripte unter bin/) ohne
+# Installation. Eine nachgebaute venv stellt das Paket wie nach pipx install
+# bereit, mit Links wie in ~/.local/bin und einem toten bin/python wie nach einem
+# Python-Wechsel von Homebrew: Beide Befehle laufen trotzdem. Das dist-info nennt
+# die Befehle aus pyproject.toml und ein zusätzliches bashlib-demo: Es muss ohne
+# zweite Pflegestelle in der Ausgabe erscheinen. Dazu bashlib-path in einer
+# editierbaren venv (direct_url.json), auch unter /bin/bash, und ohne Paket.
 # Aufruf: bash test/_testBashlibCommand.sh (auch über testAll.sh).
-# Python wird für den Befehl selbst und für das Pseudoterminal benötigt.
+# Python steuert den Test und das Pseudoterminal; die Befehle laufen ohne.
 #------------------------------------------------------------------------------
 set -euo pipefail
 BASHLIB_TEST_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,9 +25,9 @@ import sys
 import tempfile
 
 root = Path(os.environ['BASHLIB_TEST_ROOT'])
-scripts = re.search(r'^\[project\.scripts\]\n((?:[a-z].*\n)+)', (root / 'pyproject.toml').read_text(), re.M)
-entries = [line.replace('"', '') for line in scripts.group(1).splitlines()]  # wie pip in entry_points.txt
-names = [line.split('=')[0].strip() for line in entries]
+files = re.search(r'^script-files = \[(.*)\]$', (root / 'pyproject.toml').read_text(), re.M)
+scripts = re.findall(r'"([^"]+)"', files.group(1))
+names = [Path(script).name for script in scripts]
 assert 'bashlib' in names and 'bashlib-path' in names, names
 theme = '''C_HEAD=bold+5
 C_KEY=6
@@ -45,27 +48,38 @@ WIDTH=80
 SPACE=1
 '''
 with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
-    base = Path(scratch)
-    info = base / 'site' / 'mmit_bashlib-9.8.7.dist-info'
-    info.mkdir(parents=True)
+    base = Path(scratch).resolve()
+    # venv wie nach pipx install aus dem Wheel: Skripte in bin/, Bibliotheken im Paket, dist-info
+    # mit RECORD; bin/python zeigt ins Leere (Interpreter entfernt)
+    venv = base / 'venv'
+    site = venv / 'lib' / 'python3.99' / 'site-packages'
+    (site / 'bashlib').mkdir(parents=True)
+    (site / 'bashlib' / 'lib').symlink_to(root / 'src', target_is_directory=True)
+    (venv / 'bin').mkdir()
+    (venv / 'bin' / 'python').symlink_to(base / 'entfernt' / 'python3.99')
+    for script in scripts:
+        shutil.copy(root / script, venv / 'bin')
+    demo = venv / 'bin' / 'bashlib-demo'
+    demo.write_text('#!/usr/bin/env bash\n# Für Agenten (bashlib --skill):\n#     Zweck:   Nur im Test vorhanden.\n'
+                    '#     Wirkung: liest\n#     Wann:    nur im Test.\n#\n#     Zweite: zählt nicht.\n')
+    demo.chmod(0o755)
+    info = site / 'mmit_bashlib-9.8.7.dist-info'
+    info.mkdir()
     (info / 'METADATA').write_text('Metadata-Version: 2.1\nName: mmit-bashlib\nVersion: 9.8.7\nSummary: Testpaket\n')
-    (info / 'entry_points.txt').write_text('[console_scripts]\n' + '\n'.join(entries) + '\nbashlib-demo = demo:run\n')
-    (base / 'site' / 'demo.py').write_text('def run():\n    """Nur im Test vorhanden.\n\n    Zweite Zeile zählt nicht.\n'
-                                           '    Wirkung: liest\n    Wann: nur im Test.\n    """\n')
+    (info / 'RECORD').write_text(''.join(f'../../../bin/{name},sha256=x,1\n' for name in names + ['bashlib-demo'])
+                                 + 'bashlib/__init__.py,sha256=x,1\n')
+    # Links wie pipx in ~/.local/bin
+    links = base / 'local-bin'
+    links.mkdir()
+    for name in names + ['bashlib-demo']:
+        (links / name).symlink_to(venv / 'bin' / name)
     (base / 'clitheme').mkdir()
     (base / 'clitheme' / 'probe.theme').write_text(theme)
-    # bashlib aus einer Spiegelung des Checkouts laden: nur das Paket, src/ und pyproject.toml,
-    # ohne Build-Reste wie python/*.egg-info, die sonst als Metadaten gelten.
-    mirror = base / 'repo'
-    shutil.copytree(root / 'python' / 'bashlib', mirror / 'python' / 'bashlib',
-                    ignore=shutil.ignore_patterns('__pycache__'))
-    (mirror / 'src').symlink_to(root / 'src', target_is_directory=True)
-    shutil.copy(root / 'pyproject.toml', mirror / 'pyproject.toml')
     env = {'PATH': os.environ['PATH'], 'HOME': str(base), 'XDG_CONFIG_HOME': str(base),
-           'XDG_CACHE_HOME': str(base / 'cache'), 'PYTHONPATH': f"{base / 'site'}:{mirror / 'python'}", 'TERM': 'xterm-256color'}
-    command = [sys.executable, '-S', '-c', 'import sys; from bashlib import cli; sys.exit(cli())']
+           'XDG_CACHE_HOME': str(base / 'cache'), 'TERM': 'xterm-256color'}
+    command = [str(links / 'bashlib')]
 
-    def run(*args, terminal=False, extra=None, code=0, cwd=None):
+    def run(*args, terminal=False, extra=None, code=0, cwd=None, command=command):
         settings = dict(env, **(extra or {}))
         if not terminal:
             result = subprocess.run(command + list(args), env=settings, capture_output=True, text=True,
@@ -175,14 +189,49 @@ with tempfile.TemporaryDirectory(prefix='bashlib-command-') as scratch:
         out, err = run(option, 'x', code=2)
         assert not out and err == 'Zu viele Argumente: x\nbashlib --help\n', (option, err)
 
-    # Ohne Metadaten (nicht installiert): Version aus pyproject.toml.
-    (info / 'METADATA').unlink()
-    (info / 'entry_points.txt').unlink()
-    info.rmdir()
+    # bashlib-path: Bibliotheken im Paket, auch über den Link und mit totem Interpreter.
+    assert run(command=[str(links / 'bashlib-path')])[0] == f'{site}/bashlib/lib\n'
+    assert not (venv / 'bin' / 'python').exists()
+    out, err = run('-h', command=[str(links / 'bashlib-path')])
+    assert not out and err == 'Aufruf: bashlib-path  (gibt das Verzeichnis der *.lib.sh aus)\n', err
+    run('x', code=2, command=[str(links / 'bashlib-path')])
+
+    # Editierbar (pipx install -e): direct_url.json nennt den Klon als file://-URL, hier mit
+    # Leerzeichen im Pfad; bashlib-path liefert dessen src/, auch unter /bin/bash (macOS 3.2).
+    clone = base / 'Klon mit Leerzeichen'
+    (clone / 'bin').mkdir(parents=True)
+    (clone / 'src').symlink_to(root / 'src', target_is_directory=True)
+    shutil.copy(root / 'pyproject.toml', clone)
+    for script in scripts:
+        shutil.copy(root / script, clone / 'bin')
+    editable = base / 'venv-e'
+    (editable / 'bin').mkdir(parents=True)
+    (editable / 'bin' / 'python').symlink_to(base / 'entfernt' / 'python3.99')
+    for script in scripts:
+        shutil.copy(root / script, editable / 'bin')
+    info_e = editable / 'lib' / 'python3.99' / 'site-packages' / 'mmit_bashlib-0.0.1.dist-info'
+    info_e.mkdir(parents=True)
+    (info_e / 'METADATA').write_text('Metadata-Version: 2.1\nName: mmit-bashlib\nVersion: 0.0.1\n')
+    (info_e / 'direct_url.json').write_text(f'{{"dir_info": {{"editable": true}}, "url": "{clone.as_uri()}"}}')
+    assert '%20' in clone.as_uri()
+    for shell in (['bash'], ['/bin/bash']):
+        assert run(command=[*shell, str(editable / 'bin' / 'bashlib-path')])[0] == f'{clone}/src\n', shell
+    # Die Kopie von bashlib in der venv stammt vom Installieren; es gilt der Stand im Klon.
+    stale = editable / 'bin' / 'bashlib'
+    stale.write_text(stale.read_text().replace('Zeigt diese Hilfe.', 'Alter Stand.'))
+    assert 'Zeigt diese Hilfe.' in run(command=[str(stale)])[0]
+
+    # Ohne Paket neben dem Skript: Exit 1 mit Grund.
+    (base / 'leer' / 'bin').mkdir(parents=True)
+    shutil.copy(root / 'bin' / 'bashlib-path', base / 'leer' / 'bin')
+    out, err = run(code=1, command=[str(base / 'leer' / 'bin' / 'bashlib-path')])
+    assert not out and 'keine tools.lib.sh' in err, err
+
+    # Im Checkout (nicht installiert): Version und Befehle aus pyproject.toml.
     version = re.search(r'^version = "(.*)"$', (root / 'pyproject.toml').read_text(), re.M).group(1)
-    out, _ = run()
+    out, _ = run(command=[str(root / 'bin' / 'bashlib')])
     summary = re.search(r'^description = "(.*)"$', (root / 'pyproject.toml').read_text(), re.M).group(1)
     assert f'       BashLib {version} – {summary}\n' in out, out
     assert 'bashlib-path' in out and 'bashlib-demo' not in out and '       bashlib ' not in out, out
-    print('bashlib: Version, Befehle aus einer Quelle, Theme, Hilfe, --skill bestanden')
+    print('bashlib, bashlib-path: ohne Python, Version, Befehle aus einer Quelle, Theme, Hilfe, --skill bestanden')
 PY

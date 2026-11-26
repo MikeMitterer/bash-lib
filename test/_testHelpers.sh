@@ -99,4 +99,23 @@ printf '[project]\nname = "x"\n' > "${work}/empty/pyproject.toml"
 runLib version.lib.sh readPackageCommands "${work}/empty"
 assertEquals "1" "${rc}" "ohne [project.scripts]: Exit 1"
 
+# Skripte ohne Python-Starter: Dateinamen aus script-files, auch als mehrzeilige Liste
+mkdir -p "${work}/files"
+cat > "${work}/files/pyproject.toml" <<'EOF'
+[project]
+name = "demo"
+
+[tool.setuptools]
+packages = ["demo"]
+script-files = ["bin/demo", "bin/demo-path",
+    "tools/demo-x", "bin/böse$(touch executed)",
+]
+
+[tool.other]
+script-files = ["bin/nicht"]
+EOF
+runLib version.lib.sh readPackageCommands "${work}/files"
+assertEquals $'demo\ndemo-path\ndemo-x' "${out}" "readPackageCommands: Dateinamen aus script-files, ungültige fehlen"
+assertEquals "no" "$([[ -e ${work}/executed ]] && echo yes || echo no)" "readPackageCommands, script-files: nichts ausgeführt"
+
 finishTests

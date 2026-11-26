@@ -35,11 +35,9 @@ mkdir -p "${repo}/.venv"
 cp "${ROOT}/Makefile" "${ROOT}/.dev-tools.conf.sh" "${ROOT}/pyproject.toml" "${repo}/"
 ln -s "${ROOT}/src" "${repo}/src"
 mkdir "${repo}/.githooks"
-mkdir "${repo}/.venv/bin"
-# Reihenfolge der Stempel wie nach make setup: Abhängigkeiten, .venv, bashlib
+# Reihenfolge der Stempel wie nach make setup: Abhängigkeiten, .venv
 touch "${repo}/.venv/.dependencies"
 touch "${repo}/.venv/.installed"
-touch "${repo}/.venv/bin/bashlib"
 git init -q "${repo}"
 
 # Nachgebautes devtools (Starter): hält die Argumente fest, scheitert mit FAKE_FAIL; tstamp

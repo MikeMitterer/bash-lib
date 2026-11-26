@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016  # Backticks sind Markdown in der Ausgabe von --skill, kein Befehl
+#------------------------------------------------------------------------------
+# bashlib — Version von BashLib und die Befehle des Pakets anzeigen
+#
+#     bashlib [--version] [--skill] [-h]
+#
+# Reines Bash ohne Python: Die Bibliotheken findet bashlib-path neben diesem
+# Skript. Version und Beschreibung kommen aus den Paket-Metadaten (METADATA im
+# dist-info), im Checkout aus pyproject.toml; die Befehle aus RECORD bzw.
+# script-files in pyproject.toml (readPackageCommands), es gibt keine zweite
+# Liste. Was ein Befehl tut, steht im Block „Für Agenten (bashlib --skill):“ im
+# Kopf seines Skripts (Zweck, Wirkung, Wann), wie bei den Bibliotheken.
+#
+# Exit: 0 ausgegeben, 1 Bibliotheken nicht gefunden, 2 Aufruf falsch
+#------------------------------------------------------------------------------
+set -o pipefail
+
+_HERE="$(dirname "${BASH_SOURCE[0]}")"
+BASH_LIBS="$("${_HERE}/bashlib-path")" || exit 1
+export BASH_LIBS
+
+# Checkout mit pyproject.toml und bin/bashlib, oder dist-info der Installation
+_CHECKOUT=""
+_INFO=""
+if [[ ${BASH_LIBS} == */src && -f ${BASH_LIBS%/src}/pyproject.toml && -f ${BASH_LIBS%/src}/bin/bashlib ]]; then
+    _CHECKOUT="${BASH_LIBS%/src}"
+    # Editierbar installiert: Die Kopie in der venv stammt vom Installieren, es gilt der Stand im Klon.
+    if [[ ! ${_CHECKOUT}/bin/bashlib -ef ${BASH_SOURCE[0]} ]]; then
+        exec "${BASH}" "${_CHECKOUT}/bin/bashlib" "$@"
+    fi
+else
+    for _dir in "${BASH_LIBS%/bashlib/lib}"/mmit_bashlib-*.dist-info; do
+        [[ -f ${_dir}/METADATA ]] && _INFO="${_dir}"
+    done
+fi
+
+# shellcheck source=SCRIPTDIR/../src/version.lib.sh
+if [[ "${__VERSION_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/version.lib.sh"; fi
+
+# Version aus den Metadaten, im Checkout aus pyproject.toml; sonst „unbekannt“
+_version() {
+    local _ver=""
+    if [[ -n ${_INFO} ]]; then
+        _ver="$(sed -n 's/^Version: *//p' "${_INFO}/METADATA" | head -n 1)"
+    elif [[ -n ${_CHECKOUT} ]]; then
+        _ver="$(readProjectVersion pyproject.toml "${_CHECKOUT}" 2>/dev/null)"
+    fi
+    printf '%s\n' "${_ver:-unbekannt}"
+}
+
+# Kurzbeschreibung des Pakets aus den Metadaten bzw. pyproject.toml; sonst leer
+_summary() {
+    if [[ -n ${_INFO} ]]; then
+        sed -n 's/^Summary: *//p' "${_INFO}/METADATA" | head -n 1
+    elif [[ -n ${_CHECKOUT} ]]; then
+        sed -n 's/^description = "\(.*\)"$/\1/p' "${_CHECKOUT}/pyproject.toml" | head -n 1
+    fi
+}
+
+# Befehle des Pakets ohne bashlib selbst, je Zeile einer: installiert aus RECORD (Dateien
+# unter bin/), im Checkout aus pyproject.toml
+_commands() {
+    {
+        if [[ -n ${_INFO} ]]; then
+            sed -n 's#^\.\./.*bin/\([^/,]*\),.*#\1#p' "${_INFO}/RECORD" 2>/dev/null
+        elif [[ -n ${_CHECKOUT} ]]; then
+            readPackageCommands "${_CHECKOUT}"
+        fi
+    } | grep -xE '[A-Za-z0-9._-]+' | grep -vx 'bashlib'
+}
+
+# Feld KEY (Zweck, Wirkung, Wann, Wichtig …) aus dem Block „Für Agenten (bashlib --skill):“
+# im Kopf von FILE; leer, wenn Block oder Feld fehlen
+_field() {
+    awk -v key="$2" '
+        $0 == "# Für Agenten (bashlib --skill):" { block = 1; next }
+        !block { next }
+        $0 !~ /^#[ \t]+[[:alnum:]_]+:[ \t]/ { exit }
+        {
+            line = $0
+            sub(/^#[ \t]+/, "", line)
+            name = line
+            sub(/:.*/, "", name)
+            if (name != key) next
+            sub(/^[^:]*:[ \t]+/, "", line)
+            sub(/[ \t\r]+$/, "", line)
+            print line
+            exit
+        }' "$1" 2>/dev/null
+}
+
+# Text ohne Punkte am Ende
+_trimDot() {
+    local _text="$1"
+    while [[ ${_text} == *. ]]; do _text="${_text%.}"; done
+    printf '%s' "${_text}"
+}
+
+# Hinweiszeile im Theme; Platzhalter wie <befehl> in der Rolle C_ACC
+_hint() {
+    local _rest="$1" _text=""
+    while [[ ${_rest} =~ ^([^<]*)(<[^>]*>)(.*)$ ]]; do
+        _text+="${BASH_REMATCH[1]}$(themeAccent "${BASH_REMATCH[2]}" "${THEME_COLOR_HINT}")"
+        _rest="${BASH_REMATCH[3]}"
+    done
+    printThemeHint "${_text}${_rest}"
+}
+
+# Übersicht wie bei projecttools: Aufruf, Kurzbeschreibung, Befehle, Optionen, Umgebung
+_overview() {
+    # shellcheck source=SCRIPTDIR/../src/tools.lib.sh
+    if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh" || exit 1; fi
+    local _text _name
+    _text="$(_summary)"
+    printThemeHeading "Aufruf: bashlib [--version] [--skill] [-h]"
+    _hint "BashLib $(_version)${_text:+ – ${_text}}"
+    _hint "Hilfe zu einem Befehl: <befehl> --help"
+    printThemeHeading "Befehle"
+    while IFS= read -r _name; do
+        printThemeRow "${_name}" "$(_field "${_HERE}/${_name}" Zweck)"
+    done < <(_commands)
+    printThemeHeading "Optionen"
+    printThemeRow "     --version" "Zeigt die installierte Version."
+    printThemeRow "     --skill" "Beschreibt Befehle und Bibliotheken für KI-Agenten (Markdown)."
+    printThemeRow "-h | --help" "Zeigt diese Hilfe."
+    printThemeHeading "Umgebung"
+    printThemeRow "CLI_THEME" "Theme der Ausgabe (Standard classic; anlegen mit clitheme install)"
+    printThemeRow "NO_COLOR" "Ausgabe ohne Farben"
+    echo
+}
+
+# Typische Aufrufe für --skill: vollständig und so lauffähig, je Aufruf und Kommentar
+_EXAMPLES=(
+    'export BASH_LIBS="$(bashlib-path)"' "Bibliotheken für eigene Skripte bereitstellen"
+    'if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi'
+    "im Skript: Ausgabe im CLI-Theme und Grundbibliotheken laden"
+    "grep -n -B20 '^semVerBump()' \"\$(bashlib-path)/version.lib.sh\"" "Beschreibung einer Funktion lesen"
+    "bashlib --version" "installierte Version"
+)
+
+# --skill: Befehle und Bibliotheken als Markdown für Agenten, nach der Vorgabe im tools-Skill
+_skill() {
+    local _text _name _file _important _entry _effect _when _width=0 _i _names
+    _text="$(_summary)"
+    printf '# bashlib\n\n'
+    printf '%s. Installierte Version %s. Die Bibliotheken liegen im Verzeichnis, das ' \
+        "${_text:-BashLib}" "$(_version)"
+    printf '`bashlib-path` ausgibt; die meisten Funktionen beschreibt der Kommentar über ihnen. '
+    printf 'Alle Optionen eines Befehls: `<befehl> --help`.\n\n## Befehle\n\n'
+    while IFS= read -r _name; do
+        _file="${_HERE}/${_name}"
+        _effect="$(_field "${_file}" Wirkung)"
+        _when="$(_field "${_file}" Wann)"
+        printf -- '- `%s` (%s): %s. Wann: %s.\n' "${_name}" "${_effect:-?}" \
+            "$(_trimDot "$(_field "${_file}" Zweck)")" "$(_trimDot "${_when:-?}")"
+    done < <(_commands)
+    for (( _i = 0; _i < ${#_EXAMPLES[@]}; _i += 2 )); do
+        (( ${#_EXAMPLES[_i]} > _width )) && _width=${#_EXAMPLES[_i]}
+    done
+    printf '\n## Beispiele\n\n```sh\n'
+    for (( _i = 0; _i < ${#_EXAMPLES[@]}; _i += 2 )); do
+        printf '%-*s  # %s\n' "${_width}" "${_EXAMPLES[_i]}" "${_EXAMPLES[_i + 1]}"
+    done
+    printf '```\n\n## Bibliotheken\n\n'
+    while IFS= read -r _file; do
+        _important=""
+        IFS=',' read -r -a _names <<<"$(_field "${_file}" Wichtig)"
+        for _entry in "${_names[@]}"; do
+            _entry="${_entry#"${_entry%%[![:space:]]*}"}"
+            _entry="${_entry%"${_entry##*[![:space:]]}"}"
+            [[ -n ${_entry} ]] && _important+="${_important:+, }\`${_entry}\`"
+        done
+        _text="$(_field "${_file}" Zweck)"
+        _when="$(_field "${_file}" Wann)"
+        printf -- '- `%s`: %s. Wann: %s. Wichtig: %s\n' "${_file##*/}" \
+            "$(_trimDot "${_text:-ohne Beschreibung im Dateikopf}")" "$(_trimDot "${_when:-?}")" "${_important}"
+    done < <(LC_ALL=C; printf '%s\n' "${BASH_LIBS}"/*.lib.sh)
+    printf '\n## Voraussetzungen\n\n'
+    printf -- '- Bash 5; `BASH_LIBS` exportiert und auf das Verzeichnis von `bashlib-path` gesetzt.\n'
+    # Was eine Bibliothek mitlädt, steht nur in ihrem Agenten-Block (Zweck), nicht hier.
+    printf -- '- Jede Bibliothek über ihre Wächterzeile aus dem Dateikopf („Einbinden“) laden.\n'
+}
+
+if (( $# <= 1 )); then
+    case ${1---help} in
+        -h | --help) _overview; exit 0 ;;
+        --version) _version; exit 0 ;;
+        --skill) _skill; exit 0 ;;
+    esac
+fi
+# Eine bekannte Option mit Zusatz: den Zusatz nennen, nicht die Option.
+case $1 in
+    -h | --help | --version | --skill) printf 'Zu viele Argumente: %s\nbashlib --help\n' "$2" >&2 ;;
+    *) printf 'Unbekanntes Argument %s\nbashlib --help\n' "$1" >&2 ;;
+esac
+exit 2

@@ -191,7 +191,7 @@ case "$*" in *" check "*) echo "ProjectTools fehlt (Ersatz)"; exit 1 ;; esac
 exit 0
 EOF
 chmod +x "${work}/devbin/devtools"
-assertEquals "0" "$(make --no-print-directory -C "${ROOT}" -q .venv/.installed .venv/bin/bashlib >/dev/null 2>&1; echo $?)" \
+assertEquals "0" "$(make --no-print-directory -C "${ROOT}" -q .venv/.installed >/dev/null 2>&1; echo $?)" \
     "Voraussetzung: Einrichtung aktuell (make setup)"
 : > "${work}/devtools.log"
 output="$(env -i HOME="${work}" PATH="${work}/devbin:${BASE_PATH}" FAKE_DEVTOOLS_LOG="${work}/devtools.log" \
