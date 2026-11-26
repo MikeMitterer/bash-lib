@@ -2,6 +2,22 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.17.0+261126.1747.f2d4c — 2026-11-26
+
+Befehle bashlib und bashlib-path ohne Python-Starter; readRequiresPython und findPython in python.lib.sh
+
+### Neue Funktionen
+
+- bashlib und bashlib-path als Bash-Skripte ohne Python-Starter (T-89) (`e21e9b2`)
+- readRequiresPython und findPython in python.lib.sh (T-90) (`938232d`)
+
+### Fehlerkorrekturen
+
+- PYTHON aus der Umgebung erreicht make test-package (T-91) (`a1d2422`)
+- bashlib-path ohne CDPATH, script-files ohne Kommentare (T-89, R1-F1, R1-F2) (`0a72b0e`)
+- requires-python robuster lesen, macOS-Starter am Ziel erkennen (T-90, R1-F1–F4) (`2aee3d8`)
+- macOS-Sperre ohne uname, METADATA-Kopf in beliebiger Reihenfolge (T-90, R2-F1, R2-F2) (`190f455`)
+
 ## v0.16.0+261125.1306.5dfd6 — 2026-11-25
 
 Prüf-Targets richten selbst ein (requireMakeSetup, require-tools), make uninstall mit uninstallPackage, Einrichtungsstempel über devtools tstamp, Bump-Guards nennen Ursache
