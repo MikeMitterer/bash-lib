@@ -6,9 +6,9 @@ readonly __PYTHON_LIB__="python.lib.sh";
 # passenden Interpreter im PATH finden, venv anlegen und Pakete installieren
 #
 # Für Agenten (bashlib --skill):
-#     Zweck:   Python-Mindestversion lesen, passenden Interpreter finden, venv anlegen und Pakete installieren
-#     Wann:    ein Projekt braucht eine venv oder ein Python ab einer Version, etwa in `make setup`, ohne feste Version wie python3.14
-#     Wichtig: readRequiresPython, findPython, ensurePythonVenv, isPythonAtLeast, readPythonVersion
+#     Zweck:   Python-Versionsgrenzen aus requires-python lesen (>=X.Y, optional <X.Y), passenden Interpreter finden, venv anlegen und Pakete installieren
+#     Wann:    ein Projekt braucht eine venv oder ein Python in einem Versionsbereich, etwa in `make setup`, ohne feste Version wie python3.14
+#     Wichtig: findPythonFor, readRequiresPython, findPython, ensurePythonVenv, isPythonAtLeast, readPythonVersion
 #
 # Einbinden:
 #     if [[ "${__PYTHON_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/python.lib.sh"; fi
@@ -19,15 +19,18 @@ readonly __PYTHON_LIB__="python.lib.sh";
 if [[ "${__TOOLS_LIB__:=""}" == "" ]]; then . "${BASH_LIBS}/tools.lib.sh"; fi
 
 # Stellt eine venv bereit: Der Interpreter muss vorhanden und (mit --min) neu genug
-# sein; eine vorhandene venv ebenso. Ohne --python nimmt sie den neuesten passenden
-# aus dem PATH (findPython mit --min). Fehlt die venv, legt sie `PYTHON -m venv` an.
+# sein; eine vorhandene venv ebenso (nur gegen --min, eine Obergrenze prüft sie nicht:
+# die venv behält ihren Interpreter, auch wenn --python ein anderer ist). Ohne --python
+# nimmt sie den neuesten passenden aus dem PATH (findPython mit --min). Fehlt die venv,
+# legt sie `PYTHON -m venv` an.
 # Mit PIP-ARGUMENTEN installiert pip in der venv (leise); seine Ausgabe erscheint nur
 # bei einem Fehler. Bei Erfolg keine Ausgabe. Projektspezifisches (Stempeldatei,
 # Links) bleibt beim Aufrufer; das Skript endet nicht.
 #
 # Usage:
 #     ensurePythonVenv --python python3.14 --venv .venv --min 3.14 -- -e '.[dev]'
-#     ensurePythonVenv --venv .venv --min "$(readRequiresPython pyproject.toml)" -- -e .
+#     # Neue venv im Bereich aus requires-python; eine vorhandene behält ihren Interpreter
+#     python="$(findPythonFor pyproject.toml)" && ensurePythonVenv --python "${python}" --venv .venv-neu -- -e .
 #
 # Params:
 #     --python PYTHON   Interpreter für die neue venv (Befehl oder Pfad); ohne: findPython MIN
@@ -96,16 +99,21 @@ ensurePythonVenv() {
     fi
 }
 
-# Mindestversion X.Y aus requires-python: `requires-python = ">=X.Y"` in [project] einer
-# pyproject.toml oder `Requires-Python: >=X.Y` einer installierten METADATA (dist-info).
-# Verstanden wird nur genau eine Untergrenze >=X.Y; mehrere Bedingungen, eine Obergrenze
-# oder drei Stellen meldet die Funktion mit der Angabe, statt zu raten.
+# Versionsgrenzen aus requires-python: `requires-python = "…"` in [project] einer
+# pyproject.toml oder `Requires-Python: …` einer installierten METADATA (dist-info).
+# Verstanden wird genau eine Untergrenze >=X.Y, dazu höchstens eine exklusive
+# Obergrenze <X.Y über der Untergrenze, durch Komma getrennt und in beliebiger
+# Reihenfolge (setuptools schreibt `<3.15,>=3.13`). Alles andere (!=, ~=, ==, <=, >, drei
+# Stellen, nur eine Obergrenze) meldet die Funktion mit der Angabe, statt zu raten.
+# Ausgabe: MIN, mit Obergrenze „MIN MAX“, passend als Argumente für findPython.
 #
 # Usage:
-#     min="$(readRequiresPython pyproject.toml)" || exit 1
+#     bounds="$(readRequiresPython pyproject.toml)" || exit 1
+#     IFS=' ' read -r min max <<<"${bounds}"
+#     python="$(findPythonFor pyproject.toml)" || exit 1    # Grenzen lesen und suchen
 #
 # Exit:
-#     0  X.Y auf stdout
+#     0  „X.Y“ oder „X.Y A.B“ (A.B exklusiv) auf stdout
 #     1  Datei nicht lesbar, keine Angabe oder Angabe nicht verstanden (Meldung auf stderr)
 #     2  Aufruf falsch
 #
@@ -143,26 +151,74 @@ readRequiresPython() {
         printThemeStatus "✗" "${_file}: keine Angabe requires-python" ERR >&2
         return 1
     fi
-    if [[ ! ${_spec} =~ ^\>=[[:space:]]*([0-9]+)\.([0-9]+)$ ]]; then
-        printThemeStatus "✗" "${_file}: requires-python \"${_spec}\" nicht verstanden, erwartet >=X.Y" ERR >&2
+    # Je Bedingung Operator und X.Y; dezimal wie in Python (3.09 ist 3.9)
+    local -r _lower='^>=[[:space:]]*([0-9]+)\.([0-9]+)$' _upper='^<[[:space:]]*([0-9]+)\.([0-9]+)$'
+    local _part _min="" _max="" _understood=yes
+    local -a _parts
+    IFS=',' read -r -a _parts <<<"${_spec}"
+    for _part in "${_parts[@]}"; do
+        _part="${_part#"${_part%%[![:space:]]*}"}"
+        _part="${_part%"${_part##*[![:space:]]}"}"
+        if [[ -z ${_min} && ${_part} =~ ${_lower} ]]; then
+            _min="$((10#${BASH_REMATCH[1]})).$((10#${BASH_REMATCH[2]}))"
+        elif [[ -z ${_max} && ${_part} =~ ${_upper} ]]; then
+            _max="$((10#${BASH_REMATCH[1]})).$((10#${BASH_REMATCH[2]}))"
+        else
+            _understood=no
+        fi
+    done
+    if [[ ${_understood} == no || -z ${_min} ]] || { [[ -n ${_max} ]] && ! _pythonVersionBelow "${_min}" "${_max}"; }; then
+        printThemeStatus "✗" "${_file}: requires-python \"${_spec}\" nicht verstanden, erwartet >=X.Y oder >=X.Y,<X.Y" ERR >&2
         return 1
     fi
-    # Dezimal wie in Python: 3.09 ist 3.9
-    printf '%d.%d\n' "$((10#${BASH_REMATCH[1]}))" "$((10#${BASH_REMATCH[2]}))"
+    printf '%s\n' "${_min}${_max:+ ${_max}}"
 }
 
-# Pfad des neuesten Interpreters im PATH mit mindestens Version MIN (X.Y). Kandidaten
+# Interpreter passend zu requires-python in DATEI (pyproject.toml oder METADATA):
+# readRequiresPython liest Unter- und optional Obergrenze, findPython wählt damit.
+# Meldungen und Exit-Codes kommen von diesen beiden.
+#
+# Usage:
+#     python="$(findPythonFor pyproject.toml)" || exit 1
+#
+# Exit:
+#     0  Pfad auf stdout
+#     1  Angabe fehlt oder nicht verstanden, oder kein passender Interpreter im PATH
+#     2  Aufruf falsch
+#
+findPythonFor() {
+    if (( $# != 1 )) || [[ -z ${1} ]]; then
+        printf 'findPythonFor: DATEI erwartet\n' >&2
+        return 2
+    fi
+    local _bounds
+    local -a _args
+    _bounds="$(readRequiresPython "${1}")" || return 1
+    # Eigenes Trennzeichen: Das IFS des Aufrufers hat vielleicht kein Leerzeichen
+    IFS=' ' read -r -a _args <<<"${_bounds}"
+    findPython "${_args[@]}"
+}
+
+# Wahr, wenn Version $1 (X.Y) kleiner ist als $2 (X.Y), dezimal verglichen
+_pythonVersionBelow() {
+    local -r _a="${1}" _b="${2}"
+    (( 10#${_a%%.*} < 10#${_b%%.*} || ( 10#${_a%%.*} == 10#${_b%%.*} && 10#${_a#*.} < 10#${_b#*.} ) ))
+}
+
+# Pfad des neuesten Interpreters im PATH mit mindestens Version MIN (X.Y) und, mit MAX,
+# einer Version unter MAX (exklusiv, wie <X.Y in requires-python). Kandidaten
 # sind python3 und python3.N in jedem Ordner des PATH; tote Links, Fehlschläge und zu
 # alte übergeht sie still. Die Versionsabfrage ist gültiges Python 2 und 3, auch ein
 # sehr altes Python antwortet also. Den Starter /usr/bin/python3 von macOS ruft sie
 # nur auf, wenn die Command Line Tools da sind (xcode-select -p); sonst öffnete er ein
 # Installationsfenster. Erkannt wird er am Ziel, nicht an der Schreibweise: auch über
 # /usr/bin/ im PATH oder einen Link darauf. Die Plattform kommt aus OSTYPE, nicht aus
-# dem PATH; fehlt xcode-select im PATH, gilt das wie fehlende Command Line Tools. MIN ist dezimal (3.09 ist 3.9). Bei
-# gleicher Version gewinnt der erste im PATH.
+# dem PATH; fehlt xcode-select im PATH, gilt das wie fehlende Command Line Tools.
+# MIN und MAX sind dezimal (3.09 ist 3.9). Bei gleicher Version gewinnt der erste im PATH.
 #
 # Usage:
 #     python="$(findPython 3.14)" || exit 1
+#     python="$(findPython 3.13 3.15)" || exit 1     # 3.13 oder 3.14
 #
 # Exit:
 #     0  Pfad auf stdout
@@ -170,10 +226,13 @@ readRequiresPython() {
 #     2  Aufruf falsch
 #
 findPython() {
-    if (( $# != 1 )) || [[ ! ${1} =~ ^([0-9]+)\.([0-9]+)$ ]]; then
-        printf 'findPython: MIN als X.Y erwartet\n' >&2
+    if (( $# < 1 || $# > 2 )) || [[ ! ${1} =~ ^[0-9]+\.[0-9]+$ ]] \
+        || { (( $# == 2 )) && { [[ ! ${2} =~ ^[0-9]+\.[0-9]+$ ]] || ! _pythonVersionBelow "${1}" "${2}"; }; }; then
+        printf 'findPython: MIN [MAX] als X.Y erwartet, MAX über MIN\n' >&2
         return 2
     fi
+    local -r _max="${2:-}"
+    [[ ${1} =~ ^([0-9]+)\.([0-9]+)$ ]]
     local -r _wantMajor="$((10#${BASH_REMATCH[1]}))" _wantMinor="$((10#${BASH_REMATCH[2]}))"
     local _dir _candidate _version _best="" _bestMajor=-1 _bestMinor=-1 _major _minor _tools=""
     local -a _dirs
@@ -190,12 +249,17 @@ findPython() {
             [[ ${_version} =~ ^([0-9]+)\.([0-9]+)$ ]] || continue
             _major="$((10#${BASH_REMATCH[1]}))" _minor="$((10#${BASH_REMATCH[2]}))"
             (( _major > _wantMajor || ( _major == _wantMajor && _minor >= _wantMinor ) )) || continue
+            [[ -z ${_max} ]] || _pythonVersionBelow "${_major}.${_minor}" "${_max}" || continue
             if (( _major > _bestMajor || ( _major == _bestMajor && _minor > _bestMinor ) )); then
                 _best="${_candidate}" _bestMajor="${_major}" _bestMinor="${_minor}"
             fi
         done
     done
-    if [[ -z ${_best} ]]; then
+    if [[ -z ${_best} && -n ${_max} ]]; then
+        { printThemeStatus "✗" "kein Python ab ${1} und unter ${_max} im PATH" ERR
+          printThemeHint "Python ab ${1} und unter ${_max} installieren"; } >&2
+        return 1
+    elif [[ -z ${_best} ]]; then
         { printThemeStatus "✗" "kein Python ab ${1} im PATH" ERR; printThemeHint "Python ${1} oder neuer installieren"; } >&2
         return 1
     fi

@@ -22,12 +22,14 @@ cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
 # Führt die Funktion "$@" aus python.lib.sh in ${work} aus; setzt rc, out und err.
-# Mit LIB_PATH gesetzt gilt dieser PATH in der Funktion (Bash über ihren Pfad).
+# Mit LIB_PATH gesetzt gilt dieser PATH in der Funktion (Bash über ihren Pfad), mit
+# LIB_IFS dieses IFS (die Bash übernimmt IFS nicht aus der Umgebung).
 # shellcheck disable=SC2016  # der Ausdruck läuft erst in der inneren Bash
 runLib() {
     rc=0
     out="$(cd "${work}" && NO_COLOR=1 BASH_LIBS="${ROOT}/src" \
-        "${BASH}" -c '. "${BASH_LIBS}/python.lib.sh"; [[ -z ${LIB_PATH:-} ]] || PATH="${LIB_PATH}"; "$@"' _ "$@" \
+        "${BASH}" -c '. "${BASH_LIBS}/python.lib.sh"; [[ -z ${LIB_PATH:-} ]] || PATH="${LIB_PATH}"
+            [[ -z ${LIB_IFS:-} ]] || IFS="${LIB_IFS}"; "$@"' _ "$@" \
         2>"${work}/err")" || rc=$?
     err="$(cat "${work}/err")"
 }
@@ -60,7 +62,9 @@ assertEquals "0|3.11" "${rc}|${out}" "pyproject.toml mit '…': X.Y"
 printf 'Metadata-Version: 2.1\nName: demo\nRequires-Python: >=3.10\n\nRequires-Python: >=9.9\n' > "${work}/METADATA"
 runLib readRequiresPython METADATA
 assertEquals "0|3.10" "${rc}|${out}" "METADATA: X.Y aus dem Kopf"
-for spec in ">=3.9,<4" "<3.13" ">=3.9.1" "~=3.9"; do
+# Nur >=X.Y mit höchstens einer exklusiven Obergrenze <X.Y; alles andere mit der Angabe melden
+for spec in ">=3.9,<4" "<3.13" ">=3.9.1" "~=3.9" ">=3.9,!=3.10" "==3.12" ">=3.9,<=3.13" ">=3.9,<3.13.1" \
+    ">=3.13,<3.13" ">=3.9,<3.12,<3.13" ">=3.9,>=3.10"; do
     printf '[project]\nrequires-python = "%s"\n' "${spec}" > "${work}/odd.toml"
     runLib readRequiresPython odd.toml
     assertEquals "1|" "${rc}|${out}" "unverständlich ${spec}: Exit 1, keine Ausgabe"
@@ -98,6 +102,18 @@ printf '[project]\nrequires-python = ">=3.09"\n' > "${work}/zero.toml"
 runLib readRequiresPython zero.toml
 assertEquals "0|3.9" "${rc}|${out}" "führende Null: dezimal 3.9"
 
+# Exklusive Obergrenze: Ausgabe „MIN MAX“, Bedingungen in beliebiger Reihenfolge
+printf '[project]\nrequires-python = ">=3.13,<3.15"\n' > "${work}/upper-back.toml"
+runLib readRequiresPython upper-back.toml
+assertEquals "0|3.13 3.15" "${rc}|${out}" "pyproject.toml, Obergrenze hinten: MIN MAX"
+printf '[project]\nrequires-python = "< 3.15 , >= 3.13"\n' > "${work}/upper-front.toml"
+runLib readRequiresPython upper-front.toml
+assertEquals "0|3.13 3.15" "${rc}|${out}" "pyproject.toml, Obergrenze vorn mit Leerzeichen: MIN MAX"
+# So schreibt setuptools die Angabe in die METADATA: Obergrenze zuerst
+printf 'Metadata-Version: 2.1\nName: demo\nRequires-Python: <3.15,>=3.13\n\n' > "${work}/upper-meta"
+runLib readRequiresPython upper-meta
+assertEquals "0|3.13 3.15" "${rc}|${out}" "METADATA, Obergrenze vorn: MIN MAX"
+
 echo
 echo "findPython"
 echo
@@ -126,6 +142,30 @@ assertEquals "1|" "${rc}|${out}" "kein passender Interpreter: Exit 1, keine Ausg
 assertContains "kein Python ab 3.22" "${err}" "kein passender Interpreter: Meldung nennt die Mindestversion"
 runLib findPython 3
 assertEquals "2" "${rc}" "MIN ohne Minor: Aufruffehler Exit 2"
+# Exklusive Obergrenze MAX: Kandidaten ab MAX übergangen
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPython 3.8 3.21
+assertEquals "0|${work}/a/python3.20" "${rc}|${out}" "mit Obergrenze: neuester darunter, 3.21 übergangen"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPython 3.21 3.30
+assertEquals "0|${work}/b/python3.21" "${rc}|${out}" "mit Obergrenze: Untergrenze eingeschlossen"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPython 3.22 3.30
+assertEquals "1|" "${rc}|${out}" "mit Obergrenze, kein passender: Exit 1"
+assertContains "ab 3.22 und unter 3.30" "${err}" "mit Obergrenze, kein passender: Meldung nennt beide Grenzen"
+runLib findPython 3.20 3.20
+assertEquals "2" "${rc}" "MAX nicht über MIN: Aufruffehler Exit 2"
+runLib findPython 3.20 vier
+assertEquals "2" "${rc}" "MAX keine Version: Aufruffehler Exit 2"
+# findPythonFor DATEI: Grenzen aus requires-python, dann findPython
+printf 'Metadata-Version: 2.1\nRequires-Python: <3.21,>=3.8\n\n' > "${work}/for-meta"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for-meta
+assertEquals "0|${work}/a/python3.20" "${rc}|${out}" "findPythonFor METADATA mit Obergrenze: Interpreter darunter"
+LIB_IFS=$'\n\t' LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for-meta
+assertEquals "0|${work}/a/python3.20" "${rc}|${out}" "findPythonFor mit IFS des Aufrufers ohne Leerzeichen: gleiches Ergebnis"
+printf '[project]\nrequires-python = ">=3.21"\n' > "${work}/for.toml"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor for.toml
+assertEquals "0|${work}/b/python3.21" "${rc}|${out}" "findPythonFor pyproject.toml nur mit Untergrenze: wie findPython MIN"
+LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPythonFor odd.toml
+assertEquals "1|" "${rc}|${out}" "findPythonFor, Angabe nicht verstanden: Exit 1"
+assertContains "nicht verstanden" "${err}" "findPythonFor, Angabe nicht verstanden: Meldung von readRequiresPython"
 LIB_PATH="${work}/a:${work}/b:${work}/c:/usr/bin:/bin" runLib findPython 3.09
 assertEquals "0|${work}/b/python3.21|" "${rc}|${out}|${err}" "MIN mit führender Null: dezimal, ohne Bash-Fehler"
 if [[ $(uname -s) == Darwin && -x /usr/bin/python3 ]]; then
