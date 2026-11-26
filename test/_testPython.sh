@@ -87,6 +87,10 @@ printf 'Metadata-Version: 2.1\r\nName: demo\r\n\r\nBeispiel:\r\nRequires-Python:
 runLib readRequiresPython crlf-meta
 assertEquals "1|" "${rc}|${out}" "METADATA mit CRLF, Angabe nur in der Beschreibung: Exit 1, keine Ausgabe"
 printf 'Metadata-Version: 2.1\r\nRequires-Python: >=3.10\r\n\r\n' > "${work}/crlf-meta-ok"
+# Die Reihenfolge der Kopffelder ist frei (Core Metadata, E-Mail-Format)
+printf 'Name: demo\nRequires-Python: >=3.11\nMetadata-Version: 2.1\n\nRequires-Python: >=3.99\n' > "${work}/order-meta"
+runLib readRequiresPython order-meta
+assertEquals "0|3.11" "${rc}|${out}" "METADATA mit anderer Feldreihenfolge: X.Y aus dem Kopf"
 runLib readRequiresPython crlf-meta-ok
 assertEquals "0|3.10" "${rc}|${out}" "METADATA mit CRLF: X.Y aus dem Kopf"
 # Führende Null: dezimal, wie Python sie liest
@@ -137,6 +141,12 @@ if [[ $(uname -s) == Darwin && -x /usr/bin/python3 ]]; then
     ln -s /usr/bin/python3 "${work}/link/python3.9"
     LIB_PATH="${work}/tools-fehlen:/usr/bin/:${work}/link:/bin" runLib findPython 3.0
     assertEquals "1|" "${rc}|${out}" "macOS ohne Command Line Tools: auch /usr/bin/ und Link auf den Starter nicht aufgerufen"
+    # Minimaler PATH ohne /usr/bin (kein uname): die Sperre gilt trotzdem
+    LIB_PATH="${work}/tools-fehlen:${work}/link:/bin" runLib findPython 3.0
+    assertEquals "1|" "${rc}|${out}" "macOS ohne Command Line Tools, PATH ohne /usr/bin: Link auf den Starter nicht aufgerufen"
+    # Ohne xcode-select im PATH gilt: keine Command Line Tools
+    LIB_PATH="${work}/link:/bin" runLib findPython 3.0
+    assertEquals "1|" "${rc}|${out}" "macOS ohne xcode-select im PATH: Starter nicht aufgerufen"
 fi
 
 echo

@@ -120,15 +120,16 @@ readRequiresPython() {
         printThemeStatus "✗" "${_file} nicht lesbar" ERR >&2
         return 1
     fi
-    # METADATA (erste Zeile Metadata-Version:): nur der Kopf bis zur ersten Leerzeile.
+    # METADATA (E-Mail-Format, erste Zeile ein Kopffeld „Name: …“): nur der Kopf bis zur
+    # ersten Leerzeile, Felder in beliebiger Reihenfolge, Name ohne Groß-/Kleinschreibung.
     # pyproject.toml: nur im Abschnitt [project], Schlüssel auch eingerückt, Kopf mit
     # Leerzeichen und Kommentar, Wert in "…" oder '…'. CRLF-Zeilenenden zählen wie LF.
     _spec="$(awk '
         { sub(/\r$/, "") }
-        NR == 1 && /^Metadata-Version:/ { meta = 1 }
+        NR == 1 && /^[A-Za-z][A-Za-z0-9-]*:/ { meta = 1 }
         meta && /^$/ { exit }
         meta {
-            if ($0 ~ /^Requires-Python:/) { v = $0; sub(/^Requires-Python:[ \t]*/, "", v); sub(/[ \t]+$/, "", v); print v; exit }
+            if (tolower($0) ~ /^requires-python:/) { v = $0; sub(/^[^:]*:[ \t]*/, "", v); sub(/[ \t]+$/, "", v); print v; exit }
             next
         }
         /^[ \t]*\[/ { s = $0; sub(/[ \t]*#.*$/, "", s); gsub(/[ \t]/, "", s); next }
@@ -156,7 +157,8 @@ readRequiresPython() {
 # sehr altes Python antwortet also. Den Starter /usr/bin/python3 von macOS ruft sie
 # nur auf, wenn die Command Line Tools da sind (xcode-select -p); sonst öffnete er ein
 # Installationsfenster. Erkannt wird er am Ziel, nicht an der Schreibweise: auch über
-# /usr/bin/ im PATH oder einen Link darauf. MIN ist dezimal (3.09 ist 3.9). Bei
+# /usr/bin/ im PATH oder einen Link darauf. Die Plattform kommt aus OSTYPE, nicht aus
+# dem PATH; fehlt xcode-select im PATH, gilt das wie fehlende Command Line Tools. MIN ist dezimal (3.09 ist 3.9). Bei
 # gleicher Version gewinnt der erste im PATH.
 #
 # Usage:
@@ -180,7 +182,7 @@ findPython() {
         [[ -n ${_dir} && -d ${_dir} ]] || continue
         for _candidate in "${_dir}/python3" "${_dir}"/python3.[0-9]*; do
             [[ ${_candidate##*/} =~ ^python3(\.[0-9]+)?$ && -f ${_candidate} && -x ${_candidate} ]] || continue
-            if [[ $(uname -s) == Darwin && ${_candidate} -ef /usr/bin/python3 ]]; then
+            if [[ ${OSTYPE} == darwin* && ${_candidate} -ef /usr/bin/python3 ]]; then
                 [[ -n ${_tools} ]] || { xcode-select -p >/dev/null 2>&1 && _tools=yes || _tools=no; }
                 [[ ${_tools} == yes ]] || continue
             fi
