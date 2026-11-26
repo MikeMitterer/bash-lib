@@ -44,7 +44,8 @@ export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 PYTHON_BOOTSTRAP ?= python3
 export PYTHON_BOOTSTRAP
 VENV         := .venv
-PYTHON       := $(VENV)/bin/python
+# Nicht PYTHON: Das wählt aus der Umgebung den Interpreter für make test-package.
+VENV_PYTHON  := $(VENV)/bin/python
 VENV_STAMP   := $(VENV)/.installed
 SETUP_STAMPS := $(VENV_STAMP)
 
@@ -178,8 +179,8 @@ setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in 
 # (DEPENDENCIES); ein Versionssprung in pyproject.toml macht die Einrichtung nicht veraltet.
 $(VENV_STAMP): $(DEPENDENCIES)
 	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt"
-	@test -x $(PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
-	@source "$${BASH_LIBS}/cli.lib.sh" && { $(PYTHON) -m pip install -q --disable-pip-version-check build || { \
+	@test -x $(VENV_PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
+	@source "$${BASH_LIBS}/cli.lib.sh" && { $(VENV_PYTHON) -m pip install -q --disable-pip-version-check build || { \
 		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "$(VENV) eingerichtet" OK
@@ -247,7 +248,7 @@ test-package: ## BashLib als pip-Paket in temporäre venvs installieren und prü
 .PHONY: build
 build: $(SETUP_STAMPS) ## Wheel und sdist für externe User unter dist/ bauen und prüfen
 	@rm -rf -- "$${WORKSPACE}/dist"
-	@source "$${BASH_LIBS}/cli.lib.sh" && { out=$$($(PYTHON) -m build --outdir dist . 2>&1) || { \
+	@source "$${BASH_LIBS}/cli.lib.sh" && { out=$$($(VENV_PYTHON) -m build --outdir dist . 2>&1) || { \
 		printf '%s\n' "$$out" >&2; printThemeStatus "✗" "Paket nicht gebaut: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@$(REQUIRE_STARTER) && $(DEV_TOOLS) check-dist dist/*
 
