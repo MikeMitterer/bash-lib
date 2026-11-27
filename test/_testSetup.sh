@@ -60,11 +60,11 @@ chmod +x "${work}/pipx-bin/pipx"
 clitheme="$(command -v clitheme)" || { echo "clitheme fehlt" >&2; exit 1; }
 ln -s "${clitheme}" "${work}/theme-bin/clitheme"
 
-# Nur bash, git und make aus dem PATH, ohne ihre Ordner: Installierte Werkzeuge (devtools,
-# clitheme, etwa in /opt/homebrew/bin neben bash) spielen nicht mit.
-. "${ROOT}/test/minimal-path.sh"
-BASE_PATH="$(minimalPath "${work}/base-bin" bash git make)" || exit 1
-requireMissing "${BASE_PATH}" devtools clitheme
+# PATH ohne devtools und clitheme, wo immer sie installiert sind (isolated-path.sh); die Kopie
+# hat kein .tools/bin, das make davorstellen könnte.
+. "${ROOT}/test/isolated-path.sh"
+BASE_PATH="$(isolatedPath "${work}/base-bin" "devtools clitheme" bash git make)" || exit 1
+requireMissing "${repo}/.tools/bin:${BASE_PATH}" devtools clitheme
 conf() { sed -n "s/^$1=//p" "${ROOT}/.dev-tools.conf.sh"; }
 STARTER_CMD="pipx install '$(conf DEVTOOLS_SOURCE)@$(conf DEVTOOLS_TAG)'"
 

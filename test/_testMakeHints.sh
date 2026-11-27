@@ -86,9 +86,9 @@ assertEquals "${noRemote}" "$(row 'Ohne Klon' 'BashLib in anderen Projekten')" \
     "ohne Remote: Ohne Klon nennt den Ersatz, keinen kaputten pipx-Befehl"
 
 # Ohne ProjectTools (kein repo-info im PATH): Hinweis statt leerer Zeile
-. "${ROOT}/test/minimal-path.sh"
-noToolsPath="$(minimalPath "${work}/no-tools-bin" bash make git)" || exit 1
-requireMissing "${noToolsPath}" repo-info
+. "${ROOT}/test/isolated-path.sh"
+noToolsPath="$(isolatedPath "${work}/no-tools-bin" repo-info bash make git)" || exit 1
+requireMissing "${work}/tagged/.tools/bin:${noToolsPath}" repo-info
 runHints tagged PATH="${noToolsPath}"
 assertEquals "0" "${rc}" "ohne repo-info: Exit 0"
 assertContains "repo-info fehlt" "$(row Repository Links)" "ohne repo-info: Hinweis auf ProjectTools"

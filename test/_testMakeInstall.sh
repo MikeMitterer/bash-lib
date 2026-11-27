@@ -37,11 +37,11 @@ echo "  These apps are now available"
 EOF
 chmod +x "${work}/bin/pipx"
 
-# Nur bash, make und git aus dem PATH, ohne ihre Ordner: Ein installiertes pipx oder devtools
-# (etwa in /opt/homebrew/bin neben bash) spielt nicht mit.
-. "${ROOT}/test/minimal-path.sh"
-BASE_PATH="$(minimalPath "${work}/base-bin" bash make git)" || exit 1
-requireMissing "${BASE_PATH}" pipx devtools
+# PATH ohne pipx und devtools, wo immer sie installiert sind (isolated-path.sh); make stellt
+# .tools/bin dieses Checkouts davor, auch dort dürfen sie nicht liegen.
+. "${ROOT}/test/isolated-path.sh"
+BASE_PATH="$(isolatedPath "${work}/base-bin" "pipx devtools" bash make git)" || exit 1
+requireMissing "${ROOT}/.tools/bin:${BASE_PATH}" pipx devtools
 
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
 runInstall() {
