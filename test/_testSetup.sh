@@ -149,12 +149,23 @@ prepareVenv() {
     case "$1" in
         dead)    setUpVenv "${venv}"; ln -sf "${work}/entfernt/python3.14" "${venv}/bin/python" ;;
         missing) setUpVenv "${venv}"; command rm -f -- "${venv}/bin/python" ;;
-        link)    setUpVenv "${linked}"; touch -t 202601020000 "${linked}/.installed"
-                 ln -s "${linked}" "${venv}" ;;
+        link)    setUpVenv "${linked}"; ln -s "${linked}" "${venv}"
+                 # Alles im Ziel alt, die Einrichtung veraltet (.installed vor .dependencies);
+                 # die Marke liegt danach: Was der Lauf im Ziel schreibt, ist neuer als sie
+                 find "${linked}" -exec touch -h -t 202601010000 {} +
+                 touch -t 202601020000 "${linked}/.installed"
+                 touch -t 202601030000 "${linked}/.dependencies"
+                 touch -t 202601040000 "${work}/linked-mark" ;;
     esac
 }
-# Inhalt des verlinkten Ziels mit Zeitstempeln, um Änderungen zu erkennen
-linkedState() { (cd "${linked}" && find . -print0 | sort -z | xargs -0 stat -f '%N %m %z'); }
+# Einträge im Ziel des Links und, was der Lauf dort geschrieben hat (find -newer, auf macOS und
+# Linux); setzen entries und changed. Scheitert die Erfassung, scheitert der Test.
+linkedState() {
+    local rc=0
+    entries="$(cd "${linked}" && find . | LC_ALL=C sort)" || rc=$?
+    changed="$(find "${linked}" -newer "${work}/linked-mark")" || rc=$?
+    assertEquals "0" "${rc}" "${label}: Ziel des Links erfasst"
+}
 isUpToDate() { "${MAKE_BIN}" --no-print-directory -C "${repo}" --question .venv/.installed \
     && echo yes || echo no; }
 
@@ -184,25 +195,31 @@ for MAKE_BIN in make /usr/bin/make; do
 
     label="${MAKE_BIN}, .venv ist ein Link"
     prepareVenv link
-    state="$(linkedState)"
+    linkedState; before="${entries}"
     runMake setup "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
     assertEquals "0" "${status}" "${label}: Exit 0"
     assertContains "bootstrap -m venv .venv" "$(cat "${work}/log")" "${label}: .venv mit venv neu"
     assertEquals "no" "$([[ -L ${venv} ]] && echo yes || echo no)" "${label}: eigene .venv statt des Links"
-    assertEquals "${state}" "$(linkedState)" "${label}: Ziel des Links unverändert"
+    linkedState
+    assertEquals "${before}" "${entries}" "${label}: im Ziel des Links nichts hinzu oder weg"
+    assertEquals "" "${changed}" "${label}: im Ziel des Links nichts geschrieben"
     assertEquals "yes" "$(isUpToDate)" "${label}: danach aktuell (make --question)"
 
-    # rm -rf scheitert: Der Link liegt in einem schreibgeschützten Checkout
+    # rm -rf scheitert: Der Link liegt in einem schreibgeschützten Checkout. Als root greift der
+    # Schreibschutz nicht, dann entfällt der Fall.
     label="${MAKE_BIN}, rm -rf scheitert"
+    if (( EUID == 0 )); then echo "  – ${label}: als root übersprungen"; continue; fi
     prepareVenv link
-    state="$(linkedState)"
+    linkedState; before="${entries}"
     chmod a-w "${repo}"
     runMake setup "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
     chmod u+w "${repo}"
     assertEquals "1" "$(( status != 0 ))" "${label}: Exit ungleich 0"
     assertNotContains "bootstrap" "$(cat "${work}/log")" "${label}: keine neue .venv"
     assertNotContains "pip install" "$(cat "${work}/log")" "${label}: keine Paketinstallation"
-    assertEquals "${state}" "$(linkedState)" "${label}: Ziel des Links samt Stempel unverändert"
+    linkedState
+    assertEquals "${before}" "${entries}" "${label}: im Ziel des Links nichts hinzu oder weg"
+    assertEquals "" "${changed}" "${label}: im Ziel des Links nichts geschrieben, auch kein Stempel"
 done
 unset MAKE_BIN
 # Eingerichtete .venv für die folgenden Tests

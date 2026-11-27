@@ -47,7 +47,9 @@ Fehlt `.venv/bin/python` oder zeigt es nach einem Python-Wechsel ins Leere, gilt
 Einrichtung als veraltet: `make setup` (ebenso `make build` und `require-setup`) löscht die
 `.venv` mit `rm -rf` und legt sie mit `venv` neu an. Das gilt auch für eine `.venv`, die ein
 Link ist: `rm -rf` entfernt nur den Link, pip schreibt nie in sein Ziel. Außerhalb des Checkouts
-ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
+ändert `make setup` nur die Paket-Caches und `core.hooksPath`. Ausnahme: Ist `.venv` ein Link,
+schreibt `devtools tstamp` beim Einlesen des Makefiles, also bei jedem `make`-Aufruf, auch
+`make help`, `.dependencies` in sein Ziel. `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
 
 `make docs-check` prüft neben der Doku auch die Ausgabe von `bashlib --skill`
