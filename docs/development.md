@@ -42,7 +42,12 @@ ProjectTools und CLITheme nach `.tools/`. Der Stempel der `.venv` hängt an
 `.venv/.dependencies`, den `devtools tstamp` aus `pyproject.toml` ohne die
 Version schreibt: Ein Release macht die Einrichtung nicht veraltet, eine
 geänderte Abhängigkeit schon. Fehlt der Starter oder scheitert die
-Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts. Außerhalb des Checkouts
+Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts.
+Fehlt `.venv/bin/python` oder zeigt es nach einem Python-Wechsel ins Leere, gilt die
+Einrichtung als veraltet: `make setup` (ebenso `make build` und `require-setup`) baut die
+`.venv` mit `venv --clear` neu. In das Ziel einer `.venv`, die ein Link ist, schreibt make
+nie; es entfernt nur den Link und legt eine eigene `.venv` an, bleibt der Link, bricht es
+ab. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
 
