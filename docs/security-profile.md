@@ -126,7 +126,7 @@ einen Test abgesichert.
 | venv anlegen | `ensurePythonVenv` in `python.lib.sh` | `pip install` mit den Argumenten des Aufrufers; Fehler werden gemeldet (`test/_testPython.sh`) |
 | Interpreter suchen | `findPython` in `python.lib.sh`, auch über `findPythonFor` und `ensurePythonVenv` ohne `--python` | startet jedes `python3` und `python3.N` im `PATH` mit einer festen Versionsabfrage (`-c`, keine Werte von außen); welche das sind, legt der `PATH` des Aufrufers fest. `/usr/bin/python3` von macOS nur mit Command Line Tools (`test/_testPython.sh`) |
 | `make test-package` | `test/package.test.sh` | `pip` holt setuptools aus dem Paketindex, in temporäre venvs; nicht Teil von `make check` |
-| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`) |
+| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`); startet `.venv/bin/python` nicht oder ist `.venv` ein Link, löscht es sie mit `rm -rf` und legt sie mit `venv` neu an. `rm -rf` entfernt bei einem Link nur den Link; pip installiert nie in sein Ziel, nur `devtools tstamp` beim Einlesen kann dort `.dependencies` schreiben (`test/_testSetup.sh`) |
 
 ### Fremde Befehle
 
@@ -157,6 +157,7 @@ sein Inhalt. Das ist am Code gelesen; keine Prüfung hält es fest.
 | `rm -rf .dart_tool`, `rm -f web/index.html.bak` | `deploySamples` in `samples.lib.sh` | feste Namen, im selben Ordner wie oben |
 | `build_runner --delete-conflicting-outputs` | `samples.lib.sh` | erzeugte Dateien, die Dart-Werkzeuge entscheiden |
 | `mv` auf den Zielordner | `syncToLocalDir` in `fs.lib.sh` | nichts: Der Ordner aus dem Argument wandert in den Backup-Ordner |
+| `rm -rf .venv`, `rm -rf -- .venv .tools dist build` | `Makefile`: Rezept von `.venv/.installed` (setup), `clean` | feste Namen im Checkout; `VENV` mit `override`, ein `VENV=…` vom Aufruf greift nicht. Ist `.venv` ein Link, geht nur der Link verloren (`test/_testSetup.sh`) |
 | `rm -f pyproject.toml.bak` | `version.lib.sh` | feste Sicherungsdatei von `sed` |
 | `rm` in den Hooks | `.githooks/pre-commit`, `.githooks/post-commit` | nur eigene Dateien aus `mktemp` |
 

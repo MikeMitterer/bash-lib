@@ -43,7 +43,8 @@ export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 # PYTHON_BOOTSTRAP=… überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
 PYTHON_BOOTSTRAP ?= python3
 export PYTHON_BOOTSTRAP
-VENV         := .venv
+# Mit override: Ein VENV=… vom Aufruf lenkte rm -rf beim Neubau sonst auf einen anderen Ordner.
+override VENV := .venv
 # Nicht PYTHON: Das wählt aus der Umgebung den Interpreter für make test-package.
 VENV_PYTHON  := $(VENV)/bin/python
 VENV_STAMP   := $(VENV)/.installed
@@ -177,13 +178,24 @@ setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in 
 
 # Stempeldatei: nur setup legt sie an. Sie hängt an den Abhängigkeiten ohne Version
 # (DEPENDENCIES); ein Versionssprung in pyproject.toml macht die Einrichtung nicht veraltet.
-$(VENV_STAMP): $(DEPENDENCIES)
-	@source "$${BASH_LIBS}/apps.lib.sh" && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt"
-	@test -x $(VENV_PYTHON) || "$${PYTHON_BOOTSTRAP}" -m venv $(VENV)
+# Sie hängt auch an .venv/bin/python: Fehlt es oder zeigt es nach einem Python-Wechsel ins
+# Leere, ist die Einrichtung veraltet (makefile-conventions, Tote .venv).
+# Ist die .venv ein Link oder startet ihr Python nicht, legt setup sie neu an: pip schriebe sonst
+# ins Ziel des Links. rm -rf entfernt bei einem Link nur den Link, nie sein Ziel. Mit der .venv
+# geht der Stempel der Abhängigkeiten; er entsteht im selben Rezept neu. Scheitert ein Schritt,
+# scheitert das Rezept, ohne Paketinstallation und ohne Stempel.
+$(VENV_STAMP): $(DEPENDENCIES) $(VENV_PYTHON)
+	@[[ ! -L $(VENV) ]] && $(VENV_PYTHON) -c '' 2>/dev/null || { \
+		$(REQUIRE_STARTER) && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt" && \
+		rm -rf $(VENV) && "$${PYTHON_BOOTSTRAP}" -m venv $(VENV) && devtools tstamp $(DEPENDENCIES) pyproject.toml; }
 	@source "$${BASH_LIBS}/cli.lib.sh" && { $(VENV_PYTHON) -m pip install -q --disable-pip-version-check build || { \
 		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
 	@source "$${BASH_LIBS}/cli.lib.sh" && printThemeStatus "✓" "$(VENV) eingerichtet" OK
+
+# Leere Regel: Fehlt .venv/bin/python, ist die Einrichtung veraltet, statt dass make mit „keine
+# Regel“ abbricht. Mit Rezept installierte setup erst beim zweiten Aufruf (makefile-conventions).
+$(VENV_PYTHON): ;
 
 # Fehlt der Stempel (etwa ohne devtools beim Einlesen), legt diese Regel ihn an.
 $(DEPENDENCIES):
