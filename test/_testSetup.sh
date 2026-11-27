@@ -7,7 +7,8 @@
 # Ruft make in einer Kopie mit Makefile, Werkzeug-Tags und src dieses
 # Checkouts auf; die .venv gilt dort als eingerichtet (Stempel), damit der Test
 # nichts aus dem Paketindex lädt. Eine tote, fehlende oder verlinkte .venv baut
-# make mit GNU Make und /usr/bin/make über ein nachgebautes Python neu.
+# make mit GNU Make und /usr/bin/make über ein nachgebautes Python neu
+# (rm -rf .venv, dann venv).
 # Nachgebautes devtools, pipx und Python halten ihre Argumente fest; die Themes
 # legt das echte clitheme in einem eigenen XDG_CONFIG_HOME an.
 #
@@ -30,9 +31,9 @@ work="$(mktemp -d)"
 cleanup() { command rm -rf -- "${work}"; }
 trap cleanup EXIT
 
-# Nachgebautes Python für die .venv: -m venv --clear ORDNER leert den Ordner wie das echte venv
-# (auch hinter einem Link) und legt bin/python an; scheitert mit FAKE_VENV_FAIL. bin/python
-# startet (-c ''), pip install hält nur die Argumente fest, statt den Paketindex zu fragen.
+# Nachgebautes Python für die .venv: -m venv ORDNER legt bin/python an, wie das echte venv auch
+# hinter einem Link; scheitert mit FAKE_VENV_FAIL. bin/python startet (-c ''), pip install hält
+# nur die Argumente fest, statt den Paketindex zu fragen.
 mkdir -p "${work}/py-bin"
 cat > "${work}/py-bin/venv-python" <<'EOF'
 #!/usr/bin/env bash
@@ -44,7 +45,6 @@ cat > "${work}/py-bin/python3" <<EOF
 printf 'bootstrap %s\n' "\$*" >> "\${FAKE_LOG}"
 [[ -z \${FAKE_VENV_FAIL:-} ]] || { echo "venv gescheitert" >&2; exit 1; }
 dir="\${*: -1}"
-[[ ! -d \${dir} ]] || find -H "\${dir}" -mindepth 1 -delete
 mkdir -p "\${dir}/bin"
 cp "${work}/py-bin/venv-python" "\${dir}/bin/python"
 EOF
@@ -139,14 +139,16 @@ venv="${repo}/.venv"
 # Ziel einer verlinkten .venv, außerhalb des Checkouts
 linked="${work}/linked-venv"
 
-# Zustand vor dem Lauf: $1 dead (bin/python zeigt ins Leere), missing (bin/python fehlt) oder
-# link (.venv ist ein Link auf eine eingerichtete venv); die Stempel sind jeweils aktuell
+# Zustand vor dem Lauf: $1 dead (bin/python zeigt ins Leere) oder missing (bin/python fehlt), die
+# Stempel jeweils aktuell; link: .venv ist ein Link auf eine venv mit startendem Python, deren
+# Einrichtung veraltet ist (neue Abhängigkeit), sodass setup dort Pakete installieren würde
 prepareVenv() {
     command rm -rf -- "${venv}" "${linked}"
     case "$1" in
         dead)    setUpVenv "${venv}"; ln -sf "${work}/entfernt/python3.14" "${venv}/bin/python" ;;
         missing) setUpVenv "${venv}"; command rm -f -- "${venv}/bin/python" ;;
-        link)    setUpVenv "${linked}"; ln -s "${linked}" "${venv}" ;;
+        link)    setUpVenv "${linked}"; touch -t 202601020000 "${linked}/.installed"
+                 ln -s "${linked}" "${venv}" ;;
     esac
 }
 # Inhalt des verlinkten Ziels mit Zeitstempeln, um Änderungen zu erkennen
@@ -161,7 +163,7 @@ for MAKE_BIN in make /usr/bin/make; do
             prepareVenv "${kind}"
             runMake "${target}" "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
             assertEquals "0" "${status}" "${label}: Exit 0"
-            assertContains "bootstrap -m venv --clear .venv" "$(cat "${work}/log")" "${label}: .venv mit venv --clear neu"
+            assertContains "bootstrap -m venv .venv" "$(cat "${work}/log")" "${label}: .venv mit venv neu"
             assertContains "venv-python -m pip install" "$(cat "${work}/log")" "${label}: Pakete installiert"
             runMake "${target}" "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
             assertNotContains "bootstrap" "$(cat "${work}/log")" "${label}, zweiter Aufruf: keine neue .venv"
@@ -172,34 +174,33 @@ for MAKE_BIN in make /usr/bin/make; do
 
     label="${MAKE_BIN}, venv scheitert"
     prepareVenv dead
-    touch -t 202601020000 "${venv}/.installed"
-    before="$(stat -f %m "${venv}/.installed")"
     runMake setup "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3" FAKE_VENV_FAIL=1
     assertEquals "1" "$(( status != 0 ))" "${label}: Exit ungleich 0"
     assertContains "venv gescheitert" "${output}" "${label}: Meldung von venv"
     assertNotContains "pip install" "$(cat "${work}/log")" "${label}: keine Paketinstallation"
-    assertEquals "${before}" "$(stat -f %m "${venv}/.installed" 2>/dev/null)" "${label}: Stempel unverändert"
+    assertEquals "no" "$([[ -e ${venv}/.installed ]] && echo yes || echo no)" "${label}: kein Stempel"
 
     label="${MAKE_BIN}, .venv ist ein Link"
     prepareVenv link
     state="$(linkedState)"
     runMake setup "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
     assertEquals "0" "${status}" "${label}: Exit 0"
-    assertContains "war ein Link" "${output}" "${label}: Hinweis"
+    assertContains "bootstrap -m venv .venv" "$(cat "${work}/log")" "${label}: .venv mit venv neu"
     assertEquals "no" "$([[ -L ${venv} ]] && echo yes || echo no)" "${label}: eigene .venv statt des Links"
     assertEquals "${state}" "$(linkedState)" "${label}: Ziel des Links unverändert"
     assertEquals "yes" "$(isUpToDate)" "${label}: danach aktuell (make --question)"
 
-    label="${MAKE_BIN}, Link lässt sich nicht entfernen"
+    # rm -rf scheitert: Der Link liegt in einem schreibgeschützten Checkout
+    label="${MAKE_BIN}, rm -rf scheitert"
     prepareVenv link
     state="$(linkedState)"
     chmod a-w "${repo}"
     runMake setup "${SETUP_PATH}" PYTHON_BOOTSTRAP="${work}/py-bin/python3"
     chmod u+w "${repo}"
     assertEquals "1" "$(( status != 0 ))" "${label}: Exit ungleich 0"
-    assertContains "lässt sich nicht entfernen" "${output}" "${label}: Meldung"
     assertNotContains "bootstrap" "$(cat "${work}/log")" "${label}: keine neue .venv"
-    assertEquals "${state}" "$(linkedState)" "${label}: Ziel des Links unverändert"
+    assertNotContains "pip install" "$(cat "${work}/log")" "${label}: keine Paketinstallation"
+    assertEquals "${state}" "$(linkedState)" "${label}: Ziel des Links samt Stempel unverändert"
 done
 unset MAKE_BIN
 # Eingerichtete .venv für die folgenden Tests

@@ -118,7 +118,7 @@ einen Test abgesichert.
 
 | Vorgang | Stelle | Was läuft, wer legt es fest |
 |---|---|---|
-| Werkzeuge einrichten und prüfen | `DEV_TOOLS` im `Makefile`, genutzt von `setup`, `require-tools`, `info` und `build`; `devtools tstamp` beim Einlesen des Makefiles, also bei jedem `make`-Aufruf, außer `.venv` ist ein Link | Der einmal je Rechner installierte Starter `devtools` läuft ohne die Git-Variablen eines Hooks; verlangt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` einen anderen Stand, lädt er diesen und gibt an ihn weiter. Ein Tag ist kein fester Commit |
+| Werkzeuge einrichten und prüfen | `DEV_TOOLS` im `Makefile`, genutzt von `setup`, `require-tools`, `info` und `build`; `devtools tstamp` beim Einlesen des Makefiles, also bei jedem `make`-Aufruf | Der einmal je Rechner installierte Starter `devtools` läuft ohne die Git-Variablen eines Hooks; verlangt `DEVTOOLS_TAG` in `.dev-tools.conf.sh` einen anderen Stand, lädt er diesen und gibt an ihn weiter. Ein Tag ist kein fester Commit |
 | `make docs-check` | `SKILLS` in `.docs-check.conf.sh` | `docs-check` startet `bin/bashlib --skill` des Checkouts und `--help` der Befehle und lädt jede genannte `*.lib.sh` in einer eigenen Bash, mit denselben Rechten wie die Config |
 | ProjectTools, CLITheme | `.dev-tools.conf.sh` | `make setup` installiert sie mit `devtools --project install` am dortigen Tag nach `.tools/` des Checkouts, mit rechnerlokaler Zuordnung aus den lokalen Repos, sonst von GitHub; `.tools/bin` steht im Makefile vorn im `PATH`. `THEME_CLITHEME_INSTALL` in `cli.lib.sh` nennt nur den Befehl |
 | `make build`, `make build-check` | `Makefile`, `scripts/build-check.sh` | `build` holt die Build-Abhängigkeiten aus dem Paketindex; `build-check` installiert das Wheel mit pipx in ein temporäres `PIPX_HOME`, GitHub ist dabei auf eine ungültige Adresse umgelenkt |
@@ -126,7 +126,7 @@ einen Test abgesichert.
 | venv anlegen | `ensurePythonVenv` in `python.lib.sh` | `pip install` mit den Argumenten des Aufrufers; Fehler werden gemeldet (`test/_testPython.sh`) |
 | Interpreter suchen | `findPython` in `python.lib.sh`, auch über `findPythonFor` und `ensurePythonVenv` ohne `--python` | startet jedes `python3` und `python3.N` im `PATH` mit einer festen Versionsabfrage (`-c`, keine Werte von außen); welche das sind, legt der `PATH` des Aufrufers fest. `/usr/bin/python3` von macOS nur mit Command Line Tools (`test/_testPython.sh`) |
 | `make test-package` | `test/package.test.sh` | `pip` holt setuptools aus dem Paketindex, in temporäre venvs; nicht Teil von `make check` |
-| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`); zeigt `.venv/bin/python` ins Leere, baut es sie mit `venv --clear` neu. In das Ziel einer `.venv`, die ein Link ist, schreibt es nie: vor jedem Schreibschritt entfernt es nur den Link und bricht ab, wenn er bleibt (`test/_testSetup.sh`) |
+| `make setup` | `Makefile` | setzt `core.hooksPath` auf `.githooks`. Danach laufen die Hooks des Checkouts bei jedem Commit, `post-commit` startet zusätzlich den lokalen Hook. Legt die `.venv` an (`pip install build`); startet `.venv/bin/python` nicht oder ist `.venv` ein Link, löscht es sie mit `rm -rf` und legt sie mit `venv` neu an. `rm -rf` entfernt bei einem Link nur den Link; pip installiert nie in sein Ziel, nur `devtools tstamp` beim Einlesen kann dort `.dependencies` schreiben (`test/_testSetup.sh`) |
 
 ### Fremde Befehle
 
@@ -157,6 +157,7 @@ sein Inhalt. Das ist am Code gelesen; keine Prüfung hält es fest.
 | `rm -rf .dart_tool`, `rm -f web/index.html.bak` | `deploySamples` in `samples.lib.sh` | feste Namen, im selben Ordner wie oben |
 | `build_runner --delete-conflicting-outputs` | `samples.lib.sh` | erzeugte Dateien, die Dart-Werkzeuge entscheiden |
 | `mv` auf den Zielordner | `syncToLocalDir` in `fs.lib.sh` | nichts: Der Ordner aus dem Argument wandert in den Backup-Ordner |
+| `rm -rf .venv`, `rm -rf -- .venv .tools dist build` | `Makefile`: Rezept von `.venv/.installed` (setup), `clean` | feste Namen im Checkout; `VENV` mit `override`, ein `VENV=…` vom Aufruf greift nicht. Ist `.venv` ein Link, geht nur der Link verloren (`test/_testSetup.sh`) |
 | `rm -f pyproject.toml.bak` | `version.lib.sh` | feste Sicherungsdatei von `sed` |
 | `rm` in den Hooks | `.githooks/pre-commit`, `.githooks/post-commit` | nur eigene Dateien aus `mktemp` |
 

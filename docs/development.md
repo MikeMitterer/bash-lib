@@ -44,10 +44,9 @@ Version schreibt: Ein Release macht die Einrichtung nicht veraltet, eine
 geänderte Abhängigkeit schon. Fehlt der Starter oder scheitert die
 Installation der Werkzeuge, bricht `make setup` ab. Ein zweiter Lauf ist schnell und ändert nichts.
 Fehlt `.venv/bin/python` oder zeigt es nach einem Python-Wechsel ins Leere, gilt die
-Einrichtung als veraltet: `make setup` (ebenso `make build` und `require-setup`) baut die
-`.venv` mit `venv --clear` neu. In das Ziel einer `.venv`, die ein Link ist, schreibt make
-nie; es entfernt nur den Link und legt eine eigene `.venv` an, bleibt der Link, bricht es
-ab. Außerhalb des Checkouts
+Einrichtung als veraltet: `make setup` (ebenso `make build` und `require-setup`) löscht die
+`.venv` mit `rm -rf` und legt sie mit `venv` neu an. Das gilt auch für eine `.venv`, die ein
+Link ist: `rm -rf` entfernt nur den Link, pip schreibt nie in sein Ziel. Außerhalb des Checkouts
 ändert `make setup` nur die Paket-Caches und `core.hooksPath`; `make clean`
 entfernt `.venv`, `.tools/`, `dist/` und `build/` wieder.
 

@@ -43,7 +43,7 @@ export PATH := $(WORKSPACE)/.tools/bin:$(PATH)
 # PYTHON_BOOTSTRAP=… überschreibt den Interpreter, als Wert von außen nur über die Umgebung.
 PYTHON_BOOTSTRAP ?= python3
 export PYTHON_BOOTSTRAP
-# Mit override: Ein VENV=… vom Aufruf ließe venv --clear sonst einen Ordner außerhalb leeren.
+# Mit override: Ein VENV=… vom Aufruf lenkte rm -rf beim Neubau sonst auf einen anderen Ordner.
 override VENV := .venv
 # Nicht PYTHON: Das wählt aus der Umgebung den Interpreter für make test-package.
 VENV_PYTHON  := $(VENV)/bin/python
@@ -55,19 +55,7 @@ SETUP_STAMPS := $(VENV_STAMP)
 # macht die Einrichtung so nicht veraltet. Beim Einlesen, damit make -q (require-setup) den
 # neuen Stand sieht.
 DEPENDENCIES := $(VENV)/.dependencies
-
-# Eine .venv, die ein Link ist, beschreibt das Makefile nie (makefile-conventions, Tote .venv):
-# Beim Einlesen bleibt sie unberührt, die Einrichtung gilt aber als veraltet. Vor jedem
-# Schreibschritt entfernt LOCAL_VENV nur den Link und bricht ab, wenn er danach noch da ist.
-VENV_IS_LINK := $(shell test -L $(VENV) && echo yes)
-LOCAL_VENV = if [[ -L $(VENV) ]]; then rm -f $(VENV); [[ ! -L $(VENV) ]] || { \
-	echo "  ✗ $(VENV) ist ein Link und lässt sich nicht entfernen; von Hand: rm $${WORKSPACE_SQ}/$(VENV)" >&2; \
-	exit 1; }; echo "  ! $(VENV) war ein Link; setup legt eine eigene venv an" >&2; fi
-ifeq ($(VENV_IS_LINK),yes)
-.PHONY: $(VENV_PYTHON)
-else
 $(shell devtools tstamp $(DEPENDENCIES) pyproject.toml 2>/dev/null)
-endif
 
 # ─── Hilfe ───────────────────────────────────────────────────────────────────
 
@@ -191,14 +179,15 @@ setup: $(SETUP_STAMPS) ## Bereit zum Entwickeln: Git-Hooks, .venv, Werkzeuge in 
 # Stempeldatei: nur setup legt sie an. Sie hängt an den Abhängigkeiten ohne Version
 # (DEPENDENCIES); ein Versionssprung in pyproject.toml macht die Einrichtung nicht veraltet.
 # Sie hängt auch an .venv/bin/python: Fehlt es oder zeigt es nach einem Python-Wechsel ins
-# Leere, ist die Einrichtung veraltet, und setup baut die .venv mit venv --clear neu.
-# --clear räumt auch den Stempel der Abhängigkeiten; er entsteht im selben Rezept neu, als
-# ganzer Block an den Erfolg von venv gebunden.
+# Leere, ist die Einrichtung veraltet (makefile-conventions, Tote .venv).
+# Ist die .venv ein Link oder startet ihr Python nicht, legt setup sie neu an: pip schriebe sonst
+# ins Ziel des Links. rm -rf entfernt bei einem Link nur den Link, nie sein Ziel. Mit der .venv
+# geht der Stempel der Abhängigkeiten; er entsteht im selben Rezept neu. Scheitert ein Schritt,
+# scheitert das Rezept, ohne Paketinstallation und ohne Stempel.
 $(VENV_STAMP): $(DEPENDENCIES) $(VENV_PYTHON)
-	@{ [[ ! -L $(VENV) ]] && $(VENV_PYTHON) -c '' 2>/dev/null; } || { \
+	@[[ ! -L $(VENV) ]] && $(VENV_PYTHON) -c '' 2>/dev/null || { \
 		$(REQUIRE_STARTER) && requireCommand "$${PYTHON_BOOTSTRAP}" "PYTHON_BOOTSTRAP=… überschreibt" && \
-		{ $(LOCAL_VENV); } && "$${PYTHON_BOOTSTRAP}" -m venv --clear $(VENV) && \
-		devtools tstamp $(DEPENDENCIES) pyproject.toml; }
+		rm -rf $(VENV) && "$${PYTHON_BOOTSTRAP}" -m venv $(VENV) && devtools tstamp $(DEPENDENCIES) pyproject.toml; }
 	@source "$${BASH_LIBS}/cli.lib.sh" && { $(VENV_PYTHON) -m pip install -q --disable-pip-version-check build || { \
 		printThemeStatus "✗" "build nicht installiert: Netz und Paketindex prüfen" ERR >&2; exit 1; }; }
 	@touch "$@"
@@ -208,10 +197,9 @@ $(VENV_STAMP): $(DEPENDENCIES) $(VENV_PYTHON)
 # Regel“ abbricht. Mit Rezept installierte setup erst beim zweiten Aufruf (makefile-conventions).
 $(VENV_PYTHON): ;
 
-# Fehlt der Stempel (etwa ohne devtools beim Einlesen), legt diese Regel ihn an; nie im Ziel
-# einer verlinkten .venv.
+# Fehlt der Stempel (etwa ohne devtools beim Einlesen), legt diese Regel ihn an.
 $(DEPENDENCIES):
-	@$(LOCAL_VENV); $(REQUIRE_STARTER) && devtools tstamp "$@" pyproject.toml
+	@$(REQUIRE_STARTER) && devtools tstamp "$@" pyproject.toml
 
 # Ohne `##`: Fehlt die Einrichtung oder ist sie veraltet, läuft make setup (requireMakeSetup),
 # sonst nichts. Eingerichtet wird weiter nur über setup (worktree_setup).
