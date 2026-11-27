@@ -97,6 +97,11 @@ Es gilt die Regel `schlanke-tests`. Für BashLib heißt das:
   Installationsfehler ab (`test/_testMakeInstall.sh`), ein nachgebauter Starter
   `devtools` die Einrichtung (`test/_testSetup.sh`),
   `false` an der Stelle von clitheme einen scheiternden Export (`test/_testTheme.sh`).
+- **Fehlendes Werkzeug nachstellen:** Der PATH ist ein eigener Ordner aus
+  `isolatedPath` (`test/isolated-path.sh`), ohne das Werkzeug, wo immer es installiert
+  ist (`pipx` liegt unter Homebrew neben `bash`, unter Debian in `/usr/bin`).
+  `requireMissing` prüft den PATH, den make tatsächlich nutzt, also mit `.tools/bin`
+  des Checkouts davor, und bricht ab, wenn das Werkzeug dort doch liegt.
 - **Fremde Eingaben:** Ein Test mit `$(…)` belegt, dass nichts ausgeführt wird,
   nicht nur, dass der Text ankommt (`test/_testMakeTag.sh`).
 - **Geänderte Prüfungen** laufen einmal rot (Guard `failing-check-first`).

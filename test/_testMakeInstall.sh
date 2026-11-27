@@ -37,9 +37,11 @@ echo "  These apps are now available"
 EOF
 chmod +x "${work}/bin/pipx"
 
-# Ohne ~/.local/bin, damit ein installiertes pipx nicht mitspielt.
-# Die Bash 5 steht vor /bin (macOS: Bash 3.2), sonst bricht cli.lib.sh ab.
-BASE_PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin:$(dirname "$(command -v make)")"
+# PATH ohne pipx und devtools, wo immer sie installiert sind (isolated-path.sh); make stellt
+# .tools/bin dieses Checkouts davor, auch dort dürfen sie nicht liegen.
+. "${ROOT}/test/isolated-path.sh"
+BASE_PATH="$(isolatedPath "${work}/base-bin" "pipx devtools" bash make git)" || exit 1
+requireMissing "${ROOT}/.tools/bin:${BASE_PATH}" pipx devtools
 
 # Setzt output (ohne Farbcodes) und status. $1 PATH, weitere Argumente: Umgebung für make
 runInstall() {
