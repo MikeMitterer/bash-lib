@@ -2,6 +2,21 @@
 
 Aus Release-Tags und Conventional Commits erzeugt.
 
+## v0.19.0+261127.1553.8152d — 2026-11-27
+
+make setup baut eine tote .venv nach einem Python-Wechsel neu; Tests stellen fehlende Werkzeuge mit isoliertem PATH nach
+
+### Fehlerkorrekturen
+
+- tote .venv nach einem Python-Wechsel erkennen und neu bauen (T-93) (`eaad87f`)
+- fehlende Werkzeuge mit minimalem PATH nachstellen (T-95) (`32d6d74`)
+- fehlende Werkzeuge in einem isolierten PATH nachstellen (T-95, R1-F1, R1-F2) (`7c6acc1`)
+- Ziel einer verlinkten .venv auf macOS und Linux prüfen (T-93, R1-F1, R1-F2) (`88e6a78`)
+
+### Weitere Änderungen
+
+- tote .venv mit rm -rf und venv neu bauen, ohne eigenen Link-Schutz (T-93, T-94) (`33040f5`)
+
 ## v0.18.0+261126.1918.612e2 — 2026-11-26
 
 requires-python mit Obergrenze (\>=X.Y,\<X.Y) und findPythonFor in python.lib.sh
