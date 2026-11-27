@@ -400,8 +400,11 @@ for name in showMakeHelp showMakeInfo showMakeHints; do
     assertEquals "1" "${rc}" "make.lib.sh: ${name} entfernt"
 done
 # Ohne clitheme im PATH: keine Farben, auch nicht in den Zeilen, die Make selbst ausgibt.
-# Die Bash 5 steht vor /bin (macOS: Bash 3.2), sonst bricht cli.lib.sh ab.
-nocolor="$(env PATH="$(dirname "$(command -v bash)"):/usr/bin:/bin" make --no-print-directory -C "${ROOT}" help 2>&1)"
+# Nur bash aus dem PATH, ohne seinen Ordner (minimal-path.sh); make kommt aus /usr/bin.
+. "${ROOT}/test/minimal-path.sh"
+noThemePath="$(minimalPath "${work}/no-theme-bin" bash)" || exit 1
+requireMissing "${noThemePath}" clitheme
+nocolor="$(env PATH="${noThemePath}" make --no-print-directory -C "${ROOT}" help 2>&1)"
 assertNotContains "${ESC}" "${nocolor}" "make help ohne clitheme: keine Escape-Folgen"
 assertContains "Project:" "${nocolor}" "make help ohne clitheme: läuft"
 assertContains "→" "$(grep -E '^ +tag-minor ' <<< "${help}")" "make help: tag-minor mit Versionsvorschau"
@@ -507,7 +510,7 @@ assertEquals "0" "${rc}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, make help Exi
 assertContains "Show this help" "${help}" "Beispiel: BASH_LIBS mit \$(…) im Pfad, Hilfe da"
 created=""
 for entry in "${work}"/*; do
-    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|counted|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
+    case "${entry##*/}" in config|cache|err|setup|setup.*|project|version.out|count-bin|no-theme-bin|counted|calls|defaults-*|precheck.err|"it's"*|"libs "*|"x\$(shell"*|*.mk|Makefile) ;; *) created+="${entry##*/} " ;; esac
 done
 assertEquals "" "${created}" "nichts aus dem Pfad ausgeführt"
 
